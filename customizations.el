@@ -20,6 +20,9 @@
  '(fci-rule-color "#eee8d5")
  '(foreground-color "#5c5cff")
  '(magit-log-arguments (quote ("--graph" "--color" "--decorate" "-n256")))
+ '(org-agenda-files
+   (quote
+    ("~/Dropbox/Private/Clojure/chocolatier/todo.org" "/Users/alexkehayias/DropBox/org/accomplishments.org" "/Users/alexkehayias/DropBox/org/canary.org" "/Users/alexkehayias/DropBox/org/citrine.org" "/Users/alexkehayias/DropBox/org/fr8.org" "/Users/alexkehayias/DropBox/org/ideas.org" "/Users/alexkehayias/DropBox/org/personal.org" "/Users/alexkehayias/DropBox/org/recovery.org" "/Users/alexkehayias/DropBox/org/refile.org" "/Users/alexkehayias/DropBox/org/sanctuary.org" "/Users/alexkehayias/DropBox/org/standardai.org" "/Users/alexkehayias/DropBox/org/tech.org" "/Users/alexkehayias/DropBox/org/wedding.org")))
  '(send-mail-function nil)
  '(vc-annotate-background "#2b2b2b")
  '(vc-annotate-color-map
