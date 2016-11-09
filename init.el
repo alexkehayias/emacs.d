@@ -183,6 +183,9 @@
   (interactive)
   (compile "lein kibit"))
 
+;; Use paredit mode
+(add-hook 'clojure-mode-hook 'paredit-mode)
+
 ;; Rainbow parantheses
 (require 'rainbow-delimiters)
 (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
@@ -446,16 +449,6 @@
   ;; Automatically save project python buffers before refactorings
   (setq ropemacs-confirm-saving 'nil))
 
-;; Rename ansi-terms
-(defun new-term (buffer-name)
-  "Start a terminal and rename buffer."
-  (interactive "sbuffer name: ")
-  (ansi-term "/bin/bash")
-  (rename-buffer buffer-name t))
-
-;; Shortcut to create a new term
-(define-key global-map (kbd "C-x M-t") 'new-term)
-
 ;; Shortcut to jump word and ignore underscore
 (define-key global-map (kbd "M-F") 'forward-sexp)
 (define-key global-map (kbd "M-B") 'forward-sexp)
@@ -715,18 +708,29 @@
 ;; browse-kill-ring with M-y
 (browse-kill-ring-default-keybindings)
 
-;; Create a sensible ansi-term
-(defun visit-term-buffer ()
-  "Create or visit a terminal buffer."
-  (interactive)
-  (if (not (get-buffer "*ansi-term*"))
-      (progn
-        (split-window-sensibly (selected-window))
-        (other-window 1)
-        (ansi-term (getenv "SHELL")))
-    (switch-to-buffer-other-window "*ansi-term*")))
+;; Terminal helper functions
+(defun new-term (buffer-name)
+  "Start a terminal and rename buffer."
+  (interactive "sbuffer name: ")
+  (ansi-term (get-env "SHELL"))
+  (rename-buffer buffer-name t))
 
-(global-set-key (kbd "C-x M-t") 'visit-term-buffer)
+(defun projectile-term ()
+  "Create an ansi-term at the project root"
+  (interactive)
+  (let ((root (projectile-project-root))
+	(buff-name (concat " [term] " (projectile-project-root))))
+    (if (get-buffer buff-name)
+      (switch-to-buffer-other-window buff-name)
+      (progn
+	(split-window-sensibly (selected-window))
+	(other-window 1)
+	(setq default-directory root)
+	(ansi-term (getenv "SHELL"))
+	(rename-buffer buff-name t)))))
+
+;; Shortcut to create a new term in the current project
+(global-set-key (kbd "C-x M-t") 'projectile-term)
 (put 'downcase-region 'disabled nil)
 (put 'upcase-region 'disabled nil)
 (org-batch-store-agenda-views)
