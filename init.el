@@ -66,6 +66,11 @@
 ;; (elpy-use-ipython)
 (setq elpy-rpc-backend "rope")
 
+;; Rust
+(require 'rust-mode)
+(add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-mode))
+(add-hook 'rust-mode-hook 'cargo-minor-mode)
+
 ;; Ruby
 
 (require 'flymake-ruby)
@@ -146,9 +151,13 @@
 ;; Auto-complete company-mode
 (add-hook 'after-init-hook 'global-company-mode)
 
+(defun prev-window ()
+  (interactive)
+  (other-window -1))
+
 ;; Shortcuts for going forward and backwards cycling windows
 (global-set-key (kbd "C-x p") 'other-window)
-(global-set-key (kbd "C-x o") 'previous-multiframe-window)
+(global-set-key (kbd "C-x o") 'prev-window)
 
 ;; Expand region
 (add-to-list 'load-path "~/.emacs.d/packages/expand-region")
@@ -712,7 +721,7 @@
 (defun new-term (buffer-name)
   "Start a terminal and rename buffer."
   (interactive "sbuffer name: ")
-  (ansi-term (get-env "SHELL"))
+  (ansi-term (getenv "SHELL"))
   (rename-buffer buffer-name t))
 
 (defun projectile-term ()
