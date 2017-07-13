@@ -8,7 +8,7 @@
  '(ansi-color-faces-vector
    [default bold shadow italic underline bold bold-italic bold])
  '(ansi-color-names-vector
-   (vector "#657b83" "#dc322f" "#859900" "#b58900" "#268bd2" "#d33682" "#2aa198" "#fdf6e3"))
+   ["#FFFFFF" "#d15120" "#5f9411" "#d2ad00" "#6b82a7" "#a66bab" "#6b82a7" "#505050"])
  '(background-color "#7f7f7f")
  '(background-mode dark)
  '(cursor-color "#5c5cff")
@@ -17,12 +17,13 @@
  '(elpy-default-minor-modes
    (quote
     (eldoc-mode flymake-mode yas-minor-mode auto-complete-mode)))
- '(fci-rule-color "#eee8d5")
+ '(fci-rule-color "#d9d9d9")
+ '(flycheck-javascript-flow-args nil)
  '(foreground-color "#5c5cff")
  '(magit-log-arguments (quote ("--graph" "--color" "--decorate" "-n256")))
- '(org-agenda-files
+ '(package-selected-packages
    (quote
-    ("~/Dropbox/Private/Clojure/chocolatier/todo.org" "/Users/alexkehayias/DropBox/org/accomplishments.org" "/Users/alexkehayias/DropBox/org/canary.org" "/Users/alexkehayias/DropBox/org/citrine.org" "/Users/alexkehayias/DropBox/org/fr8.org" "/Users/alexkehayias/DropBox/org/ideas.org" "/Users/alexkehayias/DropBox/org/personal.org" "/Users/alexkehayias/DropBox/org/recovery.org" "/Users/alexkehayias/DropBox/org/refile.org" "/Users/alexkehayias/DropBox/org/sanctuary.org" "/Users/alexkehayias/DropBox/org/standardai.org" "/Users/alexkehayias/DropBox/org/tech.org" "/Users/alexkehayias/DropBox/org/wedding.org")))
+    (helm-ag rotate ox-jira powerline yaml-mode web-mode virtualenvwrapper use-package twilight-bright-theme sws-mode sos smex smartparens slack sass-mode robe rainbow-delimiters racer projectile-ripgrep prodigy popwin paredit pallet ox-reveal ox-gfm org-alert nyan-mode multiple-cursors markdown-mode magit keyfreq json-mode jade-mode iedit idle-highlight-mode htmlize helm-projectile handlebars-mode golden-ratio git-gutter flymake-ruby flycheck-rust flycheck-flow flycheck-cask flx-ido expand-region exec-path-from-shell elpy dumb-jump drag-stuff doom-themes company-flow color-theme coffee-mode cargo browse-kill-ring ace-jump-mode)))
  '(send-mail-function nil)
  '(vc-annotate-background "#2b2b2b")
  '(vc-annotate-color-map
@@ -63,13 +64,15 @@
  '(linum ((t (:foreground "#bcbcbc" :background "#232526"))))
  '(match ((t (:background "color-28"))))
  '(minibuffer-prompt ((t (:foreground "color-33"))))
- '(mode-line ((t (:background "#232526" :foreground "#F8F8F2"))))
+ '(mode-line ((t (:background "#232526" :foreground "#F8F8F2" :box (:line-width 8 :color "default")))))
  '(mode-line-inactive ((t (:foreground "#232526" :background "#232526" :box nil))))
  '(org-clock-overlay ((t (:background "gray10" :foreground "white"))))
  '(org-column ((t (:background "black" :strike-through nil :underline nil :slant normal :weight normal))))
- '(org-document-info ((t (:foreground "color-21"))))
- '(org-document-title ((t (:foreground "color-21" :weight bold))))
+ '(org-document-info ((t (:foreground "dark gray"))))
+ '(org-document-title ((t (:foreground "dark gray" :weight bold))))
  '(org-hide ((t (:foreground "color-16"))))
+ '(org-level-4 ((t (:weight semi-light))))
  '(org-todo ((t (:foreground "Pink" :weight bold))))
  '(org-warning ((t (:background "dark red" :foreground "White"))))
+ '(term-underline ((t (:foreground "dark cyan" :underline t))))
  '(widget-field ((t nil))))
