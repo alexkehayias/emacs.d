@@ -52,38 +52,13 @@
 ;; Shortcut for rectangle edits
 (global-set-key (kbd "C-x r i") 'string-insert-rectangle)
 
-;; ;; term color overide???
-;; (defface term-color-black
-;;   '((t (:foreground "#3f3f3f" :background "#272822")))
-;;   "Unhelpful docstring.")
-;; (defface term-color-red
-;;   '((t (:foreground "#cc9393" :background "#272822")))
-;;   "Unhelpful docstring.")
-;; (defface term-color-green
-;;   '((t (:foreground "#7f9f7f" :background "#272822")))
-;;   "Unhelpful docstring.")
-;; (defface term-color-yellow
-;;   '((t (:foreground "#f0dfaf" :background "#272822")))
-;;   "Unhelpful docstring.")
-;; (defface term-color-blue
-;;   '((t (:foreground "#6d85ba" :background "#272822")))
-;;   "Unhelpful docstring.")
-;; (defface term-color-magenta
-;;   '((t (:foreground "#dc8cc3" :background "#272822")))
-;;   "Unhelpful docstring.")
-;; (defface term-color-cyan
-;;   '((t (:foreground "#93e0e3" :background "#272822")))
-;;   "Unhelpful docstring.")
-;; (defface term-color-white
-;;   '((t (:foreground "#dcdccc" :background "#272822")))
-;;   "Unhelpful docstring.")
-;; '(term-default-fg-color ((t (:inherit term-color-white))))
-;; '(term-default-bg-color ((t (:inherit term-color-black))))
+;; Emdash
+(defun insert-em-dash ()
+  "Insert a em-dash"
+  (interactive)
+  (insert "—"))
+(global-set-key [(meta _)] 'insert-em-dash)
 
-;; ;; ansi-term colors
-;; (setq ansi-term-color-vector
-;;   [term term-color-black term-color-red term-color-green term-color-yellow
-;;     term-color-blue term-color-magenta term-color-cyan term-color-white])
 
 ;; Always use Chrome when opening links
 (setq browse-url-browser-function 'browse-url-default-macosx-browser)
@@ -114,6 +89,7 @@
   :ensure t
   :config
   (global-flycheck-mode)
+  (setq flycheck-global-modes '(not rust-mode))
   (global-set-key (kbd "C-c M-n") 'flycheck-next-error)
   (global-set-key (kbd "C-c M-p") 'flycheck-previous-error))
 
@@ -141,12 +117,16 @@
 (use-package rust-mode
   :ensure t
   :config
+  ;; Enable company-mode for auto complete
+  (add-hook 'rust-mode-hook 'company-mode)
   (define-key rust-mode-map (kbd "TAB") #'company-indent-or-complete-common)
   (setq company-tooltip-align-annotations t)
+
   ;; Auto format code
   (add-hook 'rust-mode-hook
 	    (lambda ()
 	      (local-set-key (kbd "C-c <tab>") #'rust-format-buffer)))
+
   (defun rust-unicode ()
     (interactive)
     (substitute-patterns-with-unicode
@@ -164,11 +144,6 @@
 
   (add-hook 'rust-mode-hook 'rust-unicode))
 
-(use-package flycheck-rust
-  :ensure t
-  :config
-  (add-hook 'flycheck-mode-hook #'flycheck-rust-setup))
-
 (use-package cargo
   :ensure t
   :config
@@ -177,7 +152,23 @@
 (use-package eglot
   :ensure t
   :config
-  (add-hook 'rust-mode-hook 'eglot-ensure))
+  (add-hook 'rust-mode-hook 'eglot-ensure)
+  (global-set-key (kbd "M-n") 'flymake-goto-next-error)
+  (global-set-key (kbd "M-p") 'flymake-goto-prev-error)
+
+  ;; Better support for rust projects with multiple sub projects
+  (defun my-project-try-cargo-toml (dir)
+    (when-let* ((output
+                 (let ((default-directory dir))
+                   (shell-command-to-string "cargo metadata --no-deps --format-version 1")))
+                (js (ignore-errors (json-read-from-string output)))
+                (found (cdr (assq 'workspace_root js))))
+      (cons 'eglot-project found)))
+
+  (cl-defmethod project-roots ((project (head eglot-project)))
+    (list (cdr project)))
+
+  (add-hook 'project-find-functions 'my-project-try-cargo-toml nil nil))
 
 ;; Elisp
 (use-package paredit
@@ -238,6 +229,9 @@
   :ensure t
   :config
   (add-to-list 'auto-mode-alist '("\\.md$" . markdown-mode)))
+
+;; Markdown
+(use-package writeroom-mode :ensure t)
 
 ;; Linum mode shortcut
 (global-set-key (kbd "C-x l") 'linum-mode)
@@ -322,7 +316,13 @@
   (setq nrepl-popup-stacktraces-in-repl t)
 
   ;; Disable auto-selection of the error buffer when it's displayed:
-  (setq cider-auto-select-error-buffer nil))
+  (setq cider-auto-select-error-buffer nil)
+
+  ;; Instructions for M-x cider-jack-in-clojurescript
+  (setq cider-cljs-lein-repl
+        "(do (require 'figwheel-sidecar.repl-api)
+           (figwheel-sidecar.repl-api/start-figwheel!)
+           (figwheel-sidecar.repl-api/cljs-repl))"))
 
 ;; Flyspell mode
 (use-package flyspell
@@ -523,20 +523,15 @@
   (setq org-indirect-buffer-display 'current-window)
 
 ;;;; Refile settings
-  (add-hook 'org-after-todo-statistics-hook 'org-summary-todo))
+  (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
+
+  ;; Time format for clock table durations as h:mm
+  (setq org-duration-format (quote h:mm)))
 
 ;; Org export reveal
 (use-package htmlize :ensure t)
-;; (use-package ox-reveal :ensure t)
+(use-package ox-reveal :ensure t)
 (use-package ox-jira :ensure t)
-
-;; Hyper org-mode to synchronize org files
-;; (add-to-list 'load-path "~/.emacs.d/vendor/hyper-org-mode")
-;; (require 'hyper-org-mode)
-;; (setq hyper-org-dir "/.hyper-org")
-;; (setq hyper-org-url "http://127.0.0.1:1986")
-;; (setq hyper-org-files (list "todo.org"))
-;; (setq hyper-org-sync-freq-sec 5)
 
 ;; Macro for running a function repeatedly in the back ground
 ;; https://github.com/punchagan/dot-emacs/blob/master/punchagan.org
@@ -567,6 +562,11 @@
 
 ;; Shortcut to create a new term
 (define-key global-map (kbd "C-x M-t") 'new-term)
+
+;; Speed up ansi-term in emacs 24.x by skipping guessing left-to-right input
+(add-hook 'term-mode-hook 'my-term-mode-hook)
+(defun my-term-mode-hook ()
+  (setq bidi-paragraph-direction 'left-to-right))
 
 ;; Shortcut to jump word and ignore underscore
 (define-key global-map (kbd "M-F") 'forward-sexp)
@@ -605,21 +605,6 @@
            (setq centered t))))
 
 (define-key global-map (kbd "C-c M-t") 'center-text-mode)
-
-;; sexp mouse support
-;; (unless window-system
-;;   (require 'mouse)
-;;   (xterm-mouse-mode t)
-;;   (global-set-key [mouse-4] '(lambda ()
-;;                                (interactive)
-;;                                (scroll-down 1)))
-;;   (global-set-key [mouse-5] '(lambda ()
-;;                                (interactive)
-;;                                (scroll-up 1)))
-;;   (defun track-mouse (e))
-;;   (setq mouse-sel-mode t))
-
-;; (setq mac-emulate-three-button-mouse t)
 
 ;; Enable system clipboard
 (setq x-select-enable-clipboard t)
@@ -877,6 +862,8 @@
 	  (error "You're not in a project"))
       (error "helm-ag not available"))))
 
+(use-package helm-rg :ensure t)
+
 ;; browse-kill-ring with M-y
 (use-package browse-kill-ring
   :ensure t
@@ -923,9 +910,9 @@
 ;; When using gui emacs with emacsclient, the following makes sure the
 ;; window is opened with the correct font size otherwise it will
 ;; revert to 13px for font size
-(add-to-list 'default-frame-alist '(font . "Monaco"))
+(add-to-list 'default-frame-alist '(font . "Cascadia Code"))
 ;; Make the default face the same font
-(set-face-attribute 'default t :font "Monaco")
+(set-face-attribute 'default t :font "Cascadia Code")
 (set-face-attribute 'default nil :height 120)
 ;; Font for all unicode characters
 (set-fontset-font t 'unicode "Font Awesome" nil 'prepend)
@@ -1014,9 +1001,12 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(custom-safe-themes
+   (quote
+    ("423435c7b0e6c0942f16519fa9e17793da940184a50201a4d932eafe4c94c92d" "c8f959fb1ea32ddfc0f50db85fea2e7d86b72bb4d106803018be1c3566fd6c72" "2d392972cbe692ee4ac61dc79907af65051450caf690a8c4d36eb40c1857ba7d" "7f74a3b9a1f5e3d31358b48b8f8a1154aab2534fae82c9e918fb389fca776788" "fefab1b6d3366a959c78b4ed154018d48f4ec439ce652f4748ef22945ca7c2d5" "cdb3e7a8864cede434b168c9a060bf853eeb5b3f9f758310d2a2e23be41a24ae" "2a3ffb7775b2fe3643b179f2046493891b0d1153e57ec74bbe69580b951699ca" "071f5702a5445970105be9456a48423a87b8b9cfa4b1f76d15699b29123fb7d8" "0d087b2853473609d9efd2e9fbeac088e89f36718c4a4c89c568dd1b628eae41" "001c2ff8afde9c3e707a2eb3e810a0a36fb2b466e96377ac95968e7f8930a7c5" "9954ed41d89d2dcf601c8e7499b6bb2778180bfcaeb7cdfc648078b8e05348c6" "a6e3dec0d16222cc5747743c87ef7da79186f7282e2ec4ff74c7f08ed7fe28d2" default)))
  '(package-selected-packages
    (quote
-    (eglot web-mode use-package sos sass-mode robe rainbow-delimiters python-mode projectile-ripgrep processing-mode paredit ox-jira magit json-mode htmlize helm-projectile golden-ratio flycheck-rust flx-ido expand-region exec-path-from-shell elpy doom-themes doom-modeline cider cargo browse-kill-ring ace-jump-mode))))
+    (projectile org-reveal ox-reveal writeroom-mode helm-rg eglot web-mode use-package sos sass-mode robe rainbow-delimiters python-mode projectile-ripgrep processing-mode paredit ox-jira magit json-mode htmlize helm-projectile golden-ratio flycheck-rust flx-ido expand-region exec-path-from-shell elpy doom-themes doom-modeline cargo browse-kill-ring ace-jump-mode))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
