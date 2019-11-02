@@ -102,7 +102,7 @@
     (setq web-mode-css-indent-offset 2)
     (setq web-mode-code-indent-offset 2)
     (setq web-mode-enable-auto-pairing t)
-    (setq web-mode-enable-css-coloriztion t))
+    (setq web-mode-enable-css-colorization t))
   (add-hook 'web-mode-hook 'web-mode-customization)
   ;; Javascript
   (add-to-list 'auto-mode-alist '("\\.js$" . web-mode))
@@ -116,45 +116,29 @@
 
 (use-package rust-mode
   :ensure t
+  :after (company eglot)
   :config
-  ;; Enable company-mode for auto complete
-  (add-hook 'rust-mode-hook 'company-mode)
+  (add-hook 'rust-mode-hook #'company-mode)
+
   (define-key rust-mode-map (kbd "TAB") #'company-indent-or-complete-common)
-  (setq company-tooltip-align-annotations t)
 
-  ;; Auto format code
-  (add-hook 'rust-mode-hook
-	    (lambda ()
-	      (local-set-key (kbd "C-c <tab>") #'rust-format-buffer)))
+  (define-key rust-mode-map (kbd "C-c TAB") #'rust-format-buffer)
 
-  (defun rust-unicode ()
-    (interactive)
-    (substitute-patterns-with-unicode
-     (list (cons "\\(<-\\)" 'left-arrow)
-           (cons "\\(->\\)" 'right-arrow)
-           (cons "\\[^=\\]\\(=\\)\\[^=\\]" 'equal)
-           (cons "\\(==\\)" 'identical)
-           (cons "\\(\\!=\\)" 'not-identical)
-           (cons "\\<\\(sqrt\\)\\>" 'square-root)
-           (cons "\\<\\(not\\)\\>" 'logical-neg)
-           (cons "\\(>\\)\\[^=\\]" 'greater-than)
-           (cons "\\(<\\)\\[^=\\]" 'less-than)
-           (cons "\\(>=\\)" 'greater-than-or-equal-to)
-           (cons "\\(<=\\)" 'less-than-or-equal-to))))
-
-  (add-hook 'rust-mode-hook 'rust-unicode))
+  (add-hook 'rust-mode-hook 'eglot-ensure))
 
 (use-package cargo
   :ensure t
   :config
-  (add-hook 'rust-mode-hook 'cargo-minor-mode))
+  (add-hook 'rust-mode-hook 'cargo-minor-mode)
+  (define-key cargo-minor-mode-map (kbd "C-c C-c C-l") 'cargo-process-clippy)
+)
 
 (use-package eglot
   :ensure t
   :config
-  (add-hook 'rust-mode-hook 'eglot-ensure)
   (global-set-key (kbd "M-n") 'flymake-goto-next-error)
   (global-set-key (kbd "M-p") 'flymake-goto-prev-error)
+  (define-key eglot-mode-map (kbd "C-c h") 'eglot-help-at-point)
 
   ;; Better support for rust projects with multiple sub projects
   (defun my-project-try-cargo-toml (dir)
@@ -403,9 +387,10 @@
   (setq org-agenda-timegrid-use-ampm 1)
 
   ;; Always show the current day in org agenda
-  (setq org-agenda-time-grid '((daily today today)
-			       #("----------------" 0 16 (org-heading t))
-			       (800 1000 1200 1400 1600 1800 2000)))
+  (setq org-agenda-time-grid (quote
+                              ((daily today today)
+                               (800 1000 1200 1400 1600 1800 2000)
+                               "......" "----------------")))
 
   ;; Color code the agenda based on type
   ;; http://dept.stat.lsa.umich.edu/~jerrick/org_agenda_calendar.html
@@ -893,7 +878,7 @@
 (use-package doom-themes
   :ensure t
   :config
-  (load-theme 'doom-spacegrey t))
+  (load-theme 'doom-oceanic-next t))
 
 (use-package doom-modeline
   :ensure t
@@ -935,65 +920,65 @@
 (setq gc-cons-threshold 10000000)
 
 ;; Replace char symbols with unicode characters
-(defun unicode-symbol (name)
-  "Translate a symbolic name for a Unicode character -- e.g., LEFT-ARROW
-  or GREATER-THAN into an actual Unicode character code. "
-  (decode-char 'ucs (case name
-		      ;; arrows
-		      ('left-arrow 8592)
-		      ('up-arrow 8593)
-		      ('right-arrow 8594)
-		      ('down-arrow 8595)
-		      ;; boxes
-		      ('double-vertical-bar #X2551)
-		      ;; relational operators
-		      ('equal #X003d)
-		      ('not-equal #X2260)
-		      ('identical #X2261)
-		      ('not-identical #X2262)
-		      ('less-than #X003c)
-		      ('greater-than #X003e)
-		      ('less-than-or-equal-to #X2264)
-		      ('greater-than-or-equal-to #X2265)
-		      ;; logical operators
-		      ('logical-and #X2227)
-		      ('logical-or #X2228)
-		      ('logical-neg #X00AC)
-		      ;; misc
-		      ('nil #X2205)
-		      ('horizontal-ellipsis #X2026)
-		      ('double-exclamation #X203C)
-		      ('prime #X2032)
-		      ('double-prime #X2033)
-		      ('for-all #X2200)
-		      ('there-exists #X2203)
-		      ('element-of #X2208)
-		      ;; mathematical operators
-		      ('square-root #X221A)
-		      ('squared #X00B2)
-		      ('cubed #X00B3)
-		      ;; letters
-		      ('lambda #X03BB)
-		      ('alpha #X03B1)
-		      ('beta #X03B2)
-		      ('gamma #X03B3)
-		      ('delta #X03B4))))
+;; (defun unicode-symbol (name)
+;;   "Translate a symbolic name for a Unicode character -- e.g., LEFT-ARROW
+;;   or GREATER-THAN into an actual Unicode character code. "
+;;   (decode-char 'ucs (case name
+;; 		      ;; arrows
+;; 		      ('left-arrow 8592)
+;; 		      ('up-arrow 8593)
+;; 		      ('right-arrow 8594)
+;; 		      ('down-arrow 8595)
+;; 		      ;; boxes
+;; 		      ('double-vertical-bar #X2551)
+;; 		      ;; relational operators
+;; 		      ('equal #X003d)
+;; 		      ('not-equal #X2260)
+;; 		      ('identical #X2261)
+;; 		      ('not-identical #X2262)
+;; 		      ('less-than #X003c)
+;; 		      ('greater-than #X003e)
+;; 		      ('less-than-or-equal-to #X2264)
+;; 		      ('greater-than-or-equal-to #X2265)
+;; 		      ;; logical operators
+;; 		      ('logical-and #X2227)
+;; 		      ('logical-or #X2228)
+;; 		      ('logical-neg #X00AC)
+;; 		      ;; misc
+;; 		      ('nil #X2205)
+;; 		      ('horizontal-ellipsis #X2026)
+;; 		      ('double-exclamation #X203C)
+;; 		      ('prime #X2032)
+;; 		      ('double-prime #X2033)
+;; 		      ('for-all #X2200)
+;; 		      ('there-exists #X2203)
+;; 		      ('element-of #X2208)
+;; 		      ;; mathematical operators
+;; 		      ('square-root #X221A)
+;; 		      ('squared #X00B2)
+;; 		      ('cubed #X00B3)
+;; 		      ;; letters
+;; 		      ('lambda #X03BB)
+;; 		      ('alpha #X03B1)
+;; 		      ('beta #X03B2)
+;; 		      ('gamma #X03B3)
+;; 		      ('delta #X03B4))))
 
-(defun substitute-pattern-with-unicode (pattern symbol)
-  "Add a font lock hook to replace the matched part of PATTERN with the
-  Unicode symbol SYMBOL looked up with UNICODE-SYMBOL."
-  (interactive)
-  (font-lock-add-keywords
-   nil `((,pattern (0 (progn (compose-region (match-beginning 1) (match-end 1)
-					     ,(unicode-symbol symbol))
-			     nil))))))
+;; (defun substitute-pattern-with-unicode (pattern symbol)
+;;   "Add a font lock hook to replace the matched part of PATTERN with the
+;;   Unicode symbol SYMBOL looked up with UNICODE-SYMBOL."
+;;   (interactive)
+;;   (font-lock-add-keywords
+;;    nil `((,pattern (0 (progn (compose-region (match-beginning 1) (match-end 1)
+;; 					     ,(unicode-symbol symbol))
+;; 			     nil))))))
 
-(defun substitute-patterns-with-unicode (patterns)
-  "Call SUBSTITUTE-PATTERN-WITH-UNICODE repeatedly."
-  (mapcar #'(lambda (x)
-	      (substitute-pattern-with-unicode (car x)
-					       (cdr x)))
-	  patterns))
+;; (defun substitute-patterns-with-unicode (patterns)
+;;   "Call SUBSTITUTE-PATTERN-WITH-UNICODE repeatedly."
+;;   (mapcar #'(lambda (x)
+;; 	      (substitute-pattern-with-unicode (car x)
+;; 					       (cdr x)))
+;; 	  patterns))
 
 (provide 'init)
 (custom-set-variables
@@ -1003,10 +988,10 @@
  ;; If there is more than one, they won't work right.
  '(custom-safe-themes
    (quote
-    ("423435c7b0e6c0942f16519fa9e17793da940184a50201a4d932eafe4c94c92d" "c8f959fb1ea32ddfc0f50db85fea2e7d86b72bb4d106803018be1c3566fd6c72" "2d392972cbe692ee4ac61dc79907af65051450caf690a8c4d36eb40c1857ba7d" "7f74a3b9a1f5e3d31358b48b8f8a1154aab2534fae82c9e918fb389fca776788" "fefab1b6d3366a959c78b4ed154018d48f4ec439ce652f4748ef22945ca7c2d5" "cdb3e7a8864cede434b168c9a060bf853eeb5b3f9f758310d2a2e23be41a24ae" "2a3ffb7775b2fe3643b179f2046493891b0d1153e57ec74bbe69580b951699ca" "071f5702a5445970105be9456a48423a87b8b9cfa4b1f76d15699b29123fb7d8" "0d087b2853473609d9efd2e9fbeac088e89f36718c4a4c89c568dd1b628eae41" "001c2ff8afde9c3e707a2eb3e810a0a36fb2b466e96377ac95968e7f8930a7c5" "9954ed41d89d2dcf601c8e7499b6bb2778180bfcaeb7cdfc648078b8e05348c6" "a6e3dec0d16222cc5747743c87ef7da79186f7282e2ec4ff74c7f08ed7fe28d2" default)))
+    ("e7666261f46e2f4f42fd1f9aa1875bdb81d17cc7a121533cad3e0d724f12faf2" "2878517f049b28342d7a360fd3f4b227086c4be8f8409f32e0f234d129cee925" "70ed3a0f434c63206a23012d9cdfbe6c6d4bb4685ad64154f37f3c15c10f3b90" "b462d00de785490a0b6861807a360f5c1e05b48a159a99786145de7e3cce3afe" "f30aded97e67a487d30f38a1ac48eddb49fdb06ac01ebeaff39439997cbdd869" "70cc30fd9d27a8d0d3ae82974ac2c409fd2cd5746470e2246778c6bec2d4857c" "c95043bcca81b664f7b394e88f888065aa80ba48b4f3a02ede30590399035a49" "423435c7b0e6c0942f16519fa9e17793da940184a50201a4d932eafe4c94c92d" "c8f959fb1ea32ddfc0f50db85fea2e7d86b72bb4d106803018be1c3566fd6c72" "2d392972cbe692ee4ac61dc79907af65051450caf690a8c4d36eb40c1857ba7d" "7f74a3b9a1f5e3d31358b48b8f8a1154aab2534fae82c9e918fb389fca776788" "fefab1b6d3366a959c78b4ed154018d48f4ec439ce652f4748ef22945ca7c2d5" "cdb3e7a8864cede434b168c9a060bf853eeb5b3f9f758310d2a2e23be41a24ae" "2a3ffb7775b2fe3643b179f2046493891b0d1153e57ec74bbe69580b951699ca" "071f5702a5445970105be9456a48423a87b8b9cfa4b1f76d15699b29123fb7d8" "0d087b2853473609d9efd2e9fbeac088e89f36718c4a4c89c568dd1b628eae41" "001c2ff8afde9c3e707a2eb3e810a0a36fb2b466e96377ac95968e7f8930a7c5" "9954ed41d89d2dcf601c8e7499b6bb2778180bfcaeb7cdfc648078b8e05348c6" "a6e3dec0d16222cc5747743c87ef7da79186f7282e2ec4ff74c7f08ed7fe28d2" default)))
  '(package-selected-packages
    (quote
-    (projectile org-reveal ox-reveal writeroom-mode helm-rg eglot web-mode use-package sos sass-mode robe rainbow-delimiters python-mode projectile-ripgrep processing-mode paredit ox-jira magit json-mode htmlize helm-projectile golden-ratio flycheck-rust flx-ido expand-region exec-path-from-shell elpy doom-themes doom-modeline cargo browse-kill-ring ace-jump-mode))))
+    (company rust-mode projectile org-reveal ox-reveal writeroom-mode helm-rg eglot web-mode use-package sos sass-mode robe rainbow-delimiters python-mode projectile-ripgrep processing-mode paredit ox-jira magit json-mode htmlize helm-projectile golden-ratio flycheck-rust flx-ido expand-region exec-path-from-shell elpy doom-themes doom-modeline cargo browse-kill-ring ace-jump-mode))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
