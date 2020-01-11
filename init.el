@@ -782,13 +782,13 @@
 (use-package projectile
   :ensure t
   :config
-  (projectile-global-mode)
   ;; Set the base keybinding
   (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
   ;; Cache projectile projects
   (setq projectile-enable-caching t)
   ;; Defer to git if possible
   (setq projectile-indexing-method 'alien)
+
   (defun projectile-term ()
     "Create an ansi-term at the project root"
     (interactive)
@@ -804,7 +804,26 @@
 	  (setq default-directory root)
 	  (ansi-term (getenv "SHELL"))
 	  (rename-buffer buff-name t)))))
-  (global-set-key (kbd "C-x M-t") 'projectile-term))
+  (global-set-key (kbd "C-x M-t") 'projectile-term)
+
+  (defun projectile-notes ()
+    "Open org notes file at project root"
+    (interactive)
+    (let ((root (projectile-project-root))
+	  (buff-name (concat
+		      (nth 1 (reverse (split-string (projectile-project-root) "/")))
+		      "notes.org")))
+      (if (get-buffer buff-name)
+	  (switch-to-buffer-other-window buff-name)
+	(progn
+          (if (file-exists-p (concat (projectile-project-root) "notes.org"))
+              (progn
+                (split-window-sensibly (selected-window))
+                (other-window 1)
+                (setq default-directory root)
+                (find-file (concat root "notes.org")))
+            (error "Notes file not found in this project"))))))
+  (global-set-key (kbd "C-x M-n") 'projectile-notes))
 
 ;; Use ripgrep with projectile
 (use-package projectile-ripgrep
