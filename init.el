@@ -52,6 +52,21 @@
 ;; Shortcut for rectangle edits
 (global-set-key (kbd "C-x r i") 'string-insert-rectangle)
 
+;; Nice startup screen
+(use-package dashboard
+  :ensure t
+  :config
+  (dashboard-setup-startup-hook)
+  (setq dashboard-banner-logo-title "Welcome back Ender")
+  (setq dashboard-startup-banner 'logo)
+  (setq dashboard-center-content t)
+  (setq dashboard-items '((recents  . 5)
+                          (projects . 5)
+                          (agenda . 5)))
+  (setq dashboard-set-heading-icons t)
+  (setq dashboard-set-file-icons t)
+  (setq show-week-agenda-p t))
+
 ;; Emdash
 (defun insert-em-dash ()
   "Insert a em-dash"
@@ -124,7 +139,8 @@
 
   (define-key rust-mode-map (kbd "C-c TAB") #'rust-format-buffer)
 
-  (add-hook 'rust-mode-hook 'eglot-ensure))
+  ;;(add-hook 'rust-mode-hook 'eglot-ensure)
+  )
 
 (use-package cargo
   :ensure t
@@ -154,11 +170,34 @@
 
   (add-hook 'project-find-functions 'my-project-try-cargo-toml nil nil))
 
+(use-package yasnippet
+  :ensure t
+  :config
+  (yas-global-mode 1))
+
+(use-package lsp-ui
+  :ensure t)
+
+(use-package lsp-mode
+  :ensure t
+  :hook ((rust-mode . lsp))
+  :config
+  ;; Use rust-analyzer rather than rls
+  (setq lsp-rust-server 'rust-analyzer)
+  (setq lsp-enable-file-watchers nil)
+  (setq lsp-enable-completion-at-point t)
+  (setq lsp-enable-imenu t)
+  (setq lsp-rust-analyzer-cargo-watch-enable nil)
+
+  ;; Use lsp-ui
+  (add-hook 'rust-mode-hook 'lsp-ui-mode))
+
 ;; Elisp
 (use-package paredit
   :ensure t
   :config
-  (add-hook 'elisp-mode-hook 'paredit-mode))
+  (add-hook 'elisp-mode-hook 'paredit-mode)
+  (add-hook 'clojure-mode-hook 'paredit-mode))
 
 ;; Python
 (use-package python-mode
@@ -214,8 +253,14 @@
   :config
   (add-to-list 'auto-mode-alist '("\\.md$" . markdown-mode)))
 
-;; Markdown
+;; Nice writing layout
 (use-package writeroom-mode :ensure t)
+
+;; Unity
+(use-package glsl-mode
+  :ensure t
+  :config
+  (add-to-list 'auto-mode-alist '("\\.shader$" . glsl-mode)))
 
 ;; Linum mode shortcut
 (global-set-key (kbd "C-x l") 'linum-mode)
@@ -579,7 +624,7 @@
                         nil
                         nil))
 
-(setq centered nil)
+(defvar centered nil)
 
 (defun center-text-mode ()
   (interactive)
@@ -789,6 +834,8 @@
   (setq projectile-enable-caching t)
   ;; Defer to git if possible
   (setq projectile-indexing-method 'alien)
+  ;; Limit projectile projects to these directories
+  (setq projectile-project-search-path '("~/Projects/"))
 
   (defun projectile-term ()
     "Create an ansi-term at the project root"
@@ -803,7 +850,7 @@
 	  (split-window-sensibly (selected-window))
 	  (other-window 1)
 	  (setq default-directory root)
-	  (ansi-term (getenv "SHELL"))
+	  (ansi-term "/bin/zsh")
 	  (rename-buffer buff-name t)))))
   (global-set-key (kbd "C-x M-t") 'projectile-term)
 
@@ -883,7 +930,7 @@
       (progn
         (split-window-sensibly (selected-window))
         (other-window 1)
-        (ansi-term (getenv "SHELL")))
+        (ansi-term "/bin/zsh"))
     (switch-to-buffer-other-window "*ansi-term*")))
 
 (put 'downcase-region 'disabled nil)
@@ -1007,10 +1054,10 @@
  ;; If there is more than one, they won't work right.
  '(custom-safe-themes
    (quote
-    ("bc99493670a29023f99e88054c9b8676332dda83a37adb583d6f1e4c13be62b8" "3952ef318c8cbccf09954ecf43250ac0cbd1f4ae66b4abe569491b260f6e054b" "e7666261f46e2f4f42fd1f9aa1875bdb81d17cc7a121533cad3e0d724f12faf2" "2878517f049b28342d7a360fd3f4b227086c4be8f8409f32e0f234d129cee925" "70ed3a0f434c63206a23012d9cdfbe6c6d4bb4685ad64154f37f3c15c10f3b90" "b462d00de785490a0b6861807a360f5c1e05b48a159a99786145de7e3cce3afe" "f30aded97e67a487d30f38a1ac48eddb49fdb06ac01ebeaff39439997cbdd869" "70cc30fd9d27a8d0d3ae82974ac2c409fd2cd5746470e2246778c6bec2d4857c" "c95043bcca81b664f7b394e88f888065aa80ba48b4f3a02ede30590399035a49" "423435c7b0e6c0942f16519fa9e17793da940184a50201a4d932eafe4c94c92d" "c8f959fb1ea32ddfc0f50db85fea2e7d86b72bb4d106803018be1c3566fd6c72" "2d392972cbe692ee4ac61dc79907af65051450caf690a8c4d36eb40c1857ba7d" "7f74a3b9a1f5e3d31358b48b8f8a1154aab2534fae82c9e918fb389fca776788" "fefab1b6d3366a959c78b4ed154018d48f4ec439ce652f4748ef22945ca7c2d5" "cdb3e7a8864cede434b168c9a060bf853eeb5b3f9f758310d2a2e23be41a24ae" "2a3ffb7775b2fe3643b179f2046493891b0d1153e57ec74bbe69580b951699ca" "071f5702a5445970105be9456a48423a87b8b9cfa4b1f76d15699b29123fb7d8" "0d087b2853473609d9efd2e9fbeac088e89f36718c4a4c89c568dd1b628eae41" "001c2ff8afde9c3e707a2eb3e810a0a36fb2b466e96377ac95968e7f8930a7c5" "9954ed41d89d2dcf601c8e7499b6bb2778180bfcaeb7cdfc648078b8e05348c6" "a6e3dec0d16222cc5747743c87ef7da79186f7282e2ec4ff74c7f08ed7fe28d2" default)))
+    ("37148381b35916d717945f3d0e1b2beb23c8b8383e5a7a879f1eaa4dde01d026" "3e3a1caddeee4a73789ff10ba90b8394f4cd3f3788892577d7ded188e05d78f4" "dde8c620311ea241c0b490af8e6f570fdd3b941d7bc209e55cd87884eb733b0e" "cb96a06ed8f47b07c014e8637bd0fd0e6c555364171504680ac41930cfe5e11e" "a339f231e63aab2a17740e5b3965469e8c0b85eccdfb1f9dbd58a30bdad8562b" "7c4cfa4eb784539d6e09ecc118428cd8125d6aa3053d8e8413f31a7293d43169" "6231254e74298a1cf8a5fee7ca64352943de4b495e615c449e9bb27e2ccae709" "6de37d6d573e18138aa948683c8ff0e72b89e90d1cdbf683787ea72f8e6295ab" "d1c7f2db070c96aa674f1d61403b4da1fff2154163e9be76ce51824ed5ca709c" "0ad7f1c71fd0289f7549f0454c9b12005eddf9b76b7ead32a24d9cb1d16cbcbd" "bc99493670a29023f99e88054c9b8676332dda83a37adb583d6f1e4c13be62b8" "3952ef318c8cbccf09954ecf43250ac0cbd1f4ae66b4abe569491b260f6e054b" "e7666261f46e2f4f42fd1f9aa1875bdb81d17cc7a121533cad3e0d724f12faf2" "2878517f049b28342d7a360fd3f4b227086c4be8f8409f32e0f234d129cee925" "70ed3a0f434c63206a23012d9cdfbe6c6d4bb4685ad64154f37f3c15c10f3b90" "b462d00de785490a0b6861807a360f5c1e05b48a159a99786145de7e3cce3afe" "f30aded97e67a487d30f38a1ac48eddb49fdb06ac01ebeaff39439997cbdd869" "70cc30fd9d27a8d0d3ae82974ac2c409fd2cd5746470e2246778c6bec2d4857c" "c95043bcca81b664f7b394e88f888065aa80ba48b4f3a02ede30590399035a49" "423435c7b0e6c0942f16519fa9e17793da940184a50201a4d932eafe4c94c92d" "c8f959fb1ea32ddfc0f50db85fea2e7d86b72bb4d106803018be1c3566fd6c72" "2d392972cbe692ee4ac61dc79907af65051450caf690a8c4d36eb40c1857ba7d" "7f74a3b9a1f5e3d31358b48b8f8a1154aab2534fae82c9e918fb389fca776788" "fefab1b6d3366a959c78b4ed154018d48f4ec439ce652f4748ef22945ca7c2d5" "cdb3e7a8864cede434b168c9a060bf853eeb5b3f9f758310d2a2e23be41a24ae" "2a3ffb7775b2fe3643b179f2046493891b0d1153e57ec74bbe69580b951699ca" "071f5702a5445970105be9456a48423a87b8b9cfa4b1f76d15699b29123fb7d8" "0d087b2853473609d9efd2e9fbeac088e89f36718c4a4c89c568dd1b628eae41" "001c2ff8afde9c3e707a2eb3e810a0a36fb2b466e96377ac95968e7f8930a7c5" "9954ed41d89d2dcf601c8e7499b6bb2778180bfcaeb7cdfc648078b8e05348c6" "a6e3dec0d16222cc5747743c87ef7da79186f7282e2ec4ff74c7f08ed7fe28d2" default)))
  '(package-selected-packages
    (quote
-    (gdscript-mode company rust-mode projectile org-reveal ox-reveal writeroom-mode helm-rg eglot web-mode use-package sos sass-mode robe rainbow-delimiters python-mode projectile-ripgrep processing-mode paredit ox-jira magit json-mode htmlize helm-projectile golden-ratio flycheck-rust flx-ido expand-region exec-path-from-shell elpy doom-themes doom-modeline cargo browse-kill-ring ace-jump-mode))))
+    (lsp-ui flycheck lsp-mode dashboard glsl-mode cider all-the-icons-ibuffer gitignore-mode csharp-mode gdscript-mode company rust-mode projectile org-reveal ox-reveal writeroom-mode helm-rg eglot web-mode use-package sos sass-mode robe rainbow-delimiters python-mode projectile-ripgrep processing-mode paredit ox-jira magit json-mode htmlize helm-projectile golden-ratio flycheck-rust flx-ido expand-region exec-path-from-shell elpy doom-themes doom-modeline cargo browse-kill-ring ace-jump-mode))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
