@@ -31,11 +31,14 @@
 ;; Disable auto save files
 (setq auto-save-default nil)
 
-;; Disable pscroll bars in gui emacs
-(scroll-bar-mode -1)
+(when window-system
+  ;; Disable pscroll bars in gui emacs
+  (scroll-bar-mode -1)
+  ;; Disable the tool bar in gui emacs
+  (tool-bar-mode -1))
 
-;; Disable the tool bar in gui emacs
-(tool-bar-mode -1)
+;; Change the scratch buffer message to nothing
+(setq initial-scratch-message nil)
 
 ;; Don't suspend emacs with C-z
 (global-unset-key [?\C-z])
@@ -129,6 +132,11 @@
   ;; CSS
   (add-to-list 'auto-mode-alist '("\\.css$" . web-mode)))
 
+(use-package toml-mode
+  :ensure t
+  :config
+  (add-to-list 'auto-mode-alist '("\\.toml$" . toml-mode)))
+
 (use-package rust-mode
   :ensure t
   :after (company eglot)
@@ -137,17 +145,13 @@
 
   (define-key rust-mode-map (kbd "TAB") #'company-indent-or-complete-common)
 
-  (define-key rust-mode-map (kbd "C-c TAB") #'rust-format-buffer)
-
-  ;;(add-hook 'rust-mode-hook 'eglot-ensure)
-  )
+  (define-key rust-mode-map (kbd "C-c TAB") #'rust-format-buffer))
 
 (use-package cargo
   :ensure t
   :config
   (add-hook 'rust-mode-hook 'cargo-minor-mode)
-  (define-key cargo-minor-mode-map (kbd "C-c C-c C-l") 'cargo-process-clippy)
-)
+  (define-key cargo-minor-mode-map (kbd "C-c C-c C-l") 'cargo-process-clippy))
 
 (use-package eglot
   :ensure t
@@ -176,7 +180,11 @@
   (yas-global-mode 1))
 
 (use-package lsp-ui
-  :ensure t)
+  :ensure t
+  :config
+  ;; Nicer peek and find M-. and M-? respectively
+  (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
+  (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references))
 
 (use-package lsp-mode
   :ensure t
@@ -371,24 +379,10 @@
   :config
   ;; When opening a file make sure everything is expanded
   (setq org-startup-folded nil)
+  ;; Always wrap lines
+  (setq org-startup-truncated nil)
   ;; Show inline images
   (org-display-inline-images t t)
-  ;; Template blocks for use with org
-  (setq org-structure-template-alist
-	(quote (("s" "#+begin_src ?\n\n#+end_src" "<src lang=\"?\">\n\n</src>")
-		("e" "#+begin_example\n?\n#+end_example" "<example>\n?\n</example>")
-		("q" "#+begin_quote\n?\n#+end_quote" "<quote>\n?\n</quote>")
-		("v" "#+begin_verse\n?\n#+end_verse" "<verse>\n?\n</verse>")
-		("c" "#+begin_center\n?\n#+end_center" "<center>\n?\n</center>")
-		("l" "#+begin_latex\n?\n#+end_latex" "<literal style=\"latex\">\n?\n</literal>")
-		("L" "#+latex: " "<literal style=\"latex\">?</literal>")
-		("h" "#+begin_html\n?\n#+end_html" "<literal style=\"html\">\n?\n</literal>")
-		("H" "#+html: " "<literal style=\"html\">?</literal>")
-		("a" "#+begin_ascii\n?\n#+end_ascii")
-		("A" "#+ascii: ")
-		("i" "#+index: ?" "#+index: ?")
-		("I" "#+include %file ?" "<include file=%file markup=\"?\">"))))
-
   ;; Show the agenda helper and viewer in split screen
   (defadvice org-agenda (around split-vertically activate)
     (let ((split-width-threshold 80))
@@ -489,12 +483,6 @@
   ;; In org agenda log view also show recurring tasks
   (setq org-agenda-log-mode-items '(closed clock state))
 
-  ;; Keyboard shortcut to get to the main todo file
-  ;; (global-set-key (kbd "C-c T")
-  ;;                 (lambda ()
-  ;;                   (interactive)
-  ;;                   (find-file "~/DropBox/org/personal.org")))
-
   (defun org-archive-done-tasks ()
     "Archive all DONE and WONT-DO tasks."
     (interactive)
@@ -558,10 +546,96 @@
   ;; Time format for clock table durations as h:mm
   (setq org-duration-format (quote h:mm)))
 
-;; Org export reveal
 (use-package htmlize :ensure t)
 (use-package ox-reveal :ensure t)
 (use-package ox-jira :ensure t)
+
+(use-package ox-hugo
+  :ensure t
+  :after ox)
+
+;; Org roam
+(use-package org-roam
+  :hook
+  (after-init . org-roam-mode)
+  :custom
+  (org-roam-directory "~/org-roam")
+  :bind (:map org-roam-mode-map
+              (("C-c n l" . org-roam)
+               ("C-c n f" . org-roam-find-file)
+               ("C-c n g" . org-roam-graph)
+               ("C-c n c" . org-roam-capture)
+               ;; Full text search notes with an action to insert
+               ;; org-mode link
+               ("C-c n s" . helm-rg))
+              :map org-mode-map
+              (("C-c n i" . org-roam-insert)))
+  :config
+  (setq org-roam-index-file "~/org-roam/index.org")
+
+  (setq org-roam-capture-templates
+	(quote (("d" "Default" plain (function org-roam--capture-get-point)
+                 "%?"
+                 :file-name "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--${slug}\" (current-time) t)"
+                 :head "#+HUGO_BASE_DIR: ~/Projects/zettel\n#+HUGO_SECTION: ./\n#+TITLE: ${title}\n#+ROAM_ALIAS:\n#+ROAM_TAGS:\n"
+                 :unnarrowed t))))
+
+  (setq org-roam-dailies-capture-templates
+	(quote (("d" "Default" plain (function org-roam--capture-get-point)
+                 "%?"
+                 :file-name "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--journal\" (current-time) t)"
+                 :head "#+HUGO_BASE_DIR: ~/Projects/zettel\n#+HUGO_SECTION: ./\n#+TITLE: %<%Y-%m-%d>\n#+ROAM_ALIAS:\n#+ROAM_TAGS: private journal\n"
+                 :unnarrowed t))))
+
+  (setq org-roam-completion-system 'helm)
+
+  ;; Include backlinks in org exported notes tagged as private
+  (defun my/org-roam--backlinks-list (file)
+    (if (org-roam--org-roam-file-p file)
+        (--reduce-from
+         (concat acc (format "- [[file:%s][%s]]\n"
+                             (file-relative-name (car it) org-roam-directory)
+                             (org-roam--get-title-or-slug (car it))))
+         "" (org-roam-db-query [:select [links:from]
+                                :from links
+                                :left :outer :join tags :on (= links:from tags:file)
+                                :where (and (= to $s1)
+                                            (or (is tags:tags nil)
+                                                (not-like tags:tags '%private%)))]
+                               file))
+      ""))
+
+  (defun my/org-export-preprocessor (backend)
+    (let ((links (my/org-roam--backlinks-list (buffer-file-name))))
+      (unless (string= links "")
+        (save-excursion
+          (goto-char (point-max))
+          (insert (concat "\n* Backlinks\n") links)))))
+
+  (add-hook 'org-export-before-processing-hook 'my/org-export-preprocessor)
+
+  ;; Fetches all org-roam files and exports to hugo markdown
+  ;; files. Ignores notes tagged as private.
+  (defun org-roam-to-hugo-md ()
+    (interactive)
+    (let ((files (mapcan (lambda (x) x)
+                         (org-roam-db-query [:select [files:file]
+                                                     :from files
+                                                     :left :outer :join tags :on (= files:file tags:file)
+                                                     :where (or (is tags:tags nil)
+                                                                (not-like tags:tags '%private%))]))))
+      (mapc
+       (lambda (f)
+         (with-current-buffer
+             (find-file-noselect f)
+           (org-hugo-export-to-md)))
+       files))))
+
+
+;; (use-package company-org-roam
+;;   :ensure t
+;;   :config
+;;   (push 'company-org-roam company-backends))
 
 ;; Macro for running a function repeatedly in the back ground
 ;; https://github.com/punchagan/dot-emacs/blob/master/punchagan.org
@@ -914,7 +988,28 @@
 	  (error "You're not in a project"))
       (error "helm-ag not available"))))
 
-(use-package helm-rg :ensure t)
+(use-package helm-rg
+  :ensure t
+  :config
+  ;; Add actions for inserting org file link from selected match
+  (defun insert-org-mode-link-from-helm-result (candidate)
+    (interactive)
+    (with-helm-current-buffer
+      (insert (format "[[file:%s][%s]]"
+                      (plist-get candidate :file)
+                      ;; Extract the title from the file name
+                      (subst-char-in-string
+                       ?_ ?\s
+                       (first
+                        (split-string
+                         (first
+                          (last
+                           (split-string (plist-get candidate :file) "\\-")))
+                         "\\.")))))))
+
+  (helm-add-action-to-source "Insert org-mode link"
+                             'insert-org-mode-link-from-helm-result
+                             helm-rg-process-source))
 
 ;; browse-kill-ring with M-y
 (use-package browse-kill-ring
@@ -1052,12 +1147,45 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(ansi-color-names-vector
+   ["#1B2B34" "#EC5f67" "#99C794" "#FAC863" "#6699CC" "#E27E8D" "#5FB3B3" "#D8DEE9"])
  '(custom-safe-themes
    (quote
-    ("37148381b35916d717945f3d0e1b2beb23c8b8383e5a7a879f1eaa4dde01d026" "3e3a1caddeee4a73789ff10ba90b8394f4cd3f3788892577d7ded188e05d78f4" "dde8c620311ea241c0b490af8e6f570fdd3b941d7bc209e55cd87884eb733b0e" "cb96a06ed8f47b07c014e8637bd0fd0e6c555364171504680ac41930cfe5e11e" "a339f231e63aab2a17740e5b3965469e8c0b85eccdfb1f9dbd58a30bdad8562b" "7c4cfa4eb784539d6e09ecc118428cd8125d6aa3053d8e8413f31a7293d43169" "6231254e74298a1cf8a5fee7ca64352943de4b495e615c449e9bb27e2ccae709" "6de37d6d573e18138aa948683c8ff0e72b89e90d1cdbf683787ea72f8e6295ab" "d1c7f2db070c96aa674f1d61403b4da1fff2154163e9be76ce51824ed5ca709c" "0ad7f1c71fd0289f7549f0454c9b12005eddf9b76b7ead32a24d9cb1d16cbcbd" "bc99493670a29023f99e88054c9b8676332dda83a37adb583d6f1e4c13be62b8" "3952ef318c8cbccf09954ecf43250ac0cbd1f4ae66b4abe569491b260f6e054b" "e7666261f46e2f4f42fd1f9aa1875bdb81d17cc7a121533cad3e0d724f12faf2" "2878517f049b28342d7a360fd3f4b227086c4be8f8409f32e0f234d129cee925" "70ed3a0f434c63206a23012d9cdfbe6c6d4bb4685ad64154f37f3c15c10f3b90" "b462d00de785490a0b6861807a360f5c1e05b48a159a99786145de7e3cce3afe" "f30aded97e67a487d30f38a1ac48eddb49fdb06ac01ebeaff39439997cbdd869" "70cc30fd9d27a8d0d3ae82974ac2c409fd2cd5746470e2246778c6bec2d4857c" "c95043bcca81b664f7b394e88f888065aa80ba48b4f3a02ede30590399035a49" "423435c7b0e6c0942f16519fa9e17793da940184a50201a4d932eafe4c94c92d" "c8f959fb1ea32ddfc0f50db85fea2e7d86b72bb4d106803018be1c3566fd6c72" "2d392972cbe692ee4ac61dc79907af65051450caf690a8c4d36eb40c1857ba7d" "7f74a3b9a1f5e3d31358b48b8f8a1154aab2534fae82c9e918fb389fca776788" "fefab1b6d3366a959c78b4ed154018d48f4ec439ce652f4748ef22945ca7c2d5" "cdb3e7a8864cede434b168c9a060bf853eeb5b3f9f758310d2a2e23be41a24ae" "2a3ffb7775b2fe3643b179f2046493891b0d1153e57ec74bbe69580b951699ca" "071f5702a5445970105be9456a48423a87b8b9cfa4b1f76d15699b29123fb7d8" "0d087b2853473609d9efd2e9fbeac088e89f36718c4a4c89c568dd1b628eae41" "001c2ff8afde9c3e707a2eb3e810a0a36fb2b466e96377ac95968e7f8930a7c5" "9954ed41d89d2dcf601c8e7499b6bb2778180bfcaeb7cdfc648078b8e05348c6" "a6e3dec0d16222cc5747743c87ef7da79186f7282e2ec4ff74c7f08ed7fe28d2" default)))
+    ("f2b56244ecc6f4b952b2bcb1d7e517f1f4272876a8c873b378f5cf68e904bd59" "e30e72b10b9c7887ff8adcd1a25b5c6eaa32665e0f8f40994e5b6d51069d3b2a" "37148381b35916d717945f3d0e1b2beb23c8b8383e5a7a879f1eaa4dde01d026" "3e3a1caddeee4a73789ff10ba90b8394f4cd3f3788892577d7ded188e05d78f4" "dde8c620311ea241c0b490af8e6f570fdd3b941d7bc209e55cd87884eb733b0e" "cb96a06ed8f47b07c014e8637bd0fd0e6c555364171504680ac41930cfe5e11e" "a339f231e63aab2a17740e5b3965469e8c0b85eccdfb1f9dbd58a30bdad8562b" "7c4cfa4eb784539d6e09ecc118428cd8125d6aa3053d8e8413f31a7293d43169" "6231254e74298a1cf8a5fee7ca64352943de4b495e615c449e9bb27e2ccae709" "6de37d6d573e18138aa948683c8ff0e72b89e90d1cdbf683787ea72f8e6295ab" "d1c7f2db070c96aa674f1d61403b4da1fff2154163e9be76ce51824ed5ca709c" "0ad7f1c71fd0289f7549f0454c9b12005eddf9b76b7ead32a24d9cb1d16cbcbd" "bc99493670a29023f99e88054c9b8676332dda83a37adb583d6f1e4c13be62b8" "3952ef318c8cbccf09954ecf43250ac0cbd1f4ae66b4abe569491b260f6e054b" "e7666261f46e2f4f42fd1f9aa1875bdb81d17cc7a121533cad3e0d724f12faf2" "2878517f049b28342d7a360fd3f4b227086c4be8f8409f32e0f234d129cee925" "70ed3a0f434c63206a23012d9cdfbe6c6d4bb4685ad64154f37f3c15c10f3b90" "b462d00de785490a0b6861807a360f5c1e05b48a159a99786145de7e3cce3afe" "f30aded97e67a487d30f38a1ac48eddb49fdb06ac01ebeaff39439997cbdd869" "70cc30fd9d27a8d0d3ae82974ac2c409fd2cd5746470e2246778c6bec2d4857c" "c95043bcca81b664f7b394e88f888065aa80ba48b4f3a02ede30590399035a49" "423435c7b0e6c0942f16519fa9e17793da940184a50201a4d932eafe4c94c92d" "c8f959fb1ea32ddfc0f50db85fea2e7d86b72bb4d106803018be1c3566fd6c72" "2d392972cbe692ee4ac61dc79907af65051450caf690a8c4d36eb40c1857ba7d" "7f74a3b9a1f5e3d31358b48b8f8a1154aab2534fae82c9e918fb389fca776788" "fefab1b6d3366a959c78b4ed154018d48f4ec439ce652f4748ef22945ca7c2d5" "cdb3e7a8864cede434b168c9a060bf853eeb5b3f9f758310d2a2e23be41a24ae" "2a3ffb7775b2fe3643b179f2046493891b0d1153e57ec74bbe69580b951699ca" "071f5702a5445970105be9456a48423a87b8b9cfa4b1f76d15699b29123fb7d8" "0d087b2853473609d9efd2e9fbeac088e89f36718c4a4c89c568dd1b628eae41" "001c2ff8afde9c3e707a2eb3e810a0a36fb2b466e96377ac95968e7f8930a7c5" "9954ed41d89d2dcf601c8e7499b6bb2778180bfcaeb7cdfc648078b8e05348c6" "a6e3dec0d16222cc5747743c87ef7da79186f7282e2ec4ff74c7f08ed7fe28d2" default)))
+ '(fci-rule-color "#C0C5CE")
+ '(jdee-db-active-breakpoint-face-colors (cons "#1B2B34" "#FAC863"))
+ '(jdee-db-requested-breakpoint-face-colors (cons "#1B2B34" "#99C794"))
+ '(jdee-db-spec-breakpoint-face-colors (cons "#1B2B34" "#A7ADBA"))
+ '(objed-cursor-color "#EC5f67")
+ '(org-roam-directory "~/org-roam")
  '(package-selected-packages
    (quote
-    (lsp-ui flycheck lsp-mode dashboard glsl-mode cider all-the-icons-ibuffer gitignore-mode csharp-mode gdscript-mode company rust-mode projectile org-reveal ox-reveal writeroom-mode helm-rg eglot web-mode use-package sos sass-mode robe rainbow-delimiters python-mode projectile-ripgrep processing-mode paredit ox-jira magit json-mode htmlize helm-projectile golden-ratio flycheck-rust flx-ido expand-region exec-path-from-shell elpy doom-themes doom-modeline cargo browse-kill-ring ace-jump-mode))))
+    (ox-hugo deft clang-capf company-org-roam org-roam toml-mode lsp-ui flycheck lsp-mode dashboard glsl-mode cider all-the-icons-ibuffer gitignore-mode csharp-mode gdscript-mode company rust-mode projectile org-reveal ox-reveal writeroom-mode helm-rg eglot web-mode use-package sos sass-mode robe rainbow-delimiters python-mode projectile-ripgrep processing-mode paredit ox-jira magit json-mode htmlize helm-projectile golden-ratio flycheck-rust flx-ido expand-region exec-path-from-shell elpy doom-themes doom-modeline cargo browse-kill-ring ace-jump-mode)))
+ '(pdf-view-midnight-colors (cons "#D8DEE9" "#1B2B34"))
+ '(rustic-ansi-faces
+   ["#1B2B34" "#EC5f67" "#99C794" "#FAC863" "#6699CC" "#E27E8D" "#5FB3B3" "#D8DEE9"])
+ '(vc-annotate-background "#1B2B34")
+ '(vc-annotate-color-map
+   (list
+    (cons 20 "#99C794")
+    (cons 40 "#b9c783")
+    (cons 60 "#d9c773")
+    (cons 80 "#FAC863")
+    (cons 100 "#f9b55f")
+    (cons 120 "#f9a35b")
+    (cons 140 "#F99157")
+    (cons 160 "#f18a69")
+    (cons 180 "#e9847b")
+    (cons 200 "#E27E8D")
+    (cons 220 "#e57380")
+    (cons 240 "#e86973")
+    (cons 260 "#EC5f67")
+    (cons 280 "#da727b")
+    (cons 300 "#c98690")
+    (cons 320 "#b899a5")
+    (cons 340 "#C0C5CE")
+    (cons 360 "#C0C5CE")))
+ '(vc-annotate-very-old-color nil))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
