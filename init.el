@@ -565,6 +565,7 @@
                ("C-c n f" . org-roam-find-file)
                ("C-c n g" . org-roam-graph)
                ("C-c n c" . org-roam-capture)
+               ("C-c n j" . org-roam-dailies-today)
                ;; Full text search notes with an action to insert
                ;; org-mode link
                ("C-c n s" . helm-rg))
@@ -632,10 +633,10 @@
        files))))
 
 
-;; (use-package company-org-roam
-;;   :ensure t
-;;   :config
-;;   (push 'company-org-roam company-backends))
+(use-package company-org-roam
+  :ensure t
+  :config
+  (push 'company-org-roam company-backends))
 
 ;; Macro for running a function repeatedly in the back ground
 ;; https://github.com/punchagan/dot-emacs/blob/master/punchagan.org
@@ -1077,70 +1078,6 @@
       (setq big-screen 1))))
 (global-set-key (kbd "C-x M-b") 'toggle-big-screen)
 
-;; Up the threshold for garbage collection
-;; (setq gc-cons-threshold 10000000)
-
-;; Replace char symbols with unicode characters
-;; (defun unicode-symbol (name)
-;;   "Translate a symbolic name for a Unicode character -- e.g., LEFT-ARROW
-;;   or GREATER-THAN into an actual Unicode character code. "
-;;   (decode-char 'ucs (case name
-;; 		      ;; arrows
-;; 		      ('left-arrow 8592)
-;; 		      ('up-arrow 8593)
-;; 		      ('right-arrow 8594)
-;; 		      ('down-arrow 8595)
-;; 		      ;; boxes
-;; 		      ('double-vertical-bar #X2551)
-;; 		      ;; relational operators
-;; 		      ('equal #X003d)
-;; 		      ('not-equal #X2260)
-;; 		      ('identical #X2261)
-;; 		      ('not-identical #X2262)
-;; 		      ('less-than #X003c)
-;; 		      ('greater-than #X003e)
-;; 		      ('less-than-or-equal-to #X2264)
-;; 		      ('greater-than-or-equal-to #X2265)
-;; 		      ;; logical operators
-;; 		      ('logical-and #X2227)
-;; 		      ('logical-or #X2228)
-;; 		      ('logical-neg #X00AC)
-;; 		      ;; misc
-;; 		      ('nil #X2205)
-;; 		      ('horizontal-ellipsis #X2026)
-;; 		      ('double-exclamation #X203C)
-;; 		      ('prime #X2032)
-;; 		      ('double-prime #X2033)
-;; 		      ('for-all #X2200)
-;; 		      ('there-exists #X2203)
-;; 		      ('element-of #X2208)
-;; 		      ;; mathematical operators
-;; 		      ('square-root #X221A)
-;; 		      ('squared #X00B2)
-;; 		      ('cubed #X00B3)
-;; 		      ;; letters
-;; 		      ('lambda #X03BB)
-;; 		      ('alpha #X03B1)
-;; 		      ('beta #X03B2)
-;; 		      ('gamma #X03B3)
-;; 		      ('delta #X03B4))))
-
-;; (defun substitute-pattern-with-unicode (pattern symbol)
-;;   "Add a font lock hook to replace the matched part of PATTERN with the
-;;   Unicode symbol SYMBOL looked up with UNICODE-SYMBOL."
-;;   (interactive)
-;;   (font-lock-add-keywords
-;;    nil `((,pattern (0 (progn (compose-region (match-beginning 1) (match-end 1)
-;; 					     ,(unicode-symbol symbol))
-;; 			     nil))))))
-
-;; (defun substitute-patterns-with-unicode (patterns)
-;;   "Call SUBSTITUTE-PATTERN-WITH-UNICODE repeatedly."
-;;   (mapcar #'(lambda (x)
-;; 	      (substitute-pattern-with-unicode (car x)
-;; 					       (cdr x)))
-;; 	  patterns))
-
 (provide 'init)
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -1151,7 +1088,7 @@
    ["#1B2B34" "#EC5f67" "#99C794" "#FAC863" "#6699CC" "#E27E8D" "#5FB3B3" "#D8DEE9"])
  '(custom-safe-themes
    (quote
-    ("f2b56244ecc6f4b952b2bcb1d7e517f1f4272876a8c873b378f5cf68e904bd59" "e30e72b10b9c7887ff8adcd1a25b5c6eaa32665e0f8f40994e5b6d51069d3b2a" "37148381b35916d717945f3d0e1b2beb23c8b8383e5a7a879f1eaa4dde01d026" "3e3a1caddeee4a73789ff10ba90b8394f4cd3f3788892577d7ded188e05d78f4" "dde8c620311ea241c0b490af8e6f570fdd3b941d7bc209e55cd87884eb733b0e" "cb96a06ed8f47b07c014e8637bd0fd0e6c555364171504680ac41930cfe5e11e" "a339f231e63aab2a17740e5b3965469e8c0b85eccdfb1f9dbd58a30bdad8562b" "7c4cfa4eb784539d6e09ecc118428cd8125d6aa3053d8e8413f31a7293d43169" "6231254e74298a1cf8a5fee7ca64352943de4b495e615c449e9bb27e2ccae709" "6de37d6d573e18138aa948683c8ff0e72b89e90d1cdbf683787ea72f8e6295ab" "d1c7f2db070c96aa674f1d61403b4da1fff2154163e9be76ce51824ed5ca709c" "0ad7f1c71fd0289f7549f0454c9b12005eddf9b76b7ead32a24d9cb1d16cbcbd" "bc99493670a29023f99e88054c9b8676332dda83a37adb583d6f1e4c13be62b8" "3952ef318c8cbccf09954ecf43250ac0cbd1f4ae66b4abe569491b260f6e054b" "e7666261f46e2f4f42fd1f9aa1875bdb81d17cc7a121533cad3e0d724f12faf2" "2878517f049b28342d7a360fd3f4b227086c4be8f8409f32e0f234d129cee925" "70ed3a0f434c63206a23012d9cdfbe6c6d4bb4685ad64154f37f3c15c10f3b90" "b462d00de785490a0b6861807a360f5c1e05b48a159a99786145de7e3cce3afe" "f30aded97e67a487d30f38a1ac48eddb49fdb06ac01ebeaff39439997cbdd869" "70cc30fd9d27a8d0d3ae82974ac2c409fd2cd5746470e2246778c6bec2d4857c" "c95043bcca81b664f7b394e88f888065aa80ba48b4f3a02ede30590399035a49" "423435c7b0e6c0942f16519fa9e17793da940184a50201a4d932eafe4c94c92d" "c8f959fb1ea32ddfc0f50db85fea2e7d86b72bb4d106803018be1c3566fd6c72" "2d392972cbe692ee4ac61dc79907af65051450caf690a8c4d36eb40c1857ba7d" "7f74a3b9a1f5e3d31358b48b8f8a1154aab2534fae82c9e918fb389fca776788" "fefab1b6d3366a959c78b4ed154018d48f4ec439ce652f4748ef22945ca7c2d5" "cdb3e7a8864cede434b168c9a060bf853eeb5b3f9f758310d2a2e23be41a24ae" "2a3ffb7775b2fe3643b179f2046493891b0d1153e57ec74bbe69580b951699ca" "071f5702a5445970105be9456a48423a87b8b9cfa4b1f76d15699b29123fb7d8" "0d087b2853473609d9efd2e9fbeac088e89f36718c4a4c89c568dd1b628eae41" "001c2ff8afde9c3e707a2eb3e810a0a36fb2b466e96377ac95968e7f8930a7c5" "9954ed41d89d2dcf601c8e7499b6bb2778180bfcaeb7cdfc648078b8e05348c6" "a6e3dec0d16222cc5747743c87ef7da79186f7282e2ec4ff74c7f08ed7fe28d2" default)))
+    ("9efb2d10bfb38fe7cd4586afb3e644d082cbcdb7435f3d1e8dd9413cbe5e61fc" "f2b56244ecc6f4b952b2bcb1d7e517f1f4272876a8c873b378f5cf68e904bd59" "e30e72b10b9c7887ff8adcd1a25b5c6eaa32665e0f8f40994e5b6d51069d3b2a" "37148381b35916d717945f3d0e1b2beb23c8b8383e5a7a879f1eaa4dde01d026" "3e3a1caddeee4a73789ff10ba90b8394f4cd3f3788892577d7ded188e05d78f4" "dde8c620311ea241c0b490af8e6f570fdd3b941d7bc209e55cd87884eb733b0e" "cb96a06ed8f47b07c014e8637bd0fd0e6c555364171504680ac41930cfe5e11e" "a339f231e63aab2a17740e5b3965469e8c0b85eccdfb1f9dbd58a30bdad8562b" "7c4cfa4eb784539d6e09ecc118428cd8125d6aa3053d8e8413f31a7293d43169" "6231254e74298a1cf8a5fee7ca64352943de4b495e615c449e9bb27e2ccae709" "6de37d6d573e18138aa948683c8ff0e72b89e90d1cdbf683787ea72f8e6295ab" "d1c7f2db070c96aa674f1d61403b4da1fff2154163e9be76ce51824ed5ca709c" "0ad7f1c71fd0289f7549f0454c9b12005eddf9b76b7ead32a24d9cb1d16cbcbd" "bc99493670a29023f99e88054c9b8676332dda83a37adb583d6f1e4c13be62b8" "3952ef318c8cbccf09954ecf43250ac0cbd1f4ae66b4abe569491b260f6e054b" "e7666261f46e2f4f42fd1f9aa1875bdb81d17cc7a121533cad3e0d724f12faf2" "2878517f049b28342d7a360fd3f4b227086c4be8f8409f32e0f234d129cee925" "70ed3a0f434c63206a23012d9cdfbe6c6d4bb4685ad64154f37f3c15c10f3b90" "b462d00de785490a0b6861807a360f5c1e05b48a159a99786145de7e3cce3afe" "f30aded97e67a487d30f38a1ac48eddb49fdb06ac01ebeaff39439997cbdd869" "70cc30fd9d27a8d0d3ae82974ac2c409fd2cd5746470e2246778c6bec2d4857c" "c95043bcca81b664f7b394e88f888065aa80ba48b4f3a02ede30590399035a49" "423435c7b0e6c0942f16519fa9e17793da940184a50201a4d932eafe4c94c92d" "c8f959fb1ea32ddfc0f50db85fea2e7d86b72bb4d106803018be1c3566fd6c72" "2d392972cbe692ee4ac61dc79907af65051450caf690a8c4d36eb40c1857ba7d" "7f74a3b9a1f5e3d31358b48b8f8a1154aab2534fae82c9e918fb389fca776788" "fefab1b6d3366a959c78b4ed154018d48f4ec439ce652f4748ef22945ca7c2d5" "cdb3e7a8864cede434b168c9a060bf853eeb5b3f9f758310d2a2e23be41a24ae" "2a3ffb7775b2fe3643b179f2046493891b0d1153e57ec74bbe69580b951699ca" "071f5702a5445970105be9456a48423a87b8b9cfa4b1f76d15699b29123fb7d8" "0d087b2853473609d9efd2e9fbeac088e89f36718c4a4c89c568dd1b628eae41" "001c2ff8afde9c3e707a2eb3e810a0a36fb2b466e96377ac95968e7f8930a7c5" "9954ed41d89d2dcf601c8e7499b6bb2778180bfcaeb7cdfc648078b8e05348c6" "a6e3dec0d16222cc5747743c87ef7da79186f7282e2ec4ff74c7f08ed7fe28d2" default)))
  '(fci-rule-color "#C0C5CE")
  '(jdee-db-active-breakpoint-face-colors (cons "#1B2B34" "#FAC863"))
  '(jdee-db-requested-breakpoint-face-colors (cons "#1B2B34" "#99C794"))
