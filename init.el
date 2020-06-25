@@ -23,6 +23,9 @@
 (setq mac-option-modifier 'meta)
 (setq mac-command-modifier 'super)
 
+;; Max image size when using the builtin viewer
+(setq max-image-size 50.0)
+
 ;; Disable visual bell
 (setq visible-bell nil)
 
@@ -566,7 +569,8 @@
                ("C-c n g" . org-roam-graph)
                ("C-c n c" . org-roam-capture)
                ("C-c n j" . org-roam-dailies-today)
-               ;; Full text search notes with an action to insert
+               ("C-c n e" . org-roam-to-hugo-md)
+               ;; Full text searchp notes with an action to insert
                ;; org-mode link
                ("C-c n s" . helm-rg))
               :map org-mode-map
@@ -578,14 +582,14 @@
 	(quote (("d" "Default" plain (function org-roam--capture-get-point)
                  "%?"
                  :file-name "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--${slug}\" (current-time) t)"
-                 :head "#+HUGO_BASE_DIR: ~/Projects/zettel\n#+HUGO_SECTION: ./\n#+TITLE: ${title}\n#+ROAM_ALIAS:\n#+ROAM_TAGS:\n"
+                 :head "#+TITLE: ${title}\n#+DATE: %<%Y-%m-%d>\n#+ROAM_ALIAS:\n#+ROAM_TAGS:\n\n"
                  :unnarrowed t))))
 
   (setq org-roam-dailies-capture-templates
 	(quote (("d" "Default" plain (function org-roam--capture-get-point)
                  "%?"
                  :file-name "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--journal\" (current-time) t)"
-                 :head "#+HUGO_BASE_DIR: ~/Projects/zettel\n#+HUGO_SECTION: ./\n#+TITLE: %<%Y-%m-%d>\n#+ROAM_ALIAS:\n#+ROAM_TAGS: private journal\n"
+                 :head "#+TITLE: Journal %<%Y-%m-%d>\n#+DATE: %<%Y-%m-%d>\n#+ROAM_ALIAS:\n#+ROAM_TAGS: private journal\n\n"
                  :unnarrowed t))))
 
   (setq org-roam-completion-system 'helm)
@@ -607,6 +611,7 @@
       ""))
 
   (defun my/org-export-preprocessor (backend)
+    ;; Add backlinks to the end of the note
     (let ((links (my/org-roam--backlinks-list (buffer-file-name))))
       (unless (string= links "")
         (save-excursion
@@ -619,19 +624,24 @@
   ;; files. Ignores notes tagged as private.
   (defun org-roam-to-hugo-md ()
     (interactive)
-    (let ((files (mapcan (lambda (x) x)
-                         (org-roam-db-query [:select [files:file]
-                                                     :from files
-                                                     :left :outer :join tags :on (= files:file tags:file)
-                                                     :where (or (is tags:tags nil)
-                                                                (not-like tags:tags '%private%))]))))
+    (let ((files (mapcan
+                  (lambda (x) x)
+                  (org-roam-db-query [:select [files:file]
+                                      :from files
+                                      :left :outer :join tags :on (= files:file tags:file)
+                                      :where (or (is tags:tags nil)
+                                                 (not-like tags:tags '%private%))]))))
       (mapc
        (lambda (f)
          (with-current-buffer
-             (find-file-noselect f)
+           (find-file-noselect f)
+           ;; Add in hugo export information, this allows us to not
+           ;; muddy the note file with HUGO tags
+           (save-excursion
+             (goto-char (point-min))
+             (insert "#+HUGO_BASE_DIR: ~/Projects/zettel\n#+HUGO_SECTION: ./\n"))
            (org-hugo-export-to-md)))
        files))))
-
 
 (use-package company-org-roam
   :ensure t
