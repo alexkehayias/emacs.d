@@ -552,10 +552,7 @@
 (use-package htmlize :ensure t)
 (use-package ox-reveal :ensure t)
 (use-package ox-jira :ensure t)
-
-(use-package ox-hugo
-  :ensure t
-  :after ox)
+(use-package ox-hugo :ensure t :after ox)
 
 ;; Org roam
 (use-package org-roam
@@ -594,7 +591,7 @@
 
   (setq org-roam-completion-system 'helm)
 
-  ;; Include backlinks in org exported notes tagged as private
+  ;; Include backlinks in org exported notes not tagged as private
   (defun my/org-roam--backlinks-list (file)
     (if (org-roam--org-roam-file-p file)
         (--reduce-from
@@ -610,18 +607,13 @@
                                file))
       ""))
 
-  (defun my/org-export-preprocessor (backend)
-    ;; Add backlinks to the end of the note
-    (let ((links (my/org-roam--backlinks-list (buffer-file-name))))
-      (unless (string= links "")
-        (save-excursion
-          (goto-char (point-max))
-          (insert (concat "\n* Backlinks\n") links)))))
-
-  (add-hook 'org-export-before-processing-hook 'my/org-export-preprocessor)
+  (defun file-path-to-md-file-name (path)
+    (let ((file-name (first (last (split-string path "/")))))
+      (concat (first (split-string file-name "\\.")) ".md")))
 
   ;; Fetches all org-roam files and exports to hugo markdown
-  ;; files. Ignores notes tagged as private.
+  ;; files. Adds in necessary hugo properties
+  ;; e.g. HUGO_BASE_DIR. Ignores notes tagged as private.
   (defun org-roam-to-hugo-md ()
     (interactive)
     (let ((files (mapcan
@@ -633,13 +625,29 @@
                                                  (not-like tags:tags '%private%))]))))
       (mapc
        (lambda (f)
-         (with-current-buffer
-           (find-file-noselect f)
-           ;; Add in hugo export information, this allows us to not
-           ;; muddy the note file with HUGO tags
-           (save-excursion
-             (goto-char (point-min))
-             (insert "#+HUGO_BASE_DIR: ~/Projects/zettel\n#+HUGO_SECTION: ./\n"))
+         ;; Use temporary buffer to prevent a buffer being opened for
+         ;; each note file.
+         (with-temp-buffer
+           (insert-file-contents f)
+           (goto-char (point-min))
+           ;; Add in hugo tags for export. This lets you write the
+           ;; notes without littering HUGO_* tags everywhere
+           ;; HACK:
+           ;; org-export-output-file-name doesn't play nicely with
+           ;; temp buffers since it attempts to get the file name from
+           ;; the buffer. Instead we explicitely add the name of the
+           ;; exported .md file otherwise you would get prompted for
+           ;; the output file name on every note.
+           (insert (format "#+HUGO_BASE_DIR: ~/Projects/zettel\n#+HUGO_SECTION: ./\n#+EXPORT_FILE_NAME: %s\n" (file-path-to-md-file-name f)))
+
+           ;; Add in backlinks because
+           ;; org-export-before-processing-hook won't be useful the
+           ;; way we are using a temp buffer
+           (let ((links (my/org-roam--backlinks-list f)))
+             (unless (string= links "")
+               (goto-char (point-max))
+               (insert (concat "\n* Backlinks\n") links)))
+
            (org-hugo-export-to-md)))
        files))))
 
