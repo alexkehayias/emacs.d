@@ -549,7 +549,23 @@
   ;; Time format for clock table durations as h:mm
   (setq org-duration-format (quote h:mm)))
 
+;; Babel setup
+(use-package ob-python
+  :defer t
+  :commands (org-babel-execute:python))
+
+(use-package ob-shell
+  :defer t
+  :commands
+  (org-babel-execute:sh
+   org-babel-expand-body:sh
+
+   org-babel-execute:bash
+   org-babel-expand-body:bash))
+
 (use-package htmlize :ensure t)
+
+;; Org export
 (use-package ox-reveal :ensure t)
 (use-package ox-jira :ensure t)
 (use-package ox-hugo :ensure t :after ox)
@@ -559,7 +575,7 @@
   :hook
   (after-init . org-roam-mode)
   :custom
-  (org-roam-directory "~/org-roam")
+  (org-roam-directory "~/Dropbox/Org/org-roam")
   :bind (:map org-roam-mode-map
               (("C-c n l" . org-roam)
                ("C-c n f" . org-roam-find-file)
@@ -572,9 +588,8 @@
                ("C-c n s" . helm-rg))
               :map org-mode-map
               (("C-c n i" . org-roam-insert)))
-  :config
-  (setq org-roam-index-file "~/org-roam/index.org")
 
+  :config
   (setq org-roam-capture-templates
 	(quote (("d" "Default" plain (function org-roam--capture-get-point)
                  "%?"
@@ -655,6 +670,11 @@
   :ensure t
   :config
   (push 'company-org-roam company-backends))
+
+(use-package which-key
+  :ensure t
+  :config
+  (which-key-mode))
 
 ;; Macro for running a function repeatedly in the back ground
 ;; https://github.com/punchagan/dot-emacs/blob/master/punchagan.org
@@ -1066,8 +1086,7 @@
 
 (use-package doom-modeline
   :ensure t
-  :config
-  (doom-modeline-mode 1))
+  :hook (after-init . doom-modeline-mode))
 
 (use-package all-the-icons :ensure t)
 
@@ -1112,10 +1131,10 @@
  '(jdee-db-requested-breakpoint-face-colors (cons "#1B2B34" "#99C794"))
  '(jdee-db-spec-breakpoint-face-colors (cons "#1B2B34" "#A7ADBA"))
  '(objed-cursor-color "#EC5f67")
- '(org-roam-directory "~/org-roam")
+ '(org-roam-directory "~/Dropbox/Org/org-roam")
  '(package-selected-packages
    (quote
-    (ox-hugo deft clang-capf company-org-roam org-roam toml-mode lsp-ui flycheck lsp-mode dashboard glsl-mode cider all-the-icons-ibuffer gitignore-mode csharp-mode gdscript-mode company rust-mode projectile org-reveal ox-reveal writeroom-mode helm-rg eglot web-mode use-package sos sass-mode robe rainbow-delimiters python-mode projectile-ripgrep processing-mode paredit ox-jira magit json-mode htmlize helm-projectile golden-ratio flycheck-rust flx-ido expand-region exec-path-from-shell elpy doom-themes doom-modeline cargo browse-kill-ring ace-jump-mode)))
+    (which-key org-plus-contrib ob-sh ob-python ox-hugo deft clang-capf company-org-roam org-roam toml-mode lsp-ui flycheck lsp-mode dashboard glsl-mode cider all-the-icons-ibuffer gitignore-mode csharp-mode gdscript-mode company rust-mode projectile org-reveal ox-reveal writeroom-mode helm-rg eglot web-mode use-package sos sass-mode robe rainbow-delimiters python-mode projectile-ripgrep processing-mode paredit ox-jira magit json-mode htmlize helm-projectile golden-ratio flycheck-rust flx-ido expand-region exec-path-from-shell elpy doom-themes doom-modeline cargo browse-kill-ring ace-jump-mode)))
  '(pdf-view-midnight-colors (cons "#D8DEE9" "#1B2B34"))
  '(rustic-ansi-faces
    ["#1B2B34" "#EC5f67" "#99C794" "#FAC863" "#6699CC" "#E27E8D" "#5FB3B3" "#D8DEE9"])
@@ -1146,4 +1165,5 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- )
+ '(org-block ((t (:background "gray10"))))
+ '(org-block-begin-line ((t (:background "gray10" :foreground "#65737E")))))
