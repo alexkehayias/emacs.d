@@ -29,3 +29,16 @@ To get rust language server working with `eglot`:
 ```
 rustup component add rls rust-analysis rust-src
 ```
+
+To use ~vterm~, you will need to include modules support:
+
+```
+brew tap railwaycat/emacsmacport
+brew install emacs-mac --with-modules
+```
+
+To upgrade an existing install:
+
+```
+brew upgrade emacs-mac --with-modules
+```

@@ -696,11 +696,14 @@
       (after golden-ratio-resize-window)
     (golden-ratio) nil))
 
-;; Rename ansi-terms
+;; Much better terminal emulator. Requires that emacs is installed
+;; --with-modules to work.
+(use-package vterm)
+
 (defun new-term (buffer-name)
   "Start a terminal and rename buffer."
   (interactive "sbuffer name: ")
-  (ansi-term "/bin/zsh")
+  (vterm)
   (rename-buffer buffer-name t))
 
 ;; Shortcut to create a new term
@@ -827,7 +830,7 @@
   (add-to-list 'auto-mode-alist '("\\.json\\'" . json-mode))
   (add-hook 'json-mode 'flymake-json-load))
 
-;; Fix pasting from a buffer to ansi-term
+;; Fix pasting from a buffer to term
 (defun my-term-paste (&optional string)
   (interactive)
   (process-send-string
@@ -951,7 +954,7 @@
   (setq projectile-project-search-path '("~/Projects/"))
 
   (defun projectile-term ()
-    "Create an ansi-term at the project root"
+    "Create an vterm at the project root"
     (interactive)
     (let ((root (projectile-project-root))
 	  (buff-name (concat
@@ -963,7 +966,7 @@
 	  (split-window-sensibly (selected-window))
 	  (other-window 1)
 	  (setq default-directory root)
-	  (ansi-term "/bin/zsh")
+          (vterm)
 	  (rename-buffer buff-name t)))))
   (global-set-key (kbd "C-x M-t") 'projectile-term)
 
@@ -1056,17 +1059,6 @@
   :config
   (browse-kill-ring-default-keybindings))
 
-;; Create a sensible ansi-term
-(defun visit-term-buffer ()
-  "Create or visit a terminal buffer."
-  (interactive)
-  (if (not (get-buffer "*ansi-term*"))
-      (progn
-        (split-window-sensibly (selected-window))
-        (other-window 1)
-        (ansi-term "/bin/zsh"))
-    (switch-to-buffer-other-window "*ansi-term*")))
-
 (put 'downcase-region 'disabled nil)
 (put 'upcase-region 'disabled nil)
 (org-batch-store-agenda-views)
@@ -1134,7 +1126,7 @@
  '(org-roam-directory "~/Dropbox/Org/org-roam")
  '(package-selected-packages
    (quote
-    (which-key org-plus-contrib ob-sh ob-python ox-hugo deft clang-capf company-org-roam org-roam toml-mode lsp-ui flycheck lsp-mode dashboard glsl-mode cider all-the-icons-ibuffer gitignore-mode csharp-mode gdscript-mode company rust-mode projectile org-reveal ox-reveal writeroom-mode helm-rg eglot web-mode use-package sos sass-mode robe rainbow-delimiters python-mode projectile-ripgrep processing-mode paredit ox-jira magit json-mode htmlize helm-projectile golden-ratio flycheck-rust flx-ido expand-region exec-path-from-shell elpy doom-themes doom-modeline cargo browse-kill-ring ace-jump-mode)))
+    (vterm which-key org-plus-contrib ob-sh ob-python ox-hugo deft clang-capf company-org-roam org-roam toml-mode lsp-ui flycheck lsp-mode dashboard glsl-mode cider all-the-icons-ibuffer gitignore-mode csharp-mode gdscript-mode company rust-mode projectile org-reveal ox-reveal writeroom-mode helm-rg eglot web-mode use-package sos sass-mode robe rainbow-delimiters python-mode projectile-ripgrep processing-mode paredit ox-jira magit json-mode htmlize helm-projectile golden-ratio flycheck-rust flx-ido expand-region exec-path-from-shell elpy doom-themes doom-modeline cargo browse-kill-ring ace-jump-mode)))
  '(pdf-view-midnight-colors (cons "#D8DEE9" "#1B2B34"))
  '(rustic-ansi-faces
    ["#1B2B34" "#EC5f67" "#99C794" "#FAC863" "#6699CC" "#E27E8D" "#5FB3B3" "#D8DEE9"])
