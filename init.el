@@ -547,7 +547,10 @@
   (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
 
   ;; Time format for clock table durations as h:mm
-  (setq org-duration-format (quote h:mm)))
+  (setq org-duration-format (quote h:mm))
+
+  ;; Don't prompt for confirmation when exporting babel blocks
+  (setq org-confirm-babel-evaluate nil))
 
 ;; Babel setup
 (use-package ob-python
@@ -575,7 +578,7 @@
   :hook
   (after-init . org-roam-mode)
   :custom
-  (org-roam-directory "~/Dropbox/Org/org-roam")
+  (org-roam-directory "~/Org/notes")
   :bind (:map org-roam-mode-map
               (("C-c n l" . org-roam)
                ("C-c n f" . org-roam-find-file)
@@ -583,7 +586,7 @@
                ("C-c n c" . org-roam-capture)
                ("C-c n j" . org-roam-dailies-today)
                ("C-c n e" . org-roam-to-hugo-md)
-               ;; Full text searchp notes with an action to insert
+               ;; Full text search notes with an action to insert
                ;; org-mode link
                ("C-c n s" . helm-rg))
               :map org-mode-map
@@ -606,21 +609,35 @@
 
   (setq org-roam-completion-system 'helm)
 
+  (defun my/org-roam--extract-note-body (file)
+    (with-temp-buffer
+      (insert-file-contents file)
+      (org-mode)
+      (first (org-element-map (org-element-parse-buffer) 'paragraph
+               (lambda (paragraph)
+                 (let ((begin (plist-get (first (cdr paragraph)) :begin))
+                       (end (plist-get (first (cdr paragraph)) :end)))
+                   (buffer-substring begin end)))))))
+
   ;; Include backlinks in org exported notes not tagged as private
   (defun my/org-roam--backlinks-list (file)
     (if (org-roam--org-roam-file-p file)
         (--reduce-from
-         (concat acc (format "- [[file:%s][%s]]\n"
+         (concat acc (format "- [[file:%s][%s]]\n#+begin_quote\n%s\n#+end_quote\n"
                              (file-relative-name (car it) org-roam-directory)
-                             (org-roam--get-title-or-slug (car it))))
-         "" (org-roam-db-query [:select [links:from]
-                                :from links
-                                :left :outer :join tags :on (= links:from tags:file)
-                                :where (and (= to $s1)
-                                            (or (is tags:tags nil)
-                                                (not-like tags:tags '%private%)))]
-                               file))
+                             (org-roam--get-title-or-slug (car it))
+                             (my/org-roam--extract-note-body (car it))))
+         ""
+         (org-roam-db-query
+          [:select :distinct [links:from]
+           :from links
+           :left :outer :join tags :on (= links:from tags:file)
+           :where (and (= to $s1)
+                       (or (is tags:tags nil)
+                           (not-like tags:tags '%private%)))]
+          file))
       ""))
+
 
   (defun file-path-to-md-file-name (path)
     (let ((file-name (first (last (split-string path "/")))))
@@ -633,11 +650,12 @@
     (interactive)
     (let ((files (mapcan
                   (lambda (x) x)
-                  (org-roam-db-query [:select [files:file]
-                                      :from files
-                                      :left :outer :join tags :on (= files:file tags:file)
-                                      :where (or (is tags:tags nil)
-                                                 (not-like tags:tags '%private%))]))))
+                  (org-roam-db-query
+                   [:select [files:file]
+                    :from files
+                    :left :outer :join tags :on (= files:file tags:file)
+                    :where (or (is tags:tags nil)
+                               (not-like tags:tags '%private%))]))))
       (mapc
        (lambda (f)
          ;; Use temporary buffer to prevent a buffer being opened for
@@ -661,7 +679,7 @@
            (let ((links (my/org-roam--backlinks-list f)))
              (unless (string= links "")
                (goto-char (point-max))
-               (insert (concat "\n* Backlinks\n") links)))
+               (insert (concat "\n* Links to this note\n") links)))
 
            (org-hugo-export-to-md)))
        files))))
@@ -1123,7 +1141,7 @@
  '(jdee-db-requested-breakpoint-face-colors (cons "#1B2B34" "#99C794"))
  '(jdee-db-spec-breakpoint-face-colors (cons "#1B2B34" "#A7ADBA"))
  '(objed-cursor-color "#EC5f67")
- '(org-roam-directory "~/Dropbox/Org/org-roam")
+ '(org-roam-directory "~/Org/notes")
  '(package-selected-packages
    (quote
     (vterm which-key org-plus-contrib ob-sh ob-python ox-hugo deft clang-capf company-org-roam org-roam toml-mode lsp-ui flycheck lsp-mode dashboard glsl-mode cider all-the-icons-ibuffer gitignore-mode csharp-mode gdscript-mode company rust-mode projectile org-reveal ox-reveal writeroom-mode helm-rg eglot web-mode use-package sos sass-mode robe rainbow-delimiters python-mode projectile-ripgrep processing-mode paredit ox-jira magit json-mode htmlize helm-projectile golden-ratio flycheck-rust flx-ido expand-region exec-path-from-shell elpy doom-themes doom-modeline cargo browse-kill-ring ace-jump-mode)))
