@@ -11,17 +11,21 @@
   (add-to-list 'load-path "./elpa/use-package-2.4")
   (require 'use-package))
 
-;; On macos, set the environment to the same as the shell
+;; macOS settings
 (when (memq window-system '(mac ns))
+  ;; Set the environment to the same as the shell
   (use-package exec-path-from-shell
     :ensure t
     :config
-    (exec-path-from-shell-initialize)))
+    (exec-path-from-shell-initialize))
 
-;; Set option key to be meta key
-(setq mac-control-modifier 'control)
-(setq mac-option-modifier 'meta)
-(setq mac-command-modifier 'super)
+  ;; Set option key to be meta key
+  (setq mac-control-modifier 'control)
+  (setq mac-option-modifier 'meta)
+  (setq mac-command-modifier 'super)
+
+  ;; Always use Chrome when opening links
+  (setq browse-url-browser-function 'browse-url-default-macosx-browser))
 
 ;; Max image size when using the builtin viewer
 (setq max-image-size 50.0)
@@ -79,10 +83,6 @@
   (interactive)
   (insert "—"))
 (global-set-key [(meta _)] 'insert-em-dash)
-
-
-;; Always use Chrome when opening links
-(setq browse-url-browser-function 'browse-url-default-macosx-browser)
 
 ;; Delete trailing whitespace on save
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
