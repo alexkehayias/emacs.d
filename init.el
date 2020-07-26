@@ -582,6 +582,64 @@
 (use-package ox-jira :ensure t)
 (use-package ox-hugo :ensure t :after ox)
 
+;; Heavily modified based on https://github.com/novoid/title-capitalization.el/blob/master/title-capitalization.el
+(defun title-capitalization (str)
+  "Convert str to title case"
+  (interactive)
+  (with-temp-buffer
+    (insert str)
+    (let* ((beg (point-min))
+           (end (point-max))
+	   ;; Basic list of words which don't get capitalized according to simplified rules
+	   ;; http://karl-voit.at/2015/05/25/elisp-title-capitalization/
+           (do-not-capitalize-basic-words '("a" "ago" "an" "and" "as" "at" "but" "by" "for"
+                                            "from" "in" "into" "it" "next" "nor" "of" "off"
+                                            "on" "onto" "or" "over" "past" "so" "the" "till"
+                                            "to" "up" "yet"
+                                            "n" "t" "es" "s"))
+	   ;; If user has defined 'my-do-not-capitalize-words, append to basic list
+           (do-not-capitalize-words (if (boundp 'my-do-not-capitalize-words)
+                                        (append do-not-capitalize-basic-words my-do-not-capitalize-words )
+                                      do-not-capitalize-basic-words)))
+      ;; Go to begin of first word
+      (goto-char beg)
+      (setq continue t)
+
+      ;; Go through the region, word by word
+      (while continue
+        (let ((last-point (point)))
+          (let ((word (thing-at-point 'word)))
+            (if (stringp word)
+                ;; Capitalize current word except when it is list member
+                (if (and (member (downcase word) do-not-capitalize-words)
+                         ;; Always capitalize first word
+                         (not (= (point) 1)))
+                    (downcase-word 1)
+
+                  ;; If it's an acronym, don't capitalize
+                  (if (string= word (upcase word))
+                      (progn
+                        (goto-char (+ (point) (length word) 1)))
+                    (capitalize-word 1)))))
+
+          (skip-syntax-forward "^w" end)
+
+          ;; Break if we are at the end of the buffer
+          (when (= (point) last-point)
+            (setq continue nil))))
+
+      ;; Always capitalize the last word
+      (backward-word 1)
+
+      (let ((word (thing-at-point 'word)))
+        (if (and (>= (point) 0)
+                 (not (member (or word "s")
+                              '("n" "t" "es" "s")))
+                 (not (string= word (upcase word))))
+            (capitalize-word 1))))
+
+    (buffer-string)))
+
 ;; Org roam
 (use-package org-roam
   :hook
@@ -628,13 +686,14 @@
                        (end (plist-get (first (cdr paragraph)) :end)))
                    (buffer-substring begin end)))))))
 
-  ;; Include backlinks in org exported notes not tagged as private
+  ;; Include backlinks in org exported notes not tagged as private or
+  ;; draft
   (defun my/org-roam--backlinks-list (file)
     (if (org-roam--org-roam-file-p file)
         (--reduce-from
          (concat acc (format "- [[file:%s][%s]]\n#+begin_quote\n%s\n#+end_quote\n"
                              (file-relative-name (car it) org-roam-directory)
-                             (org-roam--get-title-or-slug (car it))
+                             (title-capitalization (org-roam--get-title-or-slug (car it)))
                              (my/org-roam--extract-note-body (car it))))
          ""
          (org-roam-db-query
@@ -643,18 +702,24 @@
            :left :outer :join tags :on (= links:from tags:file)
            :where (and (= to $s1)
                        (or (is tags:tags nil)
-                           (not-like tags:tags '%private%)))]
+                           (and
+                            (not-like tags:tags '%private%)
+                            (not-like tags:tags '%draft%))))]
           file))
       ""))
-
 
   (defun file-path-to-md-file-name (path)
     (let ((file-name (first (last (split-string path "/")))))
       (concat (first (split-string file-name "\\.")) ".md")))
 
+  (defun file-path-to-slug (path)
+    (let* ((file-name (car (last (split-string path "--"))))
+           (title (first (split-string file-name "\\."))))
+      (replace-regexp-in-string (regexp-quote "_") "-" title nil 'literal)))
+
   ;; Fetches all org-roam files and exports to hugo markdown
   ;; files. Adds in necessary hugo properties
-  ;; e.g. HUGO_BASE_DIR. Ignores notes tagged as private.
+  ;; e.g. HUGO_BASE_DIR. Ignores notes tagged as private or draft
   (defun org-roam-to-hugo-md ()
     (interactive)
     (let ((files (mapcan
@@ -664,13 +729,17 @@
                     :from files
                     :left :outer :join tags :on (= files:file tags:file)
                     :where (or (is tags:tags nil)
-                               (not-like tags:tags '%private%))]))))
+                               (and
+                                 (not-like tags:tags '%private%)
+                                 (not-like tags:tags '%draft%)))]))))
       (mapc
        (lambda (f)
          ;; Use temporary buffer to prevent a buffer being opened for
          ;; each note file.
          (with-temp-buffer
+           (message "Working on: %s" f)
            (insert-file-contents f)
+
            (goto-char (point-min))
            ;; Add in hugo tags for export. This lets you write the
            ;; notes without littering HUGO_* tags everywhere
@@ -680,7 +749,19 @@
            ;; the buffer. Instead we explicitely add the name of the
            ;; exported .md file otherwise you would get prompted for
            ;; the output file name on every note.
-           (insert (format "#+HUGO_BASE_DIR: ~/Projects/zettel\n#+HUGO_SECTION: ./\n#+EXPORT_FILE_NAME: %s\n" (file-path-to-md-file-name f)))
+           (insert
+            (format "#+HUGO_BASE_DIR: ~/Projects/zettel\n#+HUGO_SECTION: ./\n#+HUGO_SLUG: %s\n#+EXPORT_FILE_NAME: %s\n"
+                    (file-path-to-slug f)
+                    (file-path-to-md-file-name f)))
+
+           ;; If this is a placeholder note (no content in the
+           ;; body) then add default text. This makes it look ok when
+           ;; showing note previews in the index and avoids a headline
+           ;; followed by a headline in the note detail page.
+           (if (eq (my/org-roam--extract-note-body f) nil)
+               (progn
+                 (goto-char (point-max))
+                 (insert "\n/This note does not have a description yet./\n")))
 
            ;; Add in backlinks because
            ;; org-export-before-processing-hook won't be useful the
@@ -1144,7 +1225,7 @@
    ["#1B2B34" "#EC5f67" "#99C794" "#FAC863" "#6699CC" "#E27E8D" "#5FB3B3" "#D8DEE9"])
  '(custom-safe-themes
    (quote
-    ("3d3807f1070bb91a68d6638a708ee09e63c0825ad21809c87138e676a60bda5d" "2f1518e906a8b60fac943d02ad415f1d8b3933a5a7f75e307e6e9a26ef5bf570" "9efb2d10bfb38fe7cd4586afb3e644d082cbcdb7435f3d1e8dd9413cbe5e61fc" "f2b56244ecc6f4b952b2bcb1d7e517f1f4272876a8c873b378f5cf68e904bd59" "e30e72b10b9c7887ff8adcd1a25b5c6eaa32665e0f8f40994e5b6d51069d3b2a" "37148381b35916d717945f3d0e1b2beb23c8b8383e5a7a879f1eaa4dde01d026" "3e3a1caddeee4a73789ff10ba90b8394f4cd3f3788892577d7ded188e05d78f4" "dde8c620311ea241c0b490af8e6f570fdd3b941d7bc209e55cd87884eb733b0e" "cb96a06ed8f47b07c014e8637bd0fd0e6c555364171504680ac41930cfe5e11e" "a339f231e63aab2a17740e5b3965469e8c0b85eccdfb1f9dbd58a30bdad8562b" "7c4cfa4eb784539d6e09ecc118428cd8125d6aa3053d8e8413f31a7293d43169" "6231254e74298a1cf8a5fee7ca64352943de4b495e615c449e9bb27e2ccae709" "6de37d6d573e18138aa948683c8ff0e72b89e90d1cdbf683787ea72f8e6295ab" "d1c7f2db070c96aa674f1d61403b4da1fff2154163e9be76ce51824ed5ca709c" "0ad7f1c71fd0289f7549f0454c9b12005eddf9b76b7ead32a24d9cb1d16cbcbd" "bc99493670a29023f99e88054c9b8676332dda83a37adb583d6f1e4c13be62b8" "3952ef318c8cbccf09954ecf43250ac0cbd1f4ae66b4abe569491b260f6e054b" "e7666261f46e2f4f42fd1f9aa1875bdb81d17cc7a121533cad3e0d724f12faf2" "2878517f049b28342d7a360fd3f4b227086c4be8f8409f32e0f234d129cee925" "70ed3a0f434c63206a23012d9cdfbe6c6d4bb4685ad64154f37f3c15c10f3b90" "b462d00de785490a0b6861807a360f5c1e05b48a159a99786145de7e3cce3afe" "f30aded97e67a487d30f38a1ac48eddb49fdb06ac01ebeaff39439997cbdd869" "70cc30fd9d27a8d0d3ae82974ac2c409fd2cd5746470e2246778c6bec2d4857c" "c95043bcca81b664f7b394e88f888065aa80ba48b4f3a02ede30590399035a49" "423435c7b0e6c0942f16519fa9e17793da940184a50201a4d932eafe4c94c92d" "c8f959fb1ea32ddfc0f50db85fea2e7d86b72bb4d106803018be1c3566fd6c72" "2d392972cbe692ee4ac61dc79907af65051450caf690a8c4d36eb40c1857ba7d" "7f74a3b9a1f5e3d31358b48b8f8a1154aab2534fae82c9e918fb389fca776788" "fefab1b6d3366a959c78b4ed154018d48f4ec439ce652f4748ef22945ca7c2d5" "cdb3e7a8864cede434b168c9a060bf853eeb5b3f9f758310d2a2e23be41a24ae" "2a3ffb7775b2fe3643b179f2046493891b0d1153e57ec74bbe69580b951699ca" "071f5702a5445970105be9456a48423a87b8b9cfa4b1f76d15699b29123fb7d8" "0d087b2853473609d9efd2e9fbeac088e89f36718c4a4c89c568dd1b628eae41" "001c2ff8afde9c3e707a2eb3e810a0a36fb2b466e96377ac95968e7f8930a7c5" "9954ed41d89d2dcf601c8e7499b6bb2778180bfcaeb7cdfc648078b8e05348c6" "a6e3dec0d16222cc5747743c87ef7da79186f7282e2ec4ff74c7f08ed7fe28d2" default)))
+    ("e074be1c799b509f52870ee596a5977b519f6d269455b84ed998666cf6fc802a" "632694fd8a835e85bcc8b7bb5c1df1a0164689bc6009864faed38a9142b97057" "3d3807f1070bb91a68d6638a708ee09e63c0825ad21809c87138e676a60bda5d" "2f1518e906a8b60fac943d02ad415f1d8b3933a5a7f75e307e6e9a26ef5bf570" "9efb2d10bfb38fe7cd4586afb3e644d082cbcdb7435f3d1e8dd9413cbe5e61fc" "f2b56244ecc6f4b952b2bcb1d7e517f1f4272876a8c873b378f5cf68e904bd59" "e30e72b10b9c7887ff8adcd1a25b5c6eaa32665e0f8f40994e5b6d51069d3b2a" "37148381b35916d717945f3d0e1b2beb23c8b8383e5a7a879f1eaa4dde01d026" "3e3a1caddeee4a73789ff10ba90b8394f4cd3f3788892577d7ded188e05d78f4" "dde8c620311ea241c0b490af8e6f570fdd3b941d7bc209e55cd87884eb733b0e" "cb96a06ed8f47b07c014e8637bd0fd0e6c555364171504680ac41930cfe5e11e" "a339f231e63aab2a17740e5b3965469e8c0b85eccdfb1f9dbd58a30bdad8562b" "7c4cfa4eb784539d6e09ecc118428cd8125d6aa3053d8e8413f31a7293d43169" "6231254e74298a1cf8a5fee7ca64352943de4b495e615c449e9bb27e2ccae709" "6de37d6d573e18138aa948683c8ff0e72b89e90d1cdbf683787ea72f8e6295ab" "d1c7f2db070c96aa674f1d61403b4da1fff2154163e9be76ce51824ed5ca709c" "0ad7f1c71fd0289f7549f0454c9b12005eddf9b76b7ead32a24d9cb1d16cbcbd" "bc99493670a29023f99e88054c9b8676332dda83a37adb583d6f1e4c13be62b8" "3952ef318c8cbccf09954ecf43250ac0cbd1f4ae66b4abe569491b260f6e054b" "e7666261f46e2f4f42fd1f9aa1875bdb81d17cc7a121533cad3e0d724f12faf2" "2878517f049b28342d7a360fd3f4b227086c4be8f8409f32e0f234d129cee925" "70ed3a0f434c63206a23012d9cdfbe6c6d4bb4685ad64154f37f3c15c10f3b90" "b462d00de785490a0b6861807a360f5c1e05b48a159a99786145de7e3cce3afe" "f30aded97e67a487d30f38a1ac48eddb49fdb06ac01ebeaff39439997cbdd869" "70cc30fd9d27a8d0d3ae82974ac2c409fd2cd5746470e2246778c6bec2d4857c" "c95043bcca81b664f7b394e88f888065aa80ba48b4f3a02ede30590399035a49" "423435c7b0e6c0942f16519fa9e17793da940184a50201a4d932eafe4c94c92d" "c8f959fb1ea32ddfc0f50db85fea2e7d86b72bb4d106803018be1c3566fd6c72" "2d392972cbe692ee4ac61dc79907af65051450caf690a8c4d36eb40c1857ba7d" "7f74a3b9a1f5e3d31358b48b8f8a1154aab2534fae82c9e918fb389fca776788" "fefab1b6d3366a959c78b4ed154018d48f4ec439ce652f4748ef22945ca7c2d5" "cdb3e7a8864cede434b168c9a060bf853eeb5b3f9f758310d2a2e23be41a24ae" "2a3ffb7775b2fe3643b179f2046493891b0d1153e57ec74bbe69580b951699ca" "071f5702a5445970105be9456a48423a87b8b9cfa4b1f76d15699b29123fb7d8" "0d087b2853473609d9efd2e9fbeac088e89f36718c4a4c89c568dd1b628eae41" "001c2ff8afde9c3e707a2eb3e810a0a36fb2b466e96377ac95968e7f8930a7c5" "9954ed41d89d2dcf601c8e7499b6bb2778180bfcaeb7cdfc648078b8e05348c6" "a6e3dec0d16222cc5747743c87ef7da79186f7282e2ec4ff74c7f08ed7fe28d2" default)))
  '(fci-rule-color "#C0C5CE")
  '(jdee-db-active-breakpoint-face-colors (cons "#1B2B34" "#FAC863"))
  '(jdee-db-requested-breakpoint-face-colors (cons "#1B2B34" "#99C794"))
