@@ -265,7 +265,21 @@
   (add-to-list 'auto-mode-alist '("\\.md$" . markdown-mode)))
 
 ;; Nice writing layout
-(use-package writeroom-mode :ensure t)
+(use-package writeroom-mode
+  :ensure t
+  :config
+  (add-hook 'writeroom-mode-hook
+            (lambda ()
+              ;; Use custom font face for this buffer only
+              (defface tmp-buffer-local-face
+                '((t :family "ETBembo" :height 180))
+                "Temporary buffer-local face")
+              (buffer-face-set 'tmp-buffer-local-face)
+              ;; Add padding to the top of the frame
+              (setq header-line-format " ")
+              ;; Use a skinny cursor
+              (make-local-variable 'cursor-type)
+              (setq cursor-type 'bar))))
 
 ;; Detect things like weasel words
 (use-package writegood-mode
@@ -289,7 +303,7 @@
 ;; Web browser (eww)
 (global-set-key (kbd "C-x M-w") 'eww)
 
-;; Disable auto fill mode because it's fucking annoying
+;; Disable auto fill mode because it's annoying
 (auto-fill-mode -1)
 (remove-hook 'text-mode-hook #'turn-on-auto-fill)
 
@@ -387,14 +401,20 @@
 ;; Org-mode
 (use-package org
   :ensure t
-  :hook writegood-mode
   :config
   ;; When opening a file make sure everything is expanded
   (setq org-startup-folded nil)
+
   ;; Always wrap lines
   (setq org-startup-truncated nil)
+
   ;; Show inline images
   (org-display-inline-images t t)
+
+  ;; Refile to the root of a file
+  (setq org-refile-use-outline-path 'file)
+  (setq org-refile-targets '((org-agenda-files :level . 1)))
+
   ;; Show the agenda helper and viewer in split screen
   (defadvice org-agenda (around split-vertically activate)
     (let ((split-width-threshold 80))
@@ -475,6 +495,10 @@
 	      (setq yas/trigger-key [tab])
 	      (add-to-list 'org-tab-first-hook 'yas/org-very-safe-expand)
 	      (define-key yas/keymap [tab] 'yas/next-field)))
+
+  (add-hook 'org-mode-hook (lambda ()
+                             (make-variable-buffer-local 'visual-line-mode)
+                             (visual-line-mode)))
 
   ;; Show syntax highlighting per language native mode in *.org
   (setq org-src-fontify-natively t)
@@ -676,6 +700,26 @@
 
   (setq org-roam-completion-system 'helm)
 
+
+  ;; Use writeroom mode when capturing new notes. Hide the ugly
+  ;; preamble of org attributes by scrolling up.
+  (defun my/note-taking-init (&rest r)
+    (with-current-buffer (current-buffer)
+      (writeroom-mode)
+      (scroll-up-command 4)))
+
+  (advice-add #'org-roam-capture
+              :after
+              'my/note-taking-init)
+
+  (advice-add #'org-roam-dailies-today
+              :after
+              'my/note-taking-init)
+
+  (advice-add #'org-roam-find-file
+              :after
+              'my/note-taking-init)
+
   (defun my/org-roam--extract-note-body (file)
     (with-temp-buffer
       (insert-file-contents file)
@@ -852,6 +896,7 @@
 
 (defun center-text-mode ()
   (interactive)
+  (make-local-variable 'centered)
   (if (eq centered t)
     (progn (center-text-clear)
            (setq centered nil))
@@ -1225,16 +1270,19 @@
    ["#1B2B34" "#EC5f67" "#99C794" "#FAC863" "#6699CC" "#E27E8D" "#5FB3B3" "#D8DEE9"])
  '(custom-safe-themes
    (quote
-    ("e074be1c799b509f52870ee596a5977b519f6d269455b84ed998666cf6fc802a" "632694fd8a835e85bcc8b7bb5c1df1a0164689bc6009864faed38a9142b97057" "3d3807f1070bb91a68d6638a708ee09e63c0825ad21809c87138e676a60bda5d" "2f1518e906a8b60fac943d02ad415f1d8b3933a5a7f75e307e6e9a26ef5bf570" "9efb2d10bfb38fe7cd4586afb3e644d082cbcdb7435f3d1e8dd9413cbe5e61fc" "f2b56244ecc6f4b952b2bcb1d7e517f1f4272876a8c873b378f5cf68e904bd59" "e30e72b10b9c7887ff8adcd1a25b5c6eaa32665e0f8f40994e5b6d51069d3b2a" "37148381b35916d717945f3d0e1b2beb23c8b8383e5a7a879f1eaa4dde01d026" "3e3a1caddeee4a73789ff10ba90b8394f4cd3f3788892577d7ded188e05d78f4" "dde8c620311ea241c0b490af8e6f570fdd3b941d7bc209e55cd87884eb733b0e" "cb96a06ed8f47b07c014e8637bd0fd0e6c555364171504680ac41930cfe5e11e" "a339f231e63aab2a17740e5b3965469e8c0b85eccdfb1f9dbd58a30bdad8562b" "7c4cfa4eb784539d6e09ecc118428cd8125d6aa3053d8e8413f31a7293d43169" "6231254e74298a1cf8a5fee7ca64352943de4b495e615c449e9bb27e2ccae709" "6de37d6d573e18138aa948683c8ff0e72b89e90d1cdbf683787ea72f8e6295ab" "d1c7f2db070c96aa674f1d61403b4da1fff2154163e9be76ce51824ed5ca709c" "0ad7f1c71fd0289f7549f0454c9b12005eddf9b76b7ead32a24d9cb1d16cbcbd" "bc99493670a29023f99e88054c9b8676332dda83a37adb583d6f1e4c13be62b8" "3952ef318c8cbccf09954ecf43250ac0cbd1f4ae66b4abe569491b260f6e054b" "e7666261f46e2f4f42fd1f9aa1875bdb81d17cc7a121533cad3e0d724f12faf2" "2878517f049b28342d7a360fd3f4b227086c4be8f8409f32e0f234d129cee925" "70ed3a0f434c63206a23012d9cdfbe6c6d4bb4685ad64154f37f3c15c10f3b90" "b462d00de785490a0b6861807a360f5c1e05b48a159a99786145de7e3cce3afe" "f30aded97e67a487d30f38a1ac48eddb49fdb06ac01ebeaff39439997cbdd869" "70cc30fd9d27a8d0d3ae82974ac2c409fd2cd5746470e2246778c6bec2d4857c" "c95043bcca81b664f7b394e88f888065aa80ba48b4f3a02ede30590399035a49" "423435c7b0e6c0942f16519fa9e17793da940184a50201a4d932eafe4c94c92d" "c8f959fb1ea32ddfc0f50db85fea2e7d86b72bb4d106803018be1c3566fd6c72" "2d392972cbe692ee4ac61dc79907af65051450caf690a8c4d36eb40c1857ba7d" "7f74a3b9a1f5e3d31358b48b8f8a1154aab2534fae82c9e918fb389fca776788" "fefab1b6d3366a959c78b4ed154018d48f4ec439ce652f4748ef22945ca7c2d5" "cdb3e7a8864cede434b168c9a060bf853eeb5b3f9f758310d2a2e23be41a24ae" "2a3ffb7775b2fe3643b179f2046493891b0d1153e57ec74bbe69580b951699ca" "071f5702a5445970105be9456a48423a87b8b9cfa4b1f76d15699b29123fb7d8" "0d087b2853473609d9efd2e9fbeac088e89f36718c4a4c89c568dd1b628eae41" "001c2ff8afde9c3e707a2eb3e810a0a36fb2b466e96377ac95968e7f8930a7c5" "9954ed41d89d2dcf601c8e7499b6bb2778180bfcaeb7cdfc648078b8e05348c6" "a6e3dec0d16222cc5747743c87ef7da79186f7282e2ec4ff74c7f08ed7fe28d2" default)))
+    ("99ea831ca79a916f1bd789de366b639d09811501e8c092c85b2cb7d697777f93" "9b01a258b57067426cc3c8155330b0381ae0d8dd41d5345b5eddac69f40d409b" "93ed23c504b202cf96ee591138b0012c295338f38046a1f3c14522d4a64d7308" "e074be1c799b509f52870ee596a5977b519f6d269455b84ed998666cf6fc802a" "632694fd8a835e85bcc8b7bb5c1df1a0164689bc6009864faed38a9142b97057" "3d3807f1070bb91a68d6638a708ee09e63c0825ad21809c87138e676a60bda5d" "2f1518e906a8b60fac943d02ad415f1d8b3933a5a7f75e307e6e9a26ef5bf570" "9efb2d10bfb38fe7cd4586afb3e644d082cbcdb7435f3d1e8dd9413cbe5e61fc" "f2b56244ecc6f4b952b2bcb1d7e517f1f4272876a8c873b378f5cf68e904bd59" "e30e72b10b9c7887ff8adcd1a25b5c6eaa32665e0f8f40994e5b6d51069d3b2a" "37148381b35916d717945f3d0e1b2beb23c8b8383e5a7a879f1eaa4dde01d026" "3e3a1caddeee4a73789ff10ba90b8394f4cd3f3788892577d7ded188e05d78f4" "dde8c620311ea241c0b490af8e6f570fdd3b941d7bc209e55cd87884eb733b0e" "cb96a06ed8f47b07c014e8637bd0fd0e6c555364171504680ac41930cfe5e11e" "a339f231e63aab2a17740e5b3965469e8c0b85eccdfb1f9dbd58a30bdad8562b" "7c4cfa4eb784539d6e09ecc118428cd8125d6aa3053d8e8413f31a7293d43169" "6231254e74298a1cf8a5fee7ca64352943de4b495e615c449e9bb27e2ccae709" "6de37d6d573e18138aa948683c8ff0e72b89e90d1cdbf683787ea72f8e6295ab" "d1c7f2db070c96aa674f1d61403b4da1fff2154163e9be76ce51824ed5ca709c" "0ad7f1c71fd0289f7549f0454c9b12005eddf9b76b7ead32a24d9cb1d16cbcbd" "bc99493670a29023f99e88054c9b8676332dda83a37adb583d6f1e4c13be62b8" "3952ef318c8cbccf09954ecf43250ac0cbd1f4ae66b4abe569491b260f6e054b" "e7666261f46e2f4f42fd1f9aa1875bdb81d17cc7a121533cad3e0d724f12faf2" "2878517f049b28342d7a360fd3f4b227086c4be8f8409f32e0f234d129cee925" "70ed3a0f434c63206a23012d9cdfbe6c6d4bb4685ad64154f37f3c15c10f3b90" "b462d00de785490a0b6861807a360f5c1e05b48a159a99786145de7e3cce3afe" "f30aded97e67a487d30f38a1ac48eddb49fdb06ac01ebeaff39439997cbdd869" "70cc30fd9d27a8d0d3ae82974ac2c409fd2cd5746470e2246778c6bec2d4857c" "c95043bcca81b664f7b394e88f888065aa80ba48b4f3a02ede30590399035a49" "423435c7b0e6c0942f16519fa9e17793da940184a50201a4d932eafe4c94c92d" "c8f959fb1ea32ddfc0f50db85fea2e7d86b72bb4d106803018be1c3566fd6c72" "2d392972cbe692ee4ac61dc79907af65051450caf690a8c4d36eb40c1857ba7d" "7f74a3b9a1f5e3d31358b48b8f8a1154aab2534fae82c9e918fb389fca776788" "fefab1b6d3366a959c78b4ed154018d48f4ec439ce652f4748ef22945ca7c2d5" "cdb3e7a8864cede434b168c9a060bf853eeb5b3f9f758310d2a2e23be41a24ae" "2a3ffb7775b2fe3643b179f2046493891b0d1153e57ec74bbe69580b951699ca" "071f5702a5445970105be9456a48423a87b8b9cfa4b1f76d15699b29123fb7d8" "0d087b2853473609d9efd2e9fbeac088e89f36718c4a4c89c568dd1b628eae41" "001c2ff8afde9c3e707a2eb3e810a0a36fb2b466e96377ac95968e7f8930a7c5" "9954ed41d89d2dcf601c8e7499b6bb2778180bfcaeb7cdfc648078b8e05348c6" "a6e3dec0d16222cc5747743c87ef7da79186f7282e2ec4ff74c7f08ed7fe28d2" default)))
  '(fci-rule-color "#C0C5CE")
  '(jdee-db-active-breakpoint-face-colors (cons "#1B2B34" "#FAC863"))
  '(jdee-db-requested-breakpoint-face-colors (cons "#1B2B34" "#99C794"))
  '(jdee-db-spec-breakpoint-face-colors (cons "#1B2B34" "#A7ADBA"))
  '(objed-cursor-color "#EC5f67")
+ '(org-agenda-files
+   (quote
+    ("~/Projects/zettel/notes.org" "~/Org/keyboard.org" "~/Org/gifts.org" "~/Org/todo.org" "~/Org/ideas.org" "~/Org/refile.org" "~/Projects/episodic/notes.org" "~/Projects/wigl/notes.org" "~/Projects/tunnelcast/notes.org" "~/Projects/derise/notes.org")))
  '(org-roam-directory "~/Org/notes")
  '(package-selected-packages
    (quote
-    (olivetti writegood-mode vterm which-key org-plus-contrib ob-sh ob-python ox-hugo deft clang-capf company-org-roam org-roam toml-mode lsp-ui flycheck lsp-mode dashboard glsl-mode cider all-the-icons-ibuffer gitignore-mode csharp-mode gdscript-mode company rust-mode projectile org-reveal ox-reveal writeroom-mode helm-rg eglot web-mode use-package sos sass-mode robe rainbow-delimiters python-mode projectile-ripgrep processing-mode paredit ox-jira magit json-mode htmlize helm-projectile golden-ratio flycheck-rust flx-ido expand-region exec-path-from-shell elpy doom-themes doom-modeline cargo browse-kill-ring ace-jump-mode)))
+    (olivetti writegood-mode vterm which-key org-plus-contrib ob-sh ob-python ox-hugo deft clang-capf org-roam toml-mode lsp-ui flycheck lsp-mode dashboard glsl-mode cider all-the-icons-ibuffer gitignore-mode csharp-mode gdscript-mode company rust-mode projectile org-reveal ox-reveal writeroom-mode helm-rg eglot web-mode use-package sos sass-mode robe rainbow-delimiters python-mode projectile-ripgrep processing-mode paredit ox-jira magit json-mode htmlize helm-projectile golden-ratio flycheck-rust flx-ido expand-region exec-path-from-shell elpy doom-themes doom-modeline cargo browse-kill-ring ace-jump-mode)))
  '(pdf-view-midnight-colors (cons "#D8DEE9" "#1B2B34"))
  '(rustic-ansi-faces
    ["#1B2B34" "#EC5f67" "#99C794" "#FAC863" "#6699CC" "#E27E8D" "#5FB3B3" "#D8DEE9"])
@@ -1264,7 +1312,9 @@
  '(writeroom-fullscreen-effect (quote fullboth))
  '(writeroom-global-effects
    (quote
-    (writeroom-set-alpha writeroom-set-menu-bar-lines writeroom-set-tool-bar-lines writeroom-set-vertical-scroll-bars writeroom-set-bottom-divider-width))))
+    (writeroom-set-alpha writeroom-set-menu-bar-lines writeroom-set-tool-bar-lines writeroom-set-vertical-scroll-bars writeroom-set-bottom-divider-width)))
+ '(writeroom-major-modes (quote (org-roam-mode text-mode)))
+ '(writeroom-width 90))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
