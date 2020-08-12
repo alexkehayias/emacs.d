@@ -1224,9 +1224,9 @@
   :config
   (browse-kill-ring-default-keybindings))
 
+;; Prevent accidental upcase/downcase
 (put 'downcase-region 'disabled nil)
 (put 'upcase-region 'disabled nil)
-(org-batch-store-agenda-views)
 
 ;; Unload a theme before enabling another
 (defadvice load-theme (before theme-dont-propagate activate)
