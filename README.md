@@ -1,5 +1,7 @@
 # Alex's Emacs Config
 
+![CI](https://github.com/alexkehayias/emacs.d/workflows/CI/badge.svg)
+
 Uses `use-package` to manage packages for my personal emacs setup so it can be shared across machines easily.
 
 ## Usage
