@@ -402,6 +402,7 @@
 (use-package org
   :ensure t
   :config
+  (setq org-directory "~/Org")
   ;; When opening a file make sure everything is expanded
   (setq org-startup-folded nil)
 
@@ -410,6 +411,16 @@
 
   ;; Show inline images
   (org-display-inline-images t t)
+  ;; Don't show full size images otherwise it's too large when
+  ;; displaying inline
+  (setq org-image-actual-width nil)
+
+  ;; Prettify outlines
+  (add-hook 'org-mode-hook
+            (lambda ()
+              (push '("- [ ]"     . "☐") prettify-symbols-alist)
+              (push '("- [X]"     . "☑") prettify-symbols-alist)
+              (prettify-symbols-mode)))
 
   ;; Refile to the root of a file
   (setq org-refile-use-outline-path 'file)
@@ -681,7 +692,7 @@
                ;; org-mode link
                ("C-c n s" . helm-rg))
               :map org-mode-map
-              (("C-c n i" . org-roam-insert)))
+              (("C-c n i" . org-roam-insert))))
 
   :config
   (setq org-roam-capture-templates
@@ -700,23 +711,22 @@
 
   (setq org-roam-completion-system 'helm)
 
-
   ;; Use writeroom mode when capturing new notes. Hide the ugly
   ;; preamble of org attributes by scrolling up.
   (defun my/note-taking-init (&rest r)
     (with-current-buffer (current-buffer)
       (writeroom-mode)
-      (scroll-up-command 4)))
+      (scroll-up-command 4))
 
-  (advice-add #'org-roam-capture
+  (advice-add 'org-roam-capture
               :after
               'my/note-taking-init)
 
-  (advice-add #'org-roam-dailies-today
+  (advice-add 'org-roam-dailies-today
               :after
               'my/note-taking-init)
 
-  (advice-add #'org-roam-find-file
+  (advice-add 'org-roam-find-file
               :after
               'my/note-taking-init)
 
@@ -1282,7 +1292,7 @@
  '(org-roam-directory "~/Org/notes")
  '(package-selected-packages
    (quote
-    (olivetti writegood-mode vterm which-key org-plus-contrib ob-sh ob-python ox-hugo deft clang-capf org-roam toml-mode lsp-ui flycheck lsp-mode dashboard glsl-mode cider all-the-icons-ibuffer gitignore-mode csharp-mode gdscript-mode company rust-mode projectile org-reveal ox-reveal writeroom-mode helm-rg eglot web-mode use-package sos sass-mode robe rainbow-delimiters python-mode projectile-ripgrep processing-mode paredit ox-jira magit json-mode htmlize helm-projectile golden-ratio flycheck-rust flx-ido expand-region exec-path-from-shell elpy doom-themes doom-modeline cargo browse-kill-ring ace-jump-mode)))
+    (helm-swoop helm-org-rifle olivetti writegood-mode vterm which-key org-plus-contrib ob-sh ob-python ox-hugo deft clang-capf org-roam toml-mode lsp-ui flycheck lsp-mode dashboard glsl-mode cider all-the-icons-ibuffer gitignore-mode csharp-mode gdscript-mode company rust-mode projectile org-reveal ox-reveal writeroom-mode helm-rg eglot web-mode use-package sos sass-mode robe rainbow-delimiters python-mode projectile-ripgrep processing-mode paredit ox-jira magit json-mode htmlize helm-projectile golden-ratio flycheck-rust flx-ido expand-region exec-path-from-shell elpy doom-themes doom-modeline cargo browse-kill-ring ace-jump-mode)))
  '(pdf-view-midnight-colors (cons "#D8DEE9" "#1B2B34"))
  '(rustic-ansi-faces
    ["#1B2B34" "#EC5f67" "#99C794" "#FAC863" "#6699CC" "#E27E8D" "#5FB3B3" "#D8DEE9"])
