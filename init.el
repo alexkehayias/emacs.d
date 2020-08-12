@@ -1255,8 +1255,6 @@
 ;; Make the default face the same font
 (set-face-attribute 'default t :font "Cascadia Code")
 (set-face-attribute 'default nil :height 120)
-;; Font for all unicode characters
-(set-fontset-font t 'unicode "Font Awesome" nil 'prepend)
 
 ;; Keyboard shortcut for using a big screen
 (setq big-screen nil)
