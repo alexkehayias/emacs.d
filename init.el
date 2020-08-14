@@ -707,58 +707,26 @@
 
 (use-package org-roam
   :hook
-  (after-init . org-roam-mode)
+  ((after-init . org-roam-mode)
+   ;; Need to add advice after-init otherwise they won't take
+   (after-init . (lambda ()
+                   (advice-add 'org-roam-capture
+                               :after
+                               'my/note-taking-init)
+
+                   (advice-add 'org-roam-dailies-today
+                               :after
+                               'my/note-taking-init)
+
+                   (advice-add 'org-roam-find-file
+                               :after
+                               'my/note-taking-init))))
   :custom
   (org-roam-directory org-roam-notes-path)
-  :bind (:map org-roam-mode-map
-              (("C-c n l" . org-roam)
-               ("C-c n f" . org-roam-find-file)
-               ("C-c n g" . org-roam-graph)
-               ("C-c n c" . org-roam-capture)
-               ("C-c n j" . org-roam-dailies-today)
-               ("C-c n e" . org-roam-to-hugo-md)
-               ;; Full text search notes with an action to insert
-               ;; org-mode link
-               ("C-c n s" . helm-rg))
-              :map org-mode-map
-              (("C-c n i" . org-roam-insert))))
-
-  :config
-  (setq org-roam-capture-templates
-	(quote (("d" "Default" plain (function org-roam--capture-get-point)
-                 "%?"
-                 :file-name "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--${slug}\" (current-time) t)"
-                 :head "#+TITLE: ${title}\n#+DATE: %<%Y-%m-%d>\n#+ROAM_ALIAS:\n#+ROAM_TAGS:\n\n"
-                 :unnarrowed t))))
-
-  (setq org-roam-dailies-capture-templates
-	(quote (("d" "Default" plain (function org-roam--capture-get-point)
-                 "%?"
-                 :file-name "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--journal\" (current-time) t)"
-                 :head "#+TITLE: Journal %<%Y-%m-%d>\n#+DATE: %<%Y-%m-%d>\n#+ROAM_ALIAS:\n#+ROAM_TAGS: private journal\n\n"
-                 :unnarrowed t))))
-
-  (setq org-roam-completion-system 'helm)
-
-  ;; Use writeroom mode when capturing new notes. Hide the ugly
-  ;; preamble of org attributes by scrolling up.
-  (defun my/note-taking-init (&rest r)
-    (with-current-buffer (current-buffer)
-      (writeroom-mode)
-      (scroll-up-command 4))
-
-  (advice-add 'org-roam-capture
-              :after
-              'my/note-taking-init)
-
-  (advice-add 'org-roam-dailies-today
-              :after
-              'my/note-taking-init)
-
-  (advice-add 'org-roam-find-file
-              :after
-              'my/note-taking-init)
-
+  :init
+  ;; These functions need to be in :init otherwise they will not be
+  ;; callable in an emacs --batch context which for some reason
+  ;; can't be found in autoloads if it's under :config
   (defun my/org-roam--extract-note-body (file)
     (with-temp-buffer
       (insert-file-contents file)
@@ -781,13 +749,13 @@
          ""
          (org-roam-db-query
           [:select :distinct [links:from]
-           :from links
-           :left :outer :join tags :on (= links:from tags:file)
-           :where (and (= to $s1)
-                       (or (is tags:tags nil)
-                           (and
-                            (not-like tags:tags '%private%)
-                            (not-like tags:tags '%draft%))))]
+                   :from links
+                   :left :outer :join tags :on (= links:from tags:file)
+                   :where (and (= to $s1)
+                               (or (is tags:tags nil)
+                                   (and
+                                    (not-like tags:tags '%private%)
+                                    (not-like tags:tags '%draft%))))]
           file))
       ""))
 
@@ -805,16 +773,19 @@
   ;; e.g. HUGO_BASE_DIR. Ignores notes tagged as private or draft
   (defun org-roam-to-hugo-md ()
     (interactive)
+    ;; Make sure the author is set
+    (setq user-full-name "Alex Kehayias")
+
     (let ((files (mapcan
                   (lambda (x) x)
                   (org-roam-db-query
                    [:select [files:file]
-                    :from files
-                    :left :outer :join tags :on (= files:file tags:file)
-                    :where (or (is tags:tags nil)
-                               (and
-                                 (not-like tags:tags '%private%)
-                                 (not-like tags:tags '%draft%)))]))))
+                            :from files
+                            :left :outer :join tags :on (= files:file tags:file)
+                            :where (or (is tags:tags nil)
+                                       (and
+                                        (not-like tags:tags '%private%)
+                                        (not-like tags:tags '%draft%)))]))))
       (mapc
        (lambda (f)
          ;; Use temporary buffer to prevent a buffer being opened for
@@ -856,7 +827,43 @@
                (insert (concat "\n* Links to this note\n") links)))
 
            (org-hugo-export-to-md)))
-       files))))
+       files)))
+  :bind (:map org-roam-mode-map
+              (("C-c n l" . org-roam)
+               ("C-c n f" . org-roam-find-file)
+               ("C-c n g" . org-roam-graph)
+               ("C-c n c" . org-roam-capture)
+               ("C-c n j" . org-roam-dailies-today)
+               ("C-c n e" . org-roam-to-hugo-md)
+               ;; Full text search notes with an action to insert
+               ;; org-mode link
+               ("C-c n s" . helm-rg))
+              :map org-mode-map
+              (("C-c n i" . org-roam-insert))))
+
+  :config
+  (setq org-roam-capture-templates
+	(quote (("d" "Default" plain (function org-roam--capture-get-point)
+                 "%?"
+                 :file-name "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--${slug}\" (current-time) t)"
+                 :head "#+TITLE: ${title}\n#+DATE: %<%Y-%m-%d>\n#+ROAM_ALIAS:\n#+ROAM_TAGS:\n\n"
+                 :unnarrowed t))))
+
+  (setq org-roam-dailies-capture-templates
+	(quote (("d" "Default" plain (function org-roam--capture-get-point)
+                 "%?"
+                 :file-name "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--journal\" (current-time) t)"
+                 :head "#+TITLE: Journal %<%Y-%m-%d>\n#+DATE: %<%Y-%m-%d>\n#+ROAM_ALIAS:\n#+ROAM_TAGS: private journal\n\n"
+                 :unnarrowed t))))
+
+  (setq org-roam-completion-system 'helm)
+
+  ;; Use writeroom mode when capturing new notes. Hide the ugly
+  ;; preamble of org attributes by scrolling up.
+  (defun my/note-taking-init (&rest r)
+    (with-current-buffer (current-buffer)
+      (writeroom-mode)
+      (scroll-up-command 4)))
 
 (use-package company-org-roam
   :ensure t
