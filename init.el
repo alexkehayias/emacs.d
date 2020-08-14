@@ -700,11 +700,16 @@
     (buffer-string)))
 
 ;; Org roam
+;; These are specified so they can be dynamically configured
+;; by calling emacs in batch mode in a CI context
+(setq org-roam-notes-path "~/Org/notes")
+(setq org-roam-publish-path "~/Projects/zettel")
+
 (use-package org-roam
   :hook
   (after-init . org-roam-mode)
   :custom
-  (org-roam-directory "~/Org/notes")
+  (org-roam-directory org-roam-notes-path)
   :bind (:map org-roam-mode-map
               (("C-c n l" . org-roam)
                ("C-c n f" . org-roam-find-file)
@@ -828,7 +833,8 @@
            ;; exported .md file otherwise you would get prompted for
            ;; the output file name on every note.
            (insert
-            (format "#+HUGO_BASE_DIR: ~/Projects/zettel\n#+HUGO_SECTION: ./\n#+HUGO_SLUG: %s\n#+EXPORT_FILE_NAME: %s\n"
+            (format "#+HUGO_BASE_DIR: %s\n#+HUGO_SECTION: ./\n#+HUGO_SLUG: %s\n#+EXPORT_FILE_NAME: %s\n"
+                    org-roam-publish-path
                     (file-path-to-slug f)
                     (file-path-to-md-file-name f)))
 
