@@ -66,6 +66,28 @@
 ;; Shortcut for rectangle edits
 (global-set-key (kbd "C-x r i") 'string-insert-rectangle)
 
+;; Copy file name to clipboard
+(defun copy-file-name ()
+  "Put the current file name on the clipboard"
+  (interactive)
+  (let ((filename (if (equal major-mode 'dired-mode)
+                      (file-name-directory default-directory)
+                    (buffer-file-name))))
+    (when filename
+      (x-select-text filename))))
+
+;; Screenshot as SVG using cairo (if emacs was built with --with-cairo)
+(defun screenshot-svg ()
+  "Save a screenshot of the current frame as an SVG image.
+Saves to a temp file and puts the filename in the kill ring."
+  (interactive)
+  (let* ((filename (make-temp-file "Emacs" nil ".svg"))
+         (data (x-export-frames nil 'svg)))
+    (with-temp-file filename
+      (insert data))
+    (kill-new filename)
+    (message filename)))
+
 ;; Nice startup screen
 (use-package dashboard
   :ensure t
@@ -146,19 +168,9 @@
 
 (use-package rust-mode
   :ensure t
-  :after (company eglot)
   :config
-  (add-hook 'rust-mode-hook #'company-mode)
-
   (define-key rust-mode-map (kbd "TAB") #'company-indent-or-complete-common)
-
-  (define-key rust-mode-map (kbd "C-c TAB") #'rust-format-buffer))
-
-(use-package cargo
-  :ensure t
-  :config
-  (add-hook 'rust-mode-hook 'cargo-minor-mode)
-  (define-key cargo-minor-mode-map (kbd "C-c C-c C-l") 'cargo-process-clippy))
+  (add-hook 'rust-mode-hook #'eglot-ensure))
 
 (use-package eglot
   :ensure t
@@ -185,27 +197,6 @@
   :ensure t
   :config
   (yas-global-mode 1))
-
-(use-package lsp-ui
-  :ensure t
-  :config
-  ;; Nicer peek and find M-. and M-? respectively
-  (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
-  (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references))
-
-(use-package lsp-mode
-  :ensure t
-  :hook ((rust-mode . lsp))
-  :config
-  ;; Use rust-analyzer rather than rls
-  (setq lsp-rust-server 'rust-analyzer)
-  (setq lsp-enable-file-watchers nil)
-  (setq lsp-enable-completion-at-point t)
-  (setq lsp-enable-imenu t)
-  (setq lsp-rust-analyzer-cargo-watch-enable nil)
-
-  ;; Use lsp-ui
-  (add-hook 'rust-mode-hook 'lsp-ui-mode))
 
 ;; Elisp
 (use-package paredit
@@ -429,9 +420,30 @@
   (setq org-directory "~/Org")
   ;; When opening a file make sure everything is expanded
   (setq org-startup-folded nil)
-
   ;; Always wrap lines
   (setq org-startup-truncated nil)
+  ;; Hide markers like /emphasis/
+  (setq org-hide-emphasis-markers t)
+  ;; Use different size headlines
+  ;; Copied from http://www.howardism.org/Technical/Emacs/orgmode-wordprocessor.html
+  (let* ((variable-tuple (cond ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
+                               ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
+                               ((x-list-fonts "Verdana")         '(:font "Verdana"))
+                               ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
+                               (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))))
+         (base-font-color     (face-foreground 'default nil 'default))
+         (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
+
+    (custom-theme-set-faces 'user
+                            `(org-level-8 ((t (,@headline ,@variable-tuple))))
+                            `(org-level-7 ((t (,@headline ,@variable-tuple))))
+                            `(org-level-6 ((t (,@headline ,@variable-tuple))))
+                            `(org-level-5 ((t (,@headline ,@variable-tuple))))
+                            `(org-level-4 ((t (,@headline ,@variable-tuple))))
+                            `(org-level-3 ((t (,@headline ,@variable-tuple))))
+                            `(org-level-2 ((t (,@headline ,@variable-tuple))))
+                            `(org-level-1 ((t (,@headline ,@variable-tuple))))
+                            `(org-document-title ((t (,@headline ,@variable-tuple :height 1.5 :underline nil))))))
 
   ;; Show inline images
   (org-display-inline-images t t)
@@ -474,7 +486,7 @@
       (call-interactively 'org-agenda-and-todos)))
 
   ;; Shortcut copy an internal link
-  (global-set-key (kbd "C-c l") 'org-store-link)
+  (global-set-key (kbd "C-c o l") 'org-store-link)
 
   ;; Shortcut to show preferred agenda view
   (global-set-key (kbd "C-c A") 'org-agenda-and-todos-two-weeks)
@@ -834,6 +846,8 @@
                ("C-c n g" . org-roam-graph)
                ("C-c n c" . org-roam-capture)
                ("C-c n j" . org-roam-dailies-today)
+               ("C-c n r" . org-roam-random-note)
+               ("C-c n u" . org-roam-unlinked-references)
                ("C-c n e" . org-roam-to-hugo-md)
                ;; Full text search notes with an action to insert
                ;; org-mode link
