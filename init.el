@@ -418,35 +418,19 @@ Saves to a temp file and puts the filename in the kill ring."
   :pin org
   :config
   (setq org-directory "~/Org")
+
   ;; When opening a file make sure everything is expanded
   (setq org-startup-folded nil)
+
   ;; Always wrap lines
   (setq org-startup-truncated nil)
+
   ;; Hide markers like /emphasis/
   (setq org-hide-emphasis-markers t)
-  ;; Use different size headlines
-  ;; Copied from http://www.howardism.org/Technical/Emacs/orgmode-wordprocessor.html
-  (let* ((variable-tuple (cond ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
-                               ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
-                               ((x-list-fonts "Verdana")         '(:font "Verdana"))
-                               ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
-                               (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))))
-         (base-font-color     (face-foreground 'default nil 'default))
-         (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
-
-    (custom-theme-set-faces 'user
-                            `(org-level-8 ((t (,@headline ,@variable-tuple))))
-                            `(org-level-7 ((t (,@headline ,@variable-tuple))))
-                            `(org-level-6 ((t (,@headline ,@variable-tuple))))
-                            `(org-level-5 ((t (,@headline ,@variable-tuple))))
-                            `(org-level-4 ((t (,@headline ,@variable-tuple))))
-                            `(org-level-3 ((t (,@headline ,@variable-tuple))))
-                            `(org-level-2 ((t (,@headline ,@variable-tuple))))
-                            `(org-level-1 ((t (,@headline ,@variable-tuple))))
-                            `(org-document-title ((t (,@headline ,@variable-tuple :height 1.5 :underline nil))))))
 
   ;; Show inline images
   (org-display-inline-images t t)
+
   ;; Don't show full size images otherwise it's too large when
   ;; displaying inline
   (setq org-image-actual-width nil)
