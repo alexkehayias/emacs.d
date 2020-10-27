@@ -145,6 +145,7 @@ Saves to a temp file and puts the filename in the kill ring."
   :config
   (defun web-mode-customization ()
     "Customization for web-mode."
+    (setq web-mode-js-indent-offset 2)
     (setq web-mode-markup-indent-offset 2)
     (setq web-mode-css-indent-offset 2)
     (setq web-mode-code-indent-offset 2)
@@ -160,6 +161,11 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-to-list 'auto-mode-alist '("\\.html$" . web-mode))
   ;; CSS
   (add-to-list 'auto-mode-alist '("\\.css$" . web-mode)))
+
+(use-package typescript-mode :ensure t
+  :config
+  (setq typescript-indent-level 2)
+  (add-to-list 'auto-mode-alist '("\\.ts$" . typescript-mode)))
 
 (use-package toml-mode
   :ensure t
@@ -191,7 +197,10 @@ Saves to a temp file and puts the filename in the kill ring."
   (cl-defmethod project-roots ((project (head eglot-project)))
     (list (cdr project)))
 
-  (add-hook 'project-find-functions 'my-project-try-cargo-toml nil nil))
+  (add-hook 'project-find-functions 'my-project-try-cargo-toml nil nil)
+
+  (add-to-list 'eglot-server-programs
+               '((js-mode) "typescript-language-server" "--stdio")))
 
 (use-package yasnippet
   :ensure t
@@ -619,7 +628,9 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; Babel setup
 (use-package ob-python
   :defer t
-  :commands (org-babel-execute:python))
+  :commands (org-babel-execute:python)
+  :config
+  (setq org-babel-python-command "python3"))
 
 (use-package ob-shell
   :defer t
@@ -744,10 +755,10 @@ Saves to a temp file and puts the filename in the kill ring."
                              (my/org-roam--extract-note-body (car it))))
          ""
          (org-roam-db-query
-          [:select :distinct [links:from]
+          [:select :distinct [links:source]
                    :from links
-                   :left :outer :join tags :on (= links:from tags:file)
-                   :where (and (= to $s1)
+                   :left :outer :join tags :on (= links:source tags:file)
+                   :where (and (= dest $s1)
                                (or (is tags:tags nil)
                                    (and
                                     (not-like tags:tags '%private%)
@@ -837,7 +848,8 @@ Saves to a temp file and puts the filename in the kill ring."
                ;; org-mode link
                ("C-c n s" . helm-rg))
               :map org-mode-map
-              (("C-c n i" . org-roam-insert))))
+              (("C-c n i" . org-roam-insert)
+               ("C-c n I" . org-roam-insert-immediate))))
 
   :config
   (setq org-roam-capture-templates
