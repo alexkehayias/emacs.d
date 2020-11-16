@@ -438,6 +438,7 @@
 (setq org-roam-publish-path "~/Projects/zettel")
 
 (use-package org-roam
+  :ensure t
   :hook
   ((after-init . org-roam-mode)
    ;; Need to add advice after-init otherwise they won't take
