@@ -752,7 +752,7 @@ Saves to a temp file and puts the filename in the kill ring."
         (--reduce-from
          (concat acc (format "- [[file:%s][%s]]\n#+begin_quote\n%s\n#+end_quote\n"
                              (file-relative-name (car it) org-roam-directory)
-                             (title-capitalization (org-roam--get-title-or-slug (car it)))
+                             (title-capitalization (org-roam-db--get-title (car it)))
                              (my/org-roam--extract-note-body (car it))))
          ""
          (org-roam-db-query
