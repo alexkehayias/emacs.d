@@ -165,7 +165,8 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package typescript-mode :ensure t
   :config
   (setq typescript-indent-level 2)
-  (add-to-list 'auto-mode-alist '("\\.ts$" . typescript-mode)))
+  (add-to-list 'auto-mode-alist '("\\.ts$" . typescript-mode))
+  (add-hook 'typescript-mode-hook #'eglot-ensure))
 
 (use-package toml-mode
   :ensure t
@@ -200,7 +201,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-hook 'project-find-functions 'my-project-try-cargo-toml nil nil)
 
   (add-to-list 'eglot-server-programs
-               '((js-mode) "typescript-language-server" "--stdio")))
+               '((typescript-mode) "typescript-language-server" "--stdio")))
 
 (use-package yasnippet
   :ensure t
@@ -391,7 +392,6 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; Flyspell mode
 (use-package flyspell
-  :ensure t
   :config
   (setq ispell-program-name "/usr/local/bin/aspell")
   (add-hook 'python-mode-hook (lambda () (flyspell-prog-mode)))
