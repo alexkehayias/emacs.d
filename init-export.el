@@ -15,6 +15,11 @@
 (eval-when-compile
   (require 'use-package))
 
+;; Disable backup files
+(setq make-backup-files nil)
+;; Disable auto save files
+(setq auto-save-default nil)
+
 ;; Web mode
 (use-package web-mode :ensure t
   :config
