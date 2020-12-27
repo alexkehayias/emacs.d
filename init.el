@@ -444,13 +444,6 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; displaying inline
   (setq org-image-actual-width nil)
 
-  ;; Prettify outlines
-  (add-hook 'org-mode-hook
-            (lambda ()
-              (push '("- [ ]"     . "☐") prettify-symbols-alist)
-              (push '("- [X]"     . "☑") prettify-symbols-alist)
-              (prettify-symbols-mode)))
-
   ;; Refile to the root of a file
   (setq org-refile-use-outline-path 'file)
   (setq org-refile-targets '((org-agenda-files :level . 1)))
@@ -640,6 +633,10 @@ Saves to a temp file and puts the filename in the kill ring."
 
    org-babel-execute:bash
    org-babel-expand-body:bash))
+
+(use-package ob-dot
+  :defer t
+  :commands (org-babel-execute:dot))
 
 (use-package htmlize :ensure t)
 
