@@ -905,11 +905,6 @@ Saves to a temp file and puts the filename in the kill ring."
       (writeroom-mode)
       (scroll-up-command 4)))
 
-(use-package company-org-roam
-  :ensure t
-  :config
-  (push 'company-org-roam company-backends))
-
 (use-package which-key
   :ensure t
   :config
