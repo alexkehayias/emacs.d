@@ -140,6 +140,18 @@ Saves to a temp file and puts the filename in the kill ring."
   (global-set-key (kbd "C-c M-n") 'flycheck-next-error)
   (global-set-key (kbd "C-c M-p") 'flycheck-previous-error))
 
+(defun setup-tide-mode ()
+  (interactive)
+  (tide-setup)
+  (flycheck-mode +1)
+  (setq flycheck-check-syntax-automatically '(save mode-enabled))
+  (eldoc-mode +1)
+  (tide-hl-identifier-mode +1)
+  ;; company is an optional dependency. You have to
+  ;; install it separately via package-install
+  ;; `M-x package-install [ret] company`
+  (company-mode +1))
+
 ;; Web mode
 (use-package web-mode :ensure t
   :config
@@ -155,6 +167,15 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; Javascript
   (add-to-list 'auto-mode-alist '("\\.js$" . web-mode))
   (add-to-list 'auto-mode-alist '("\\.jsx$" . web-mode))
+  ;; Typescript
+  (add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
+  (add-hook 'web-mode-hook
+            (lambda ()
+              (when (string-equal "tsx" (file-name-extension buffer-file-name))
+                (setup-tide-mode))))
+  ;; enable typescript-tslint checker
+  (flycheck-add-mode 'typescript-tslint 'web-mode)
+
   ;; Turn off auto saving because js build tools hate temp files
   (add-hook 'web-mode-hook '(lambda () (setq auto-save-default nil)))
   ;; HTML
@@ -166,7 +187,15 @@ Saves to a temp file and puts the filename in the kill ring."
   :config
   (setq typescript-indent-level 2)
   (add-to-list 'auto-mode-alist '("\\.ts$" . typescript-mode))
-  (add-hook 'typescript-mode-hook #'eglot-ensure))
+  (add-hook 'typescript-mode-hook #'eglot-ensure)
+  (add-hook 'typescript-mode-hook #'setup-tide-mode))
+
+(use-package tide
+  :ensure t
+  :after (typescript-mode company flycheck)
+  :hook ((typescript-mode . tide-setup)
+         (typescript-mode . tide-hl-identifier-mode)
+         (before-save . tide-format-before-save)))
 
 (use-package toml-mode
   :ensure t
@@ -332,7 +361,7 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package ace-jump-mode
   :ensure t
   :config
-  (define-key global-map (kbd "C-c SPC") 'ace-jump-mode))
+  (define-key global-map (kbd "C-c C-SPC") 'ace-jump-mode))
 
 ;; Auto refresh all buffers when files change ie git branch switching
 (global-auto-revert-mode t)
@@ -471,8 +500,11 @@ Saves to a temp file and puts the filename in the kill ring."
     (let ((current-prefix-arg -7))
       (call-interactively 'org-agenda-and-todos)))
 
+  ;; Don't export headings with numbers
+  ;; (setq org-export-with-section-numbers nil)
+
   ;; Shortcut copy an internal link
-  (global-set-key (kbd "C-c o l") 'org-store-link)
+  (global-set-key (kbd "C-c l") 'org-store-link)
 
   ;; Shortcut to show preferred agenda view
   (global-set-key (kbd "C-c A") 'org-agenda-and-todos-two-weeks)
@@ -719,7 +751,7 @@ Saves to a temp file and puts the filename in the kill ring."
                                :after
                                'my/note-taking-init)
 
-                   (advice-add 'org-roam-dailies-today
+                   (advice-add 'org-roam-dailies-capture-today
                                :after
                                'my/note-taking-init)
 
@@ -838,7 +870,7 @@ Saves to a temp file and puts the filename in the kill ring."
                ("C-c n f" . org-roam-find-file)
                ("C-c n g" . org-roam-graph)
                ("C-c n c" . org-roam-capture)
-               ("C-c n j" . org-roam-dailies-today)
+               ("C-c n j" . org-roam-dailies-capture-today)
                ("C-c n r" . org-roam-random-note)
                ("C-c n u" . org-roam-unlinked-references)
                ("C-c n e" . org-roam-to-hugo-md)
