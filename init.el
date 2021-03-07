@@ -345,7 +345,8 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package company
   :ensure t
   :config
-  (add-hook 'after-init-hook 'global-company-mode))
+  (add-hook 'after-init-hook 'global-company-mode)
+  (add-to-list 'company-backends 'company-capf))
 
 ;; Shortcuts for going forward and backwards cycling windows
 (global-set-key (kbd "C-x p") 'other-window)
