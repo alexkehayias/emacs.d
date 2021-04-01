@@ -88,6 +88,16 @@ Saves to a temp file and puts the filename in the kill ring."
     (kill-new filename)
     (message filename)))
 
+(defun disable-all-minor-modes ()
+  (interactive)
+  (mapc
+   (lambda (mode-symbol)
+     (when (functionp mode-symbol)
+       ;; some symbols are functions which aren't normal mode functions
+       (ignore-errors
+         (funcall mode-symbol -1))))
+   minor-mode-list))
+
 ;; Nice startup screen
 (use-package dashboard
   :ensure t
@@ -147,23 +157,21 @@ Saves to a temp file and puts the filename in the kill ring."
   (setq flycheck-check-syntax-automatically '(save mode-enabled))
   (eldoc-mode +1)
   (tide-hl-identifier-mode +1)
-  ;; company is an optional dependency. You have to
-  ;; install it separately via package-install
-  ;; `M-x package-install [ret] company`
+  ;; Fix indent level set to 4 by default
+  (setq typescript-indent-level 2)
+  (setq typescript-tab-size 2)
   (company-mode +1))
 
 ;; Web mode
 (use-package web-mode :ensure t
   :config
-  (defun web-mode-customization ()
-    "Customization for web-mode."
-    (setq web-mode-js-indent-offset 2)
-    (setq web-mode-markup-indent-offset 2)
-    (setq web-mode-css-indent-offset 2)
-    (setq web-mode-code-indent-offset 2)
-    (setq web-mode-enable-auto-pairing t)
-    (setq web-mode-enable-css-colorization t))
-  (add-hook 'web-mode-hook 'web-mode-customization)
+  (setq web-mode-js-indent-offset 2)
+  (setq web-mode-markup-indent-offset 2)
+  (setq web-mode-css-indent-offset 2)
+  (setq web-mode-code-indent-offset 2)
+  (setq web-mode-enable-auto-pairing t)
+  (setq web-mode-enable-css-colorization t)
+
   ;; Javascript
   (add-to-list 'auto-mode-alist '("\\.js$" . web-mode))
   (add-to-list 'auto-mode-alist '("\\.jsx$" . web-mode))
@@ -173,8 +181,6 @@ Saves to a temp file and puts the filename in the kill ring."
             (lambda ()
               (when (string-equal "tsx" (file-name-extension buffer-file-name))
                 (setup-tide-mode))))
-  ;; enable typescript-tslint checker
-  (flycheck-add-mode 'typescript-tslint 'web-mode)
 
   ;; Turn off auto saving because js build tools hate temp files
   (add-hook 'web-mode-hook '(lambda () (setq auto-save-default nil)))
@@ -248,13 +254,22 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package python-mode
   :ensure t
   :config
-  (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode)))
+  (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
+  (add-hook 'python-mode-hook #'eglot-ensure)
+  ;; (add-to-list 'python-shell-completion-native-disabled-interpreters ".docker-python-shell")
+  (setq python-shell-completion-native-enable nil)
+  )
 
 (use-package elpy
   :ensure t
   :config
+  (setq elpy-shell-echo-input nil)
+  (setq elpy-shell-echo-output nil)
+  ;; TODO: Figure out a way to do this that doesn't span a million containers...
+  ;; (setq python-shell-interpreter "/Users/alex/mosey/app/.docker-python-shell")
   (elpy-enable)
-  (setq elpy-rpc-backend "rope"))
+
+)
 
 ;; Ruby
 (use-package robe
@@ -1310,7 +1325,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (setq doom-themes-enable-bold t
         doom-themes-enable-italic t)
   (doom-themes-org-config)
-  (load-theme 'doom-oceanic-next t))
+  (load-theme 'doom-ayu-mirage t))
 
 (use-package doom-modeline
   :ensure t
@@ -1337,7 +1352,7 @@ Saves to a temp file and puts the filename in the kill ring."
 	(setq big-screen nil)
 	(set-face-attribute 'default nil :height 120))
     (progn
-      (set-face-attribute 'default nil :height 160)
+      (set-face-attribute 'default nil :height 150)
       (setq big-screen 1))))
 (global-set-key (kbd "C-x M-b") 'toggle-big-screen)
 
