@@ -249,13 +249,18 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-hook 'elisp-mode-hook 'paredit-mode)
   (add-hook 'clojure-mode-hook 'paredit-mode))
 
+;; Yaml
+(use-package yaml-mode
+  :config
+  (add-to-list 'auto-mode-alist '("\\.yml\\'" . yaml-mode)))
+
 ;; Python
 (use-package python-mode
   :ensure t
   :config
   (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
   (add-hook 'python-mode-hook #'eglot-ensure)
-  ;; (add-to-list 'python-shell-completion-native-disabled-interpreters ".docker-python-shell")
+  (add-to-list 'python-shell-completion-native-disabled-interpreters ".docker-python-shell")
   (setq python-shell-completion-native-enable nil)
   )
 
@@ -264,10 +269,8 @@ Saves to a temp file and puts the filename in the kill ring."
   :config
   (setq elpy-shell-echo-input nil)
   (setq elpy-shell-echo-output nil)
-  ;; TODO: Figure out a way to do this that doesn't span a million containers...
-  ;; (setq python-shell-interpreter "/Users/alex/mosey/app/.docker-python-shell")
+  (setq python-shell-interpreter "/Users/alex/mosey/app/.docker-python-shell")
   (elpy-enable)
-
 )
 
 ;; Ruby
@@ -312,22 +315,38 @@ Saves to a temp file and puts the filename in the kill ring."
   :config
   (add-to-list 'auto-mode-alist '("\\.md$" . markdown-mode)))
 
+(defun toggle-line-spacing ()
+  "Toggle line spacing between no extra space to extra half line height."
+  (interactive)
+  (if (eq line-spacing nil)
+      (setq-default line-spacing 0.5) ; add 0.5 height between lines
+    (setq-default line-spacing nil)   ; no extra heigh between lines
+    ))
+
+(global-set-key (kbd "C-c s") 'toggle-line-spacing)
+
+(defun writeroom-setup ()
+  (interactive)
+  ;; Use custom font face for this buffer only
+  (defface tmp-buffer-local-face
+    '((t :family "Georgia" :height 220))
+    "Temporary buffer-local face")
+  (buffer-face-set 'tmp-buffer-local-face)
+  ;; Add padding to the top of the frame
+  (setq header-line-format " ")
+  ;; Use a skinny cursor
+  (make-local-variable 'cursor-type)
+  (setq cursor-type 'bar)
+  ;; Set taller line spacing
+  ;; (toggle-line-spacing)
+  ;;(writeroom-adjust-width 20)
+  )
+
 ;; Nice writing layout
 (use-package writeroom-mode
   :ensure t
   :config
-  (add-hook 'writeroom-mode-hook
-            (lambda ()
-              ;; Use custom font face for this buffer only
-              (defface tmp-buffer-local-face
-                '((t :family "ETBembo" :height 180))
-                "Temporary buffer-local face")
-              (buffer-face-set 'tmp-buffer-local-face)
-              ;; Add padding to the top of the frame
-              (setq header-line-format " ")
-              ;; Use a skinny cursor
-              (make-local-variable 'cursor-type)
-              (setq cursor-type 'bar))))
+  (add-hook 'writeroom-mode-hook 'writeroom-setup))
 
 ;; Detect things like weasel words
 (use-package writegood-mode
@@ -437,7 +456,7 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; Flyspell mode
 (use-package flyspell
   :config
-  (setq ispell-program-name "/usr/local/bin/aspell")
+  (setq ispell-program-name "/opt/homebrew/bin/aspell")
   (add-hook 'python-mode-hook (lambda () (flyspell-prog-mode)))
   (add-hook 'coffee-mode-hook (lambda () (flyspell-prog-mode)))
   (add-hook 'hbs-mode-hook (lambda () (flyspell-prog-mode)))
@@ -908,7 +927,7 @@ Saves to a temp file and puts the filename in the kill ring."
 	(quote (("d" "Default" plain (function org-roam--capture-get-point)
                  "%?"
                  :file-name "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--journal\" (current-time) t)"
-                 :head "#+TITLE: Journal %<%Y-%m-%d>\n#+DATE: %<%Y-%m-%d>\n#+ROAM_ALIAS:\n#+ROAM_TAGS: private journal\n\n"
+                 :head "#+TITLE: Journal %<%Y-%m-%d>\n#+DATE: %<%Y-%m-%d>\n#+ROAM_ALIAS:\n#+ROAM_TAGS: private journal\n\n\n"
                  :unnarrowed t))))
 
   (setq org-roam-completion-system 'helm)
@@ -1328,7 +1347,9 @@ Saves to a temp file and puts the filename in the kill ring."
 
 (use-package doom-modeline
   :ensure t
-  :hook (after-init . doom-modeline-mode))
+  :hook (after-init . doom-modeline-mode)
+  :config
+  (setq doom-modeline-height 40))
 
 (use-package all-the-icons :ensure t)
 
