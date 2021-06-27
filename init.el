@@ -40,6 +40,8 @@
 (setq make-backup-files nil)
 ;; Disable auto save files
 (setq auto-save-default nil)
+;; Disable .# lock files
+(setq create-lockfiles nil)
 
 (when window-system
   ;; Disable pscroll bars in gui emacs
@@ -252,7 +254,8 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; Yaml
 (use-package yaml-mode
   :config
-  (add-to-list 'auto-mode-alist '("\\.yml\\'" . yaml-mode)))
+  (add-to-list 'auto-mode-alist '("\\.yml\\'" . yaml-mode))
+  (add-to-list 'auto-mode-alist '("\\.yaml\\'" . yaml-mode)))
 
 ;; Python
 (use-package python-mode
@@ -260,9 +263,7 @@ Saves to a temp file and puts the filename in the kill ring."
   :config
   (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
   (add-hook 'python-mode-hook #'eglot-ensure)
-  (add-to-list 'python-shell-completion-native-disabled-interpreters ".docker-python-shell")
-  (setq python-shell-completion-native-enable nil)
-  )
+  (setq python-shell-completion-native-enable nil))
 
 (use-package elpy
   :ensure t
@@ -270,8 +271,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (setq elpy-shell-echo-input nil)
   (setq elpy-shell-echo-output nil)
   (setq python-shell-interpreter "/Users/alex/mosey/app/.docker-python-shell")
-  (elpy-enable)
-)
+  (elpy-enable))
 
 ;; Ruby
 (use-package robe
@@ -329,7 +329,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (interactive)
   ;; Use custom font face for this buffer only
   (defface tmp-buffer-local-face
-    '((t :family "Georgia" :height 220))
+    '((t :family "Space Mono" :height 220))
     "Temporary buffer-local face")
   (buffer-face-set 'tmp-buffer-local-face)
   ;; Add padding to the top of the frame
@@ -790,6 +790,10 @@ Saves to a temp file and puts the filename in the kill ring."
                                'my/note-taking-init)
 
                    (advice-add 'org-roam-find-file
+                               :after
+                               'my/note-taking-init)
+
+                   (advice-add 'org-roam-insert
                                :after
                                'my/note-taking-init))))
   :custom
