@@ -537,6 +537,9 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; Don't export headings with numbers
   ;; (setq org-export-with-section-numbers nil)
 
+  ;; gnuplot
+  (local-set-key (kbd "M-C-g") 'org-plot/gnuplot)
+
   ;; Shortcut copy an internal link
   (global-set-key (kbd "C-c l") 'org-store-link)
 
@@ -682,7 +685,13 @@ Saves to a temp file and puts the filename in the kill ring."
   (setq org-duration-format (quote h:mm))
 
   ;; Don't prompt for confirmation when exporting babel blocks
-  (setq org-confirm-babel-evaluate nil))
+  (setq org-confirm-babel-evaluate nil)
+
+  ;; Enable gnuplot in babel
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((gnuplot . t)))
+  )
 
 ;; Babel setup
 (use-package ob-python
@@ -1379,6 +1388,14 @@ Saves to a temp file and puts the filename in the kill ring."
       (set-face-attribute 'default nil :height 150)
       (setq big-screen 1))))
 (global-set-key (kbd "C-x M-b") 'toggle-big-screen)
+
+(use-package flycheck-grammarly
+  :config
+  (setq flycheck-grammarly-check-time 0.5))
+
+(use-package grammarly)
+
+(use-package gnuplot)
 
 ;; Store customizations in a separate file
 (setq custom-file "~/.emacs.d/.customizations.el")
