@@ -262,16 +262,24 @@ Saves to a temp file and puts the filename in the kill ring."
   :ensure t
   :config
   (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
-  (add-hook 'python-mode-hook #'eglot-ensure)
-  (setq python-shell-completion-native-enable nil))
+  ;; (add-hook 'python-mode-hook #'eglot-ensure)
+  (setq python-shell-completion-native-enable nil)
+  (setq python-shell-completion-setup-code nil)
+  )
 
 (use-package elpy
   :ensure t
   :config
   (setq elpy-shell-echo-input nil)
-  (setq elpy-shell-echo-output nil)
+  ;; (setq elpy-shell-echo-output nil)
+  (setq python-shell-completion-native-disabled-interpreters nil)
+  (setq elpy-rpc-python-command "/Users/alex/mosey/app/.docker-python-shell")
+  (setq elpy-rpc--backend-python-command "/Users/alex/mosey/app/.docker-python-shell")
+  (setq elpy-rpc-virtualenv-path 'current)
   (setq python-shell-interpreter "/Users/alex/mosey/app/.docker-python-shell")
-  (elpy-enable))
+  ;; (setq completion-auto-help nil)
+  (elpy-enable)
+  (add-hook 'elpy-mode-hook '(lambda () (company-mode -1))))
 
 ;; Ruby
 (use-package robe
@@ -378,7 +386,7 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package company
   :ensure t
   :config
-  (add-hook 'after-init-hook 'global-company-mode)
+  ;; (add-hook 'after-init-hook 'global-company-mode)
   (add-to-list 'company-backends 'company-capf))
 
 ;; Shortcuts for going forward and backwards cycling windows
@@ -1356,7 +1364,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (setq doom-themes-enable-bold t
         doom-themes-enable-italic t)
   (doom-themes-org-config)
-  (load-theme 'doom-ayu-mirage t))
+  (load-theme 'doom-challenger-deep t))
 
 (use-package doom-modeline
   :ensure t
