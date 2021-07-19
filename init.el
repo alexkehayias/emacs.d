@@ -67,6 +67,9 @@
 ;; Shortcut for rectangle edits
 (global-set-key (kbd "C-x r i") 'string-insert-rectangle)
 
+
+(setq completion-styles '(flex basic partial-completion emacs22))
+
 ;; Copy file name to clipboard
 (defun copy-file-name ()
   "Put the current file name on the clipboard"
@@ -262,9 +265,11 @@ Saves to a temp file and puts the filename in the kill ring."
   :ensure t
   :config
   (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
-  ;; (add-hook 'python-mode-hook #'eglot-ensure)
-  (setq python-shell-completion-native-enable nil)
-  (setq python-shell-completion-setup-code nil)
+  (add-hook 'python-mode-hook #'eglot-ensure)
+
+  ;; Disable all completion because it's slow
+  ;; (setq python-shell-completion-native-enable nil)
+  ;; (setq python-shell-completion-setup-code nil)
   )
 
 (use-package elpy
@@ -272,14 +277,15 @@ Saves to a temp file and puts the filename in the kill ring."
   :config
   (setq elpy-shell-echo-input nil)
   ;; (setq elpy-shell-echo-output nil)
-  (setq python-shell-completion-native-disabled-interpreters nil)
-  (setq elpy-rpc-python-command "/Users/alex/mosey/app/.docker-python-shell")
-  (setq elpy-rpc--backend-python-command "/Users/alex/mosey/app/.docker-python-shell")
-  (setq elpy-rpc-virtualenv-path 'current)
+  ;; (setq python-shell-completion-native-disabled-interpreters nil)
+  ;; (setq elpy-rpc-python-command "/Users/alex/mosey/app/.docker-python-shell")
+  ;; (setq elpy-rpc--backend-python-command "/Users/alex/mosey/app/.docker-python-shell")
+  ;; (setq elpy-rpc-virtualenv-path 'current)
   (setq python-shell-interpreter "/Users/alex/mosey/app/.docker-python-shell")
   ;; (setq completion-auto-help nil)
   (elpy-enable)
-  (add-hook 'elpy-mode-hook '(lambda () (company-mode -1))))
+  ;; (add-hook 'elpy-mode-hook '(lambda () (company-mode -1)))
+  )
 
 ;; Ruby
 (use-package robe
@@ -386,7 +392,7 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package company
   :ensure t
   :config
-  ;; (add-hook 'after-init-hook 'global-company-mode)
+  (add-hook 'after-init-hook 'global-company-mode)
   (add-to-list 'company-backends 'company-capf))
 
 ;; Shortcuts for going forward and backwards cycling windows
@@ -795,9 +801,8 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package org-roam
   :ensure t
   :hook
-  ((after-init . org-roam-mode)
-   ;; Need to add advice after-init otherwise they won't take
-   (after-init . (lambda ()
+  ;; Need to add advice after-init otherwise they won't take
+  ((after-init . (lambda ()
                    (advice-add 'org-roam-capture
                                :after
                                'my/note-taking-init)
@@ -806,16 +811,20 @@ Saves to a temp file and puts the filename in the kill ring."
                                :after
                                'my/note-taking-init)
 
-                   (advice-add 'org-roam-find-file
+                   (advice-add 'org-roam-node-find
                                :after
                                'my/note-taking-init)
 
-                   (advice-add 'org-roam-insert
+                   (advice-add 'org-roam-node-insert
                                :after
                                'my/note-taking-init))))
+
   :custom
   (org-roam-directory org-roam-notes-path)
+
   :init
+  ;; Needed to supress update warning
+  (setq org-roam-v2-ack t)
   ;; These functions need to be in :init otherwise they will not be
   ;; callable in an emacs --batch context which for some reason
   ;; can't be found in autoloads if it's under :config
@@ -823,7 +832,7 @@ Saves to a temp file and puts the filename in the kill ring."
     (with-temp-buffer
       (insert-file-contents file)
       (org-mode)
-      (first (org-element-map (org-element-parse-buffer) 'paragraph
+      (second (org-element-map (org-element-parse-buffer) 'paragraph
                (lambda (paragraph)
                  (let ((begin (plist-get (first (cdr paragraph)) :begin))
                        (end (plist-get (first (cdr paragraph)) :end)))
@@ -831,25 +840,19 @@ Saves to a temp file and puts the filename in the kill ring."
 
   ;; Include backlinks in org exported notes not tagged as private or
   ;; draft
-  (defun my/org-roam--backlinks-list (file)
-    (if (org-roam--org-roam-file-p file)
-        (--reduce-from
-         (concat acc (format "- [[file:%s][%s]]\n#+begin_quote\n%s\n#+end_quote\n"
-                             (file-relative-name (car it) org-roam-directory)
-                             (title-capitalization (org-roam-db--get-title (car it)))
-                             (my/org-roam--extract-note-body (car it))))
-         ""
-         (org-roam-db-query
-          [:select :distinct [links:source]
-                   :from links
-                   :left :outer :join tags :on (= links:source tags:file)
-                   :where (and (= dest $s1)
-                               (or (is tags:tags nil)
-                                   (and
-                                    (not-like tags:tags '%private%)
-                                    (not-like tags:tags '%draft%))))]
-          file))
-      ""))
+  (defun my/org-roam--backlinks-list (id file)
+    (--reduce-from
+     (concat acc (format "- [[id:%s][%s]]\n#+begin_quote\n%s\n#+end_quote\n"
+                         (car it)
+                         (title-capitalization (org-roam-node-title (org-roam-node-from-id (car it))))
+                         (my/org-roam--extract-note-body (org-roam-node-file (org-roam-node-from-id (car it))))))
+     ""
+     (org-roam-db-query
+      (format
+       ;; The percentage sign needs to be escaped twice because there
+       ;; is two format calls—once here and the other by emacsql
+       "SELECT id FROM (SELECT links.source AS id, group_concat(tags.tag) AS alltags FROM links LEFT OUTER JOIN tags ON links.source = tags.node_id WHERE links.type = '\"id\"' AND links.dest = '\"%s\"' GROUP BY links.source) Q WHERE alltags IS NULL OR (','||alltags||',' NOT LIKE '%%%%,\"private\",%%%%' AND ','||alltags||',' NOT LIKE '%%%%,\"draft\",%%%%')"
+       id))))
 
   (defun file-path-to-md-file-name (path)
     (let ((file-name (first (last (split-string path "/")))))
@@ -868,23 +871,18 @@ Saves to a temp file and puts the filename in the kill ring."
     ;; Make sure the author is set
     (setq user-full-name "Alex Kehayias")
 
-    (let ((files (mapcan
-                  (lambda (x) x)
-                  (org-roam-db-query
-                   [:select [files:file]
-                            :from files
-                            :left :outer :join tags :on (= files:file tags:file)
-                            :where (or (is tags:tags nil)
-                                       (and
-                                        (not-like tags:tags '%private%)
-                                        (not-like tags:tags '%draft%)))]))))
-      (mapc
-       (lambda (f)
+    ;; Don't include any files tagged as private or
+    ;; draft. The way we filter tags doesn't work nicely
+    ;; with emacsql's DSL so just use a raw SQL query
+    ;; for clarity
+    (let ((notes (org-roam-db-query "SELECT id, file FROM (SELECT nodes.id, nodes.file, group_concat(tags.tag) AS alltags FROM nodes LEFT OUTER JOIN tags ON nodes.id = tags.node_id GROUP BY nodes.file) WHERE alltags is null or (','||alltags||',' not like '%%,\"private\",%%' and ','||alltags||',' not like '%%,\"draft\",%%')")))
+      (-map
+       (-lambda ((id file))
          ;; Use temporary buffer to prevent a buffer being opened for
          ;; each note file.
          (with-temp-buffer
-           (message "Working on: %s" f)
-           (insert-file-contents f)
+           (message "Working on: %s" file)
+           (insert-file-contents file)
 
            (goto-char (point-min))
            ;; Add in hugo tags for export. This lets you write the
@@ -898,67 +896,73 @@ Saves to a temp file and puts the filename in the kill ring."
            (insert
             (format "#+HUGO_BASE_DIR: %s\n#+HUGO_SECTION: ./\n#+HUGO_SLUG: %s\n#+EXPORT_FILE_NAME: %s\n"
                     org-roam-publish-path
-                    (file-path-to-slug f)
-                    (file-path-to-md-file-name f)))
+                    (file-path-to-slug file)
+                    (file-path-to-md-file-name file)))
 
            ;; If this is a placeholder note (no content in the
            ;; body) then add default text. This makes it look ok when
            ;; showing note previews in the index and avoids a headline
            ;; followed by a headline in the note detail page.
-           (if (eq (my/org-roam--extract-note-body f) nil)
+           (if (eq (my/org-roam--extract-note-body file) nil)
                (progn
                  (goto-char (point-max))
-                 (insert "\n/This note does not have a description yet./\n")))
+                 (insert "\n/This note does not have a description yet./\n"))
 
-           ;; Add in backlinks because
+             )
+
+           ;; Add in backlinks (at the end of the file) because
            ;; org-export-before-processing-hook won't be useful the
            ;; way we are using a temp buffer
-           (let ((links (my/org-roam--backlinks-list f)))
-             (unless (string= links "")
-               (goto-char (point-max))
-               (insert (concat "\n* Links to this note\n") links)))
+           (let ((links (my/org-roam--backlinks-list id file)))
+             (goto-char (point-max))
+             (insert (concat "\n* Links to this note\n") links))
 
            (org-hugo-export-to-md)))
-       files)))
-  :bind (:map org-roam-mode-map
-              (("C-c n l" . org-roam)
-               ("C-c n f" . org-roam-find-file)
-               ("C-c n g" . org-roam-graph)
-               ("C-c n c" . org-roam-capture)
-               ("C-c n j" . org-roam-dailies-capture-today)
-               ("C-c n r" . org-roam-random-note)
-               ("C-c n u" . org-roam-unlinked-references)
-               ("C-c n e" . org-roam-to-hugo-md)
-               ;; Full text search notes with an action to insert
-               ;; org-mode link
-               ("C-c n s" . helm-rg))
-              :map org-mode-map
-              (("C-c n i" . org-roam-insert)
-               ("C-c n I" . org-roam-insert-immediate))))
+       notes)))
+
+  :bind  (("C-c n l" . org-roam-buffer-toggle)
+          ("C-c n f" . org-roam-node-find)
+          ("C-c n g" . org-roam-graph)
+          ("C-c n c" . org-roam-capture)
+          ("C-c n i" . org-roam-node-insert)
+          ("C-c n j" . org-roam-dailies-capture-today)
+          ("C-c n r" . org-roam-random-note)
+          ("C-c n u" . org-roam-unlinked-references)
+          ("C-c n e" . org-roam-to-hugo-md)
+          ;; Full text search notes with an action to insert
+          ;; org-mode link
+          ("C-c n s" . helm-rg))
 
   :config
   (setq org-roam-capture-templates
-	(quote (("d" "Default" plain (function org-roam--capture-get-point)
+	(quote (("d" "Default" plain
                  "%?"
-                 :file-name "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--${slug}\" (current-time) t)"
-                 :head "#+TITLE: ${title}\n#+DATE: %<%Y-%m-%d>\n#+ROAM_ALIAS:\n#+ROAM_TAGS:\n\n"
+                 :if-new (file+head
+                          "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--${slug}.org\" (current-time) t)"
+                          "#+TITLE: ${title}\n#+DATE: %<%Y-%m-%d>\n#+ROAM_ALIASES:\n#+FILETAGS:\n\n\n")
                  :unnarrowed t))))
+
+
+  ;; Journaling setup
+  (setq org-roam-dailies-directory "")
 
   (setq org-roam-dailies-capture-templates
-	(quote (("d" "Default" plain (function org-roam--capture-get-point)
+	(quote (("d" "Default" plain
                  "%?"
-                 :file-name "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--journal\" (current-time) t)"
-                 :head "#+TITLE: Journal %<%Y-%m-%d>\n#+DATE: %<%Y-%m-%d>\n#+ROAM_ALIAS:\n#+ROAM_TAGS: private journal\n\n\n"
+                 :if-new (file+head
+                          "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--journal.org\" (current-time) t)"
+                          "#+TITLE: Journal %<%Y-%m-%d>\n#+DATE: %<%Y-%m-%d>\n#+ROAM_ALIASES:\n#+FILETAGS: private journal\n\n\n")
                  :unnarrowed t))))
 
-  (setq org-roam-completion-system 'helm)
+  (org-roam-setup)
 
   ;; Use writeroom mode when capturing new notes. Hide the ugly
   ;; preamble of org attributes by scrolling up.
   (defun my/note-taking-init (&rest r)
     (with-current-buffer (current-buffer)
       (writeroom-mode)
-      (scroll-up-command 4)))
+      (scroll-up-command 4))))
+
 
 (use-package which-key
   :ensure t
@@ -1068,19 +1072,20 @@ Saves to a temp file and puts the filename in the kill ring."
           (set-visited-file-name new-name)
           (set-buffer-modified-p nil))))))
 
-;; ido
-
 ;; Make sure we are using ido mode
 (use-package ido
   :ensure t
   :config
-  (ido-mode 1)
-  (ido-everywhere 1)
-  (setq ido-everywhere t)
+  ;; (setq ido-everywhere t)    ; Not compatible with helm
   (ido-mode (quote both))
   (setq ido-use-faces t)
   ;; Don't magically search for a file that doesn't exist
-  (setq ido-auto-merge-work-directories-length -1))
+  (setq ido-auto-merge-work-directories-length -1)
+  ;; Allow spaces in searches
+  (add-hook 'ido-make-file-list-hook
+            (lambda ()
+              (define-key ido-file-dir-completion-map (kbd "SPC") 'self-insert-command)))
+  )
 
 ;; Use ido inside ido buffer too
 (use-package flx-ido
@@ -1099,7 +1104,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (put 'ido-exit-minibuffer 'disabled nil)
 
   ;; Display ido results vertically, rather than horizontally
-  (setq ido-decorations (quote ("\n====> " "" "\n   " "\n   ..." "[" "]" " [No match]" " [Matched]" " [Not readable]" " [Too big]" " [Confirm]")))
+  (setq ido-decorations (quote ("\n=> " "" "\n   " "\n   ..." "[" "]" " [No match]" " [Matched]" " [Not readable]" " [Too big]" " [Confirm]")))
   (defun ido-disable-line-truncation ()
     (set (make-local-variable 'truncate-lines) nil))
   (add-hook 'ido-minibuffer-setup-hook 'ido-disable-line-truncation)
@@ -1228,6 +1233,17 @@ Saves to a temp file and puts the filename in the kill ring."
   )
 
 (add-hook 'erc-text-matched-hook 'erc-growl-hook)
+
+
+;; Helm
+
+(use-package helm
+  :ensure t
+  :config
+  ;; Use helm with M-x
+  (global-set-key (kbd "M-x") 'helm-M-x)
+  ;; Enables helm everywhere, not compatible with ido-everywhere!
+  (helm-mode))
 
 ;; Projectile
 (use-package projectile
@@ -1396,12 +1412,6 @@ Saves to a temp file and puts the filename in the kill ring."
       (set-face-attribute 'default nil :height 150)
       (setq big-screen 1))))
 (global-set-key (kbd "C-x M-b") 'toggle-big-screen)
-
-(use-package flycheck-grammarly
-  :config
-  (setq flycheck-grammarly-check-time 0.5))
-
-(use-package grammarly)
 
 (use-package gnuplot)
 
