@@ -784,8 +784,8 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; Org roam
 ;; These are specified so they can be dynamically configured
 ;; by calling emacs in batch mode in a CI context
-(setq org-roam-notes-path "~/Org/notes")
-(setq org-roam-publish-path "~/Projects/zettel")
+(setq org-roam-notes-path (or (getenv "ORG_ROAM_NOTES_PATH") "~/Org/notes"))
+(setq org-roam-publish-path (or (getenv "ORG_ROAM_PUBLISH_PATH") "~/Projects/zettel"))
 
 (use-package org-roam
   :ensure t
