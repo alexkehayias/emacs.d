@@ -887,7 +887,7 @@ Saves to a temp file and puts the filename in the kill ring."
            ;; the output file name on every note.
            (goto-char (point-min))
            (re-search-forward ":END:")
-           (next-line)
+           (newline)
            (insert
             (format "#+HUGO_BASE_DIR: %s\n#+HUGO_SECTION: ./\n#+HUGO_SLUG: %s\n#+EXPORT_FILE_NAME: %s\n"
                     org-roam-publish-path
