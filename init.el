@@ -934,9 +934,8 @@ Saves to a temp file and puts the filename in the kill ring."
                  "%?"
                  :if-new (file+head
                           "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--${slug}.org\" (current-time) t)"
-                          "#+TITLE: ${title}\n#+DATE: %<%Y-%m-%d>\n#+ROAM_ALIASES:\n#+FILETAGS:\n\n\n")
+                          "#+TITLE: ${title}\n#+DATE: %<%Y-%m-%d>\n\n")
                  :unnarrowed t))))
-
 
   ;; Journaling setup
   (setq org-roam-dailies-directory "")
@@ -946,7 +945,7 @@ Saves to a temp file and puts the filename in the kill ring."
                  "%?"
                  :if-new (file+head
                           "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--journal.org\" (current-time) t)"
-                          "#+TITLE: Journal %<%Y-%m-%d>\n#+DATE: %<%Y-%m-%d>\n#+ROAM_ALIASES:\n#+FILETAGS: private journal\n\n\n")
+                          "#+TITLE: Journal %<%Y-%m-%d>\n#+DATE: %<%Y-%m-%d>\n#+FILETAGS: private journal\n\n\n")
                  :unnarrowed t))))
 
   (org-roam-setup)
@@ -1409,6 +1408,11 @@ Saves to a temp file and puts the filename in the kill ring."
 (global-set-key (kbd "C-x M-b") 'toggle-big-screen)
 
 (use-package gnuplot)
+
+(use-package git-gutter
+  :ensure t
+  :config
+  (global-git-gutter-mode +1))
 
 ;; Store customizations in a separate file
 (setq custom-file "~/.emacs.d/.customizations.el")
