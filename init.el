@@ -1280,14 +1280,14 @@ Saves to a temp file and puts the filename in the kill ring."
                           "#+TITLE: Journal %<%Y-%m-%d>\n#+DATE: %<%Y-%m-%d>\n#+FILETAGS: private journal\n\n\n")
                  :unnarrowed t))))
 
-  (org-roam-setup)
-
   ;; Use writeroom mode when capturing new notes. Hide the ugly
   ;; preamble of org attributes by scrolling up.
   (defun my/note-taking-init (&rest r)
     (with-current-buffer (current-buffer)
       (writeroom-mode)
-      (scroll-up-command 6))))
+      (scroll-up-command 6)))
+
+  (org-roam-db-autosync-mode))
 
 
 (use-package which-key

@@ -894,8 +894,6 @@
            (org-hugo-export-to-md)))
        notes)))
 
-  (org-roam-setup)
-
   :bind  (("C-c n l" . org-roam-buffer-toggle)
           ("C-c n f" . org-roam-node-find)
           ("C-c n g" . org-roam-graph)
@@ -935,7 +933,9 @@
   (defun my/note-taking-init (&rest r)
     (with-current-buffer (current-buffer)
       (writeroom-mode)
-      (scroll-up-command 4))))
+      (scroll-up-command 4)))
+
+  (org-roam-db-sync))
 
 ;; Json mode
 (use-package json-mode
