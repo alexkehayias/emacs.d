@@ -947,7 +947,8 @@ Saves to a temp file and puts the filename in the kill ring."
        ((equal type "id")
         (let ((description (org-string-nw-p desc))
               (path (org-hugo--attachment-rewrite-maybe raw-path info)))
-          (format "{{< relref \"%s\" >}}"
+          (format "[%s]({{< relref \"%s\" >}})"
+                  description
                   (file-name-sans-extension
                    (file-name-nondirectory (car (org-id-find raw-path)))))))
        ((string= type "coderef")
