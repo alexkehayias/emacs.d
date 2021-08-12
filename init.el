@@ -145,26 +145,31 @@ Saves to a temp file and puts the filename in the kill ring."
 	       '(".*COMMIT_EDITMSG". ((display-buffer-pop-up-window) .
 				      ((inhibit-same-window . t))))))
 
+;; use local eslint from node_modules before global
+;; http://emacs.stackexchange.com/questions/21205/flycheck-with-file-relative-eslint-executable
+(defun my/use-eslint-from-node-modules ()
+  (let* ((root (locate-dominating-file
+                (or (buffer-file-name) default-directory)
+                "node_modules"))
+         (eslint (and root
+                      (expand-file-name "node_modules/eslint/bin/eslint.js"
+                                        root))))
+    (when (and eslint (file-executable-p eslint))
+      (setq-local flycheck-javascript-eslint-executable eslint))))
+
 ;; Flycheck
 (use-package flycheck
   :ensure t
   :config
-  ;; (global-flycheck-mode)
+  (global-flycheck-mode)
   (setq flycheck-global-modes '(not rust-mode))
   (global-set-key (kbd "C-c M-n") 'flycheck-next-error)
-  (global-set-key (kbd "C-c M-p") 'flycheck-previous-error))
-
-(defun setup-tide-mode ()
-  (interactive)
-  (tide-setup)
-  (flycheck-mode +1)
+  (global-set-key (kbd "C-c M-p") 'flycheck-previous-error)
+  (add-hook 'flycheck-mode-hook #'my/use-eslint-from-node-modules)
   (setq flycheck-check-syntax-automatically '(save mode-enabled))
-  (eldoc-mode +1)
-  (tide-hl-identifier-mode +1)
-  ;; Fix indent level set to 4 by default
-  (setq typescript-indent-level 2)
-  (setq typescript-tab-size 2)
-  (company-mode +1))
+  (flycheck-add-mode 'javascript-eslint 'typescript-mode)
+  (flycheck-add-mode 'javascript-eslint 'typescript-tsx-mode)
+  (flycheck-add-mode 'javascript-eslint 'web-mode))
 
 ;; Web mode
 (use-package web-mode :ensure t
@@ -175,17 +180,11 @@ Saves to a temp file and puts the filename in the kill ring."
   (setq web-mode-code-indent-offset 2)
   (setq web-mode-enable-auto-pairing t)
   (setq web-mode-enable-css-colorization t)
-
   ;; Javascript
   (add-to-list 'auto-mode-alist '("\\.js$" . web-mode))
   (add-to-list 'auto-mode-alist '("\\.jsx$" . web-mode))
   ;; Typescript
   (add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
-  (add-hook 'web-mode-hook
-            (lambda ()
-              (when (string-equal "tsx" (file-name-extension buffer-file-name))
-                (setup-tide-mode))))
-
   ;; Turn off auto saving because js build tools hate temp files
   (add-hook 'web-mode-hook '(lambda () (setq auto-save-default nil)))
   ;; HTML
@@ -193,19 +192,15 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; CSS
   (add-to-list 'auto-mode-alist '("\\.css$" . web-mode)))
 
-(use-package typescript-mode :ensure t
+(use-package typescript-mode
+  :ensure t
+  :init
+  (define-derived-mode typescript-tsx-mode typescript-mode "tsx")
   :config
   (setq typescript-indent-level 2)
-  (add-to-list 'auto-mode-alist '("\\.ts$" . typescript-mode))
-  (add-hook 'typescript-mode-hook #'eglot-ensure)
-  (add-hook 'typescript-mode-hook #'setup-tide-mode))
-
-(use-package tide
-  :ensure t
-  :after (typescript-mode company flycheck)
-  :hook ((typescript-mode . tide-setup)
-         (typescript-mode . tide-hl-identifier-mode)
-         (before-save . tide-format-before-save)))
+  (add-hook 'typescript-mode #'subword-mode)
+  (add-to-list 'auto-mode-alist '("\\.tsx?\\'" . typescript-tsx-mode))
+  (add-hook 'typescript-mode-hook #'eglot-ensure))
 
 (use-package toml-mode
   :ensure t
@@ -1134,10 +1129,8 @@ Saves to a temp file and puts the filename in the kill ring."
                                :after
                                'my/note-taking-init))))
 
-  :custom
-  (org-roam-directory org-roam-notes-path)
-
   :init
+  (setq org-roam-directory org-roam-notes-path)
   ;; Needed to supress update warning
   (setq org-roam-v2-ack t)
   ;; These functions need to be in :init otherwise they will not be
