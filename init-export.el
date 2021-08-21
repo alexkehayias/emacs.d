@@ -4,7 +4,7 @@
 (add-to-list 'package-archives
              '("melpa-stable" . "https://stable.melpa.org/packages/") t)
 (add-to-list 'package-archives
-              '("org" . "http://orgmode.org/elpa/") t)
+             '("org" . "http://orgmode.org/elpa/") t)
 (package-initialize)
 
 ;; Bootstrap `use-package'
@@ -378,331 +378,332 @@
 ;; Org export
 (use-package ox-hugo
   :ensure t
-  :after ox
-  :config
-(defun org-hugo-link (link desc info)
-    ;; HACK: Override ox-hugo export of org-id links to make them relrefs
-    "Convert LINK to Markdown format.
+  :after ox)
+
+(eval-after-load "ox-hugo"
+  '(defun org-hugo-link (link desc info)
+     ;; HACK: Override ox-hugo export of org-id links to make them relrefs
+     "Convert LINK to Markdown format.
 
      DESC is the link's description.
      INFO is a plist used as a communication channel.
 
      Unlike `org-md-link', this function will also copy local images
      and rewrite link paths to make blogging more seamless."
-    (let* ((raw-link (org-element-property :raw-link link))
-           (raw-path (org-element-property :path link))
-           (type (org-element-property :type link))
-           (link-is-url (member type '("http" "https" "ftp" "mailto"))))
-      (when (and (stringp raw-path)
-                 link-is-url)
-        (setq raw-path (org-blackfriday--url-sanitize
-                        (url-encode-url raw-path))))
-      ;; (message "[ox-hugo-link DBG] link: %S" link)
-      ;; (message "[ox-hugo-link DBG] link path: %s" (org-element-property :path link))
-      ;; (message "[ox-hugo-link DBG] link filename: %s" (expand-file-name (plist-get (car (cdr link)) :path)))
-      (message "[ox-hugo-link DBG] link type: %s" type)
-      (cond
-       ;; Link type is handled by a special function.
-       ((org-export-custom-protocol-maybe link desc 'md))
-       ((member type '("custom-id" "fuzzy"))
-        (let ((destination (if (string= type "fuzzy")
-                               (org-export-resolve-fuzzy-link link info)
-                             (org-export-resolve-id-link link info))))
-          (message "[org-hugo-link DBG] link destination elem type: %S" (org-element-type destination))
-          (pcase (org-element-type destination)
-            (`plain-text                  ;External file
-             (let ((path (progn
-                           ;; Treat links to `file.org' as links to `file.md'.
-                           (if (string= ".org" (downcase (file-name-extension destination ".")))
-                               (concat (file-name-sans-extension destination) ".md")
-                             destination))))
-               (if desc
-                   (format "[%s](%s)" desc path)
-                 (format "<%s>" path))))
-            (`headline                 ;Links of type [[* Some heading]]
-             (let ((title (org-export-data (org-element-property :title destination) info)))
-               (format
-                "[%s](#%s)"
-                ;; Description
-                (cond ((org-string-nw-p desc))
-                      ((org-export-numbered-headline-p destination info)
-                       (mapconcat #'number-to-string
-                                  (org-export-get-headline-number destination info)
-                                  "."))
-                      (t
-                       title))
-                ;; Reference
-                (org-hugo--get-anchor destination info title))))
-            (_
-             (let ((description
-                    (or (org-string-nw-p desc)
-                        (let ((number (org-export-get-ordinal
-                                       destination info
-                                       nil #'org-html--has-caption-p)))
-                          (when number
-                            (let ((num-str (if (atom number)
-                                               (number-to-string number)
-                                             (mapconcat #'number-to-string number "."))))
-                              ;; (message "[ox-hugo-link DBG] num-str: %s" num-str)
-                              (if org-hugo-link-desc-insert-type
-                                  (let* ((type (org-element-type destination))
-                                         ;; Org doesn't have a specific
-                                         ;; element for figures. So if
-                                         ;; the element is `paragraph',
-                                         ;; and as this element has an
-                                         ;; ordinal, we will assume that
-                                         ;; to be a figure.
-                                         (type (if (equal 'paragraph type)
-                                                   'figure
-                                                 type))
-                                         (type-str (org-blackfriday--translate type info)))
-                                    (format "%s %s" type-str num-str))
-                                num-str)))))))
-               ;; (message "[ox-hugo-link DBG] link description: %s" description)
-               (when description
-                 (format "[%s](#%s)"
-                         description
-                         (if (memq (org-element-type destination) '(src-block table))
-                             (org-blackfriday--get-reference destination)
-                           (org-export-get-reference destination info)))))))))
-       ((org-export-inline-image-p link org-html-inline-image-rules)
-        ;; (message "[org-hugo-link DBG] processing an image: %s" desc)
-        (let* ((parent (org-export-get-parent link))
-               (parent-type (org-element-type parent))
-               ;; If this is a hyper-linked image, it's parent type will
-               ;; be a link too. Get the parent of *that* link in that
-               ;; case.
-               (grand-parent (when (eq parent-type 'link)
-                               (org-export-get-parent parent)))
-               (useful-parent (if grand-parent
-                                  grand-parent
-                                parent))
-               (attr (org-export-read-attribute :attr_html useful-parent))
-               (caption (or
-                         ;; Caption set using #+caption takes higher precedence.
-                         (org-string-nw-p
-                          (org-export-data  ;Look for caption set using #+caption
-                           (org-export-get-caption (org-export-get-parent-element link))
-                           info))
-                         (plist-get attr :caption)))
-               (caption (when (org-string-nw-p caption)
-                          (format "%s%s%s%s"
-                                  ;; Tue Feb 13 11:32:45 EST 2018 - kmodi
-                                  ;; Add the span tag once
-                                  ;; https://github.com/gohugoio/hugo/issues/4406
-                                  ;; gets resolved.
-                                  "" ;"<span class=\\\"figure-number\\\">"
-                                  (format (org-html--translate
-                                           (concat
-                                            (cdr (assoc 'figure org-blackfriday--org-element-string))
-                                            " %d:")
-                                           info)
-                                          (org-export-get-ordinal
-                                           useful-parent info
-                                           nil #'org-html--has-caption-p))
-                                  " "     ;" </span>"
-                                  ;; Escape the double-quotes, if any.
-                                  (replace-regexp-in-string "\"" "\\\\\"" caption))))
-               (extension (downcase (file-name-extension raw-path)))
-               (inlined-svg (and (stringp extension)
-                                 (string= "svg" extension)
-                                 (plist-get attr :inlined))))
-          ;; (message "[ox-hugo-link DBG] Inline image: %s, extension: %s" raw-path extension)
-          ;; (message "[ox-hugo-link DBG] inlined svg? %S" inlined-svg)
-          ;; (message "[ox-hugo-link DBG] caption: %s" caption)
-          (if inlined-svg
-              (let* ((svg-contents (with-temp-buffer
-                                     (insert-file-contents raw-path)
-                                     (fill-region (point-min) (point-max)) ;Make huge one-liner SVGs sane
-                                     (buffer-substring-no-properties (point-min) (point-max))))
-                     (svg-contents-sanitized (replace-regexp-in-string
-                                              ;; Remove the HTML comments.
-                                              "<!--\\(.\\|\n\\)*?-->" ""
-                                              (replace-regexp-in-string
-                                               ;; Remove the xml document tag as that cannot be inlined in-between
-                                               ;; a Markdown (or even an HTML) file.
-                                               "<\\?xml version=\"1\\.0\" encoding=\"UTF-8\" standalone=\"no\"\\?>" ""
-                                               svg-contents)))
-                     (caption-html (if (not caption)
-                                       ""
-                                     (format (concat "\n\n<div class=\"figure-caption\">\n"
-                                                     "  %s\n"
-                                                     "</div>")
-                                             (org-html-convert-special-strings ;Interpret em-dash, en-dash, etc.
-                                              (org-export-data-with-backend caption 'html info))))))
-                ;; (message "[ox-hugo-link DBG] svg contents: %s" svg-contents)
-                ;; (message "[ox-hugo-link DBG] svg contents sanitized: %s" svg-contents-sanitized)
-                (concat svg-contents-sanitized caption-html))
-            (let* ((path (org-hugo--attachment-rewrite-maybe raw-path info))
-                   (inline-image (not (org-html-standalone-image-p useful-parent info)))
-                   (source (if link-is-url
-                               (concat type ":" path)
-                             path))
-                   (num-attr (/ (length attr) 2)) ;(:alt foo) -> num-attr = 1
-                   (alt-text (plist-get attr :alt)))
-              ;; (message "[ox-hugo-link DBG] path: %s" path)
-              ;; (message "[ox-hugo-link DBG] inline image? %s" inline-image)
-              ;; (message "[org-hugo-link DBG] attr: %s num of attr: %d"
-              ;;          attr (length attr))
-              ;; (message "[org-hugo-link DBG] parent-type: %s" parent-type)
-              ;; (message "[org-hugo-link DBG] useful-parent-type: %s"
-              ;;          (org-element-type useful-parent))
-              (cond
-               (;; Use the Markdown image syntax if the image is inline and
-                ;; there are no HTML attributes for the image, or just one
-                ;; attribute, the `alt-text'.
-                (and inline-image
-                     (or (= 0 num-attr)
-                         (and alt-text
-                              (= 1 num-attr))))
-                (let ((alt-text (if alt-text
-                                    alt-text
-                                  "")))
-                  (format "![%s](%s)" alt-text source)))
-               (;; Else if the image is inline (with non-alt-text
-                ;; attributes), use HTML <img> tag syntax.
-                inline-image
-                ;; The "target" and "rel" attributes would be meant for <a>
-                ;; tags. So do not pass them to the <img> tag.
-                (plist-put attr :target nil)
-                (plist-put attr :rel nil)
-                (org-html--format-image source attr info))
-               (t ;Else use the Hugo `figure' shortcode.
-                ;; Hugo `figure' shortcode named parameters.
-                ;; https://gohugo.io/content-management/shortcodes/#figure
-                (let ((figure-params `((src . ,source)
-                                       (alt . ,alt-text)
-                                       (caption . ,caption)
-                                       (link . ,(plist-get attr :link))
-                                       (title . ,(plist-get attr :title))
-                                       (class . ,(plist-get attr :class))
-                                       (attr . ,(plist-get attr :attr))
-                                       (attrlink . ,(plist-get attr :attrlink))
-                                       (width . ,(plist-get attr :width))
-                                       (height . ,(plist-get attr :height))
-                                       ;; While the `target' and `rel'
-                                       ;; attributes are not supported by
-                                       ;; the inbuilt Hugo `figure'
-                                       ;; shortcode, they can be used as
-                                       ;; intended if a user has a custom
-                                       ;; `figure' shortcode with the
-                                       ;; support added for those.
-                                       (target . ,(plist-get attr :target))
-                                       (rel . ,(plist-get attr :rel))))
-                      (figure-param-str ""))
-                  (dolist (param figure-params)
-                    (let ((name (car param))
-                          (val (cdr param)))
-                      (when val
-                        (setq figure-param-str (concat figure-param-str
-                                                       (format "%s=\"%s\" "
-                                                               name val))))))
-                  ;; (message "[org-hugo-link DBG] figure params: %s" figure-param-str)
-                  (format "{{< figure %s >}}" (org-trim figure-param-str)))))))))
-       ((equal type "id")
-        (let ((description (org-string-nw-p desc))
-              (path (org-hugo--attachment-rewrite-maybe raw-path info)))
-          (format "[%s]({{< relref \"%s\" >}})"
-                  description
-                  (file-name-sans-extension
-                   (file-name-nondirectory (car (org-id-find raw-path)))))))
-       ((string= type "coderef")
-        (let ((ref (org-element-property :path link)))
-          (format (org-export-get-coderef-format ref desc)
-                  (org-export-resolve-coderef ref info))))
-       ((equal type "radio")
-        (let ((destination (org-export-resolve-radio-link link info)))
-          (format "[%s](#%s)" desc (org-export-get-reference destination info))))
-       (t
-        (let* ((link-param-str "")
-               (path (cond
-                      (link-is-url
-                       ;; Taken from ox-html.el -- Extract attributes
-                       ;; from parent's paragraph.  HACK: Only do this
-                       ;; for the first link in parent (inner image link
-                       ;; for inline images).  This is needed as long as
-                       ;; attributes cannot be set on a per link basis.
-                       (let* ((attr
-                               (let ((parent (org-export-get-parent-element link)))
-                                 (and (eq (org-element-map parent 'link #'identity info :first-match) link)
-                                      (org-export-read-attribute :attr_html parent))))
-                              ;; https://www.w3schools.com/tags/tag_link.asp
-                              (link-params `((media . ,(plist-get attr :media))
-                                             (target . ,(plist-get attr :target))
-                                             (rel . ,(plist-get attr :rel))
-                                             (sizes . ,(plist-get attr :sizes))
-                                             (type . ,(plist-get attr :type)))))
-                         (dolist (param link-params)
-                           (let ((name (car param))
-                                 (val (cdr param)))
-                             (when val
-                               (setq link-param-str (concat link-param-str
-                                                            (format "%s=\"%s\" "
-                                                                    name val))))))
-                         ;; (message "[ox-hugo-link DBG] link params: %s" link-param-str)
-                         )
-                       (concat type ":" raw-path))
-                      (;; Remove the "file://" prefix.
-                       (string= type "file")
-                       ;; (message "[ox-hugo-link DBG] raw-path: %s" raw-path)
-                       (let ((path1 (replace-regexp-in-string "\\`file://" "" raw-path)))
-                         (if (string= ".org" (downcase (file-name-extension path1 ".")))
-                             (let ((raw-link-minus-org-file
-                                    ;; If raw-link is "./foo.org::#bar",
-                                    ;; set `raw-link-minus-org-file' to
-                                    ;; "#bar".
-                                    (if (string-match ".*\\.org::\\(#.*\\)" raw-link)
-                                        (match-string-no-properties 1 raw-link)
-                                      "")))
-                               (format "{{< relref \"%s%s\" >}}"
-                                       (file-name-sans-extension
-                                        (file-name-nondirectory path1))
-                                       raw-link-minus-org-file))
-                           (org-hugo--attachment-rewrite-maybe path1 info))))
-                      (t
-                       raw-path)))
-               (link-param-str (org-string-nw-p (org-trim link-param-str))))
-          ;; (message "[ox-hugo-link DBG] desc=%s path=%s" desc path)
-          ;; (message "[ox-hugo-link DBG] link-param-str=%s" link-param-str)
-          (cond
-           ;; Link description is a `figure' shortcode but does not
-           ;; already have the `link' parameter set.
-           ((and desc
-                 (string-match-p "\\`{{<\\s-*figure\\s-+" desc)
-                 (not (string-match-p "\\`{{<\\s-*figure\\s-+.*link=" desc)))
-            (replace-regexp-in-string "\\s-*>}}\\'"
-                                      (format " link=\"%s\"\\&" path)
-                                      desc))
-           ;; Both link description and link attributes are present.
-           ((and desc
-                 link-param-str)
-            (format "<a href=\"%s\" %s>%s</a>"
-                    (org-html-encode-plain-text path)
-                    link-param-str
-                    (org-link-unescape desc)))
-           ;; Only link description, but no link attributes.
-           (desc
-            (let* ((path-has-space (and
-                                    (not (string-prefix-p "{{< relref " path))
-                                    (string-match-p "\\s-" path)))
-                   (path (if path-has-space
-                             ;; https://github.com/kaushalmodi/ox-hugo/issues/376
-                             ;; https://github.com/gohugoio/hugo/issues/6742#issuecomment-573924706
-                             (format "<%s>" path)
-                           path)))
-              (format "[%s](%s)" desc path)))
-           ;; Only link attributes, but no link description.
-           (link-param-str
-            (let ((path (org-html-encode-plain-text path)))
-              (format "<a href=\"%s\" %s>%s</a>"
-                      path
-                      link-param-str
-                      (org-link-unescape path))))
-           ;; Neither link description, nor link attributes.
-           (t
-            (if (string-prefix-p "{{< relref " path)
-                (format "[%s](%s)" path path)
-              (format "<%s>" path))))))))))
+     (let* ((raw-link (org-element-property :raw-link link))
+            (raw-path (org-element-property :path link))
+            (type (org-element-property :type link))
+            (link-is-url (member type '("http" "https" "ftp" "mailto"))))
+       (when (and (stringp raw-path)
+                  link-is-url)
+         (setq raw-path (org-blackfriday--url-sanitize
+                         (url-encode-url raw-path))))
+       ;; (message "[ox-hugo-link DBG] link: %S" link)
+       ;; (message "[ox-hugo-link DBG] link path: %s" (org-element-property :path link))
+       ;; (message "[ox-hugo-link DBG] link filename: %s" (expand-file-name (plist-get (car (cdr link)) :path)))
+       (message "[ox-hugo-link DBG] link type: %s" type)
+       (cond
+        ;; Link type is handled by a special function.
+        ((org-export-custom-protocol-maybe link desc 'md))
+        ((member type '("custom-id" "fuzzy"))
+         (let ((destination (if (string= type "fuzzy")
+                                (org-export-resolve-fuzzy-link link info)
+                              (org-export-resolve-id-link link info))))
+           (message "[org-hugo-link DBG] link destination elem type: %S" (org-element-type destination))
+           (pcase (org-element-type destination)
+             (`plain-text                  ;External file
+              (let ((path (progn
+                            ;; Treat links to `file.org' as links to `file.md'.
+                            (if (string= ".org" (downcase (file-name-extension destination ".")))
+                                (concat (file-name-sans-extension destination) ".md")
+                              destination))))
+                (if desc
+                    (format "[%s](%s)" desc path)
+                  (format "<%s>" path))))
+             (`headline                 ;Links of type [[* Some heading]]
+              (let ((title (org-export-data (org-element-property :title destination) info)))
+                (format
+                 "[%s](#%s)"
+                 ;; Description
+                 (cond ((org-string-nw-p desc))
+                       ((org-export-numbered-headline-p destination info)
+                        (mapconcat #'number-to-string
+                                   (org-export-get-headline-number destination info)
+                                   "."))
+                       (t
+                        title))
+                 ;; Reference
+                 (org-hugo--get-anchor destination info title))))
+             (_
+              (let ((description
+                     (or (org-string-nw-p desc)
+                         (let ((number (org-export-get-ordinal
+                                        destination info
+                                        nil #'org-html--has-caption-p)))
+                           (when number
+                             (let ((num-str (if (atom number)
+                                                (number-to-string number)
+                                              (mapconcat #'number-to-string number "."))))
+                               ;; (message "[ox-hugo-link DBG] num-str: %s" num-str)
+                               (if org-hugo-link-desc-insert-type
+                                   (let* ((type (org-element-type destination))
+                                          ;; Org doesn't have a specific
+                                          ;; element for figures. So if
+                                          ;; the element is `paragraph',
+                                          ;; and as this element has an
+                                          ;; ordinal, we will assume that
+                                          ;; to be a figure.
+                                          (type (if (equal 'paragraph type)
+                                                    'figure
+                                                  type))
+                                          (type-str (org-blackfriday--translate type info)))
+                                     (format "%s %s" type-str num-str))
+                                 num-str)))))))
+                ;; (message "[ox-hugo-link DBG] link description: %s" description)
+                (when description
+                  (format "[%s](#%s)"
+                          description
+                          (if (memq (org-element-type destination) '(src-block table))
+                              (org-blackfriday--get-reference destination)
+                            (org-export-get-reference destination info)))))))))
+        ((org-export-inline-image-p link org-html-inline-image-rules)
+         ;; (message "[org-hugo-link DBG] processing an image: %s" desc)
+         (let* ((parent (org-export-get-parent link))
+                (parent-type (org-element-type parent))
+                ;; If this is a hyper-linked image, it's parent type will
+                ;; be a link too. Get the parent of *that* link in that
+                ;; case.
+                (grand-parent (when (eq parent-type 'link)
+                                (org-export-get-parent parent)))
+                (useful-parent (if grand-parent
+                                   grand-parent
+                                 parent))
+                (attr (org-export-read-attribute :attr_html useful-parent))
+                (caption (or
+                          ;; Caption set using #+caption takes higher precedence.
+                          (org-string-nw-p
+                           (org-export-data  ;Look for caption set using #+caption
+                            (org-export-get-caption (org-export-get-parent-element link))
+                            info))
+                          (plist-get attr :caption)))
+                (caption (when (org-string-nw-p caption)
+                           (format "%s%s%s%s"
+                                   ;; Tue Feb 13 11:32:45 EST 2018 - kmodi
+                                   ;; Add the span tag once
+                                   ;; https://github.com/gohugoio/hugo/issues/4406
+                                   ;; gets resolved.
+                                   "" ;"<span class=\\\"figure-number\\\">"
+                                   (format (org-html--translate
+                                            (concat
+                                             (cdr (assoc 'figure org-blackfriday--org-element-string))
+                                             " %d:")
+                                            info)
+                                           (org-export-get-ordinal
+                                            useful-parent info
+                                            nil #'org-html--has-caption-p))
+                                   " "     ;" </span>"
+                                   ;; Escape the double-quotes, if any.
+                                   (replace-regexp-in-string "\"" "\\\\\"" caption))))
+                (extension (downcase (file-name-extension raw-path)))
+                (inlined-svg (and (stringp extension)
+                                  (string= "svg" extension)
+                                  (plist-get attr :inlined))))
+           ;; (message "[ox-hugo-link DBG] Inline image: %s, extension: %s" raw-path extension)
+           ;; (message "[ox-hugo-link DBG] inlined svg? %S" inlined-svg)
+           ;; (message "[ox-hugo-link DBG] caption: %s" caption)
+           (if inlined-svg
+               (let* ((svg-contents (with-temp-buffer
+                                      (insert-file-contents raw-path)
+                                      (fill-region (point-min) (point-max)) ;Make huge one-liner SVGs sane
+                                      (buffer-substring-no-properties (point-min) (point-max))))
+                      (svg-contents-sanitized (replace-regexp-in-string
+                                               ;; Remove the HTML comments.
+                                               "<!--\\(.\\|\n\\)*?-->" ""
+                                               (replace-regexp-in-string
+                                                ;; Remove the xml document tag as that cannot be inlined in-between
+                                                ;; a Markdown (or even an HTML) file.
+                                                "<\\?xml version=\"1\\.0\" encoding=\"UTF-8\" standalone=\"no\"\\?>" ""
+                                                svg-contents)))
+                      (caption-html (if (not caption)
+                                        ""
+                                      (format (concat "\n\n<div class=\"figure-caption\">\n"
+                                                      "  %s\n"
+                                                      "</div>")
+                                              (org-html-convert-special-strings ;Interpret em-dash, en-dash, etc.
+                                               (org-export-data-with-backend caption 'html info))))))
+                 ;; (message "[ox-hugo-link DBG] svg contents: %s" svg-contents)
+                 ;; (message "[ox-hugo-link DBG] svg contents sanitized: %s" svg-contents-sanitized)
+                 (concat svg-contents-sanitized caption-html))
+             (let* ((path (org-hugo--attachment-rewrite-maybe raw-path info))
+                    (inline-image (not (org-html-standalone-image-p useful-parent info)))
+                    (source (if link-is-url
+                                (concat type ":" path)
+                              path))
+                    (num-attr (/ (length attr) 2)) ;(:alt foo) -> num-attr = 1
+                    (alt-text (plist-get attr :alt)))
+               ;; (message "[ox-hugo-link DBG] path: %s" path)
+               ;; (message "[ox-hugo-link DBG] inline image? %s" inline-image)
+               ;; (message "[org-hugo-link DBG] attr: %s num of attr: %d"
+               ;;          attr (length attr))
+               ;; (message "[org-hugo-link DBG] parent-type: %s" parent-type)
+               ;; (message "[org-hugo-link DBG] useful-parent-type: %s"
+               ;;          (org-element-type useful-parent))
+               (cond
+                (;; Use the Markdown image syntax if the image is inline and
+                 ;; there are no HTML attributes for the image, or just one
+                 ;; attribute, the `alt-text'.
+                 (and inline-image
+                      (or (= 0 num-attr)
+                          (and alt-text
+                               (= 1 num-attr))))
+                 (let ((alt-text (if alt-text
+                                     alt-text
+                                   "")))
+                   (format "![%s](%s)" alt-text source)))
+                (;; Else if the image is inline (with non-alt-text
+                 ;; attributes), use HTML <img> tag syntax.
+                 inline-image
+                 ;; The "target" and "rel" attributes would be meant for <a>
+                 ;; tags. So do not pass them to the <img> tag.
+                 (plist-put attr :target nil)
+                 (plist-put attr :rel nil)
+                 (org-html--format-image source attr info))
+                (t ;Else use the Hugo `figure' shortcode.
+                 ;; Hugo `figure' shortcode named parameters.
+                 ;; https://gohugo.io/content-management/shortcodes/#figure
+                 (let ((figure-params `((src . ,source)
+                                        (alt . ,alt-text)
+                                        (caption . ,caption)
+                                        (link . ,(plist-get attr :link))
+                                        (title . ,(plist-get attr :title))
+                                        (class . ,(plist-get attr :class))
+                                        (attr . ,(plist-get attr :attr))
+                                        (attrlink . ,(plist-get attr :attrlink))
+                                        (width . ,(plist-get attr :width))
+                                        (height . ,(plist-get attr :height))
+                                        ;; While the `target' and `rel'
+                                        ;; attributes are not supported by
+                                        ;; the inbuilt Hugo `figure'
+                                        ;; shortcode, they can be used as
+                                        ;; intended if a user has a custom
+                                        ;; `figure' shortcode with the
+                                        ;; support added for those.
+                                        (target . ,(plist-get attr :target))
+                                        (rel . ,(plist-get attr :rel))))
+                       (figure-param-str ""))
+                   (dolist (param figure-params)
+                     (let ((name (car param))
+                           (val (cdr param)))
+                       (when val
+                         (setq figure-param-str (concat figure-param-str
+                                                        (format "%s=\"%s\" "
+                                                                name val))))))
+                   ;; (message "[org-hugo-link DBG] figure params: %s" figure-param-str)
+                   (format "{{< figure %s >}}" (org-trim figure-param-str)))))))))
+        ((equal type "id")
+         (let ((description (org-string-nw-p desc))
+               (path (org-hugo--attachment-rewrite-maybe raw-path info)))
+           (format "[%s]({{< relref \"%s\" >}})"
+                   description
+                   (file-name-sans-extension
+                    (file-name-nondirectory (car (org-id-find raw-path)))))))
+        ((string= type "coderef")
+         (let ((ref (org-element-property :path link)))
+           (format (org-export-get-coderef-format ref desc)
+                   (org-export-resolve-coderef ref info))))
+        ((equal type "radio")
+         (let ((destination (org-export-resolve-radio-link link info)))
+           (format "[%s](#%s)" desc (org-export-get-reference destination info))))
+        (t
+         (let* ((link-param-str "")
+                (path (cond
+                       (link-is-url
+                        ;; Taken from ox-html.el -- Extract attributes
+                        ;; from parent's paragraph.  HACK: Only do this
+                        ;; for the first link in parent (inner image link
+                        ;; for inline images).  This is needed as long as
+                        ;; attributes cannot be set on a per link basis.
+                        (let* ((attr
+                                (let ((parent (org-export-get-parent-element link)))
+                                  (and (eq (org-element-map parent 'link #'identity info :first-match) link)
+                                       (org-export-read-attribute :attr_html parent))))
+                               ;; https://www.w3schools.com/tags/tag_link.asp
+                               (link-params `((media . ,(plist-get attr :media))
+                                              (target . ,(plist-get attr :target))
+                                              (rel . ,(plist-get attr :rel))
+                                              (sizes . ,(plist-get attr :sizes))
+                                              (type . ,(plist-get attr :type)))))
+                          (dolist (param link-params)
+                            (let ((name (car param))
+                                  (val (cdr param)))
+                              (when val
+                                (setq link-param-str (concat link-param-str
+                                                             (format "%s=\"%s\" "
+                                                                     name val))))))
+                          ;; (message "[ox-hugo-link DBG] link params: %s" link-param-str)
+                          )
+                        (concat type ":" raw-path))
+                       (;; Remove the "file://" prefix.
+                        (string= type "file")
+                        ;; (message "[ox-hugo-link DBG] raw-path: %s" raw-path)
+                        (let ((path1 (replace-regexp-in-string "\\`file://" "" raw-path)))
+                          (if (string= ".org" (downcase (file-name-extension path1 ".")))
+                              (let ((raw-link-minus-org-file
+                                     ;; If raw-link is "./foo.org::#bar",
+                                     ;; set `raw-link-minus-org-file' to
+                                     ;; "#bar".
+                                     (if (string-match ".*\\.org::\\(#.*\\)" raw-link)
+                                         (match-string-no-properties 1 raw-link)
+                                       "")))
+                                (format "{{< relref \"%s%s\" >}}"
+                                        (file-name-sans-extension
+                                         (file-name-nondirectory path1))
+                                        raw-link-minus-org-file))
+                            (org-hugo--attachment-rewrite-maybe path1 info))))
+                       (t
+                        raw-path)))
+                (link-param-str (org-string-nw-p (org-trim link-param-str))))
+           ;; (message "[ox-hugo-link DBG] desc=%s path=%s" desc path)
+           ;; (message "[ox-hugo-link DBG] link-param-str=%s" link-param-str)
+           (cond
+            ;; Link description is a `figure' shortcode but does not
+            ;; already have the `link' parameter set.
+            ((and desc
+                  (string-match-p "\\`{{<\\s-*figure\\s-+" desc)
+                  (not (string-match-p "\\`{{<\\s-*figure\\s-+.*link=" desc)))
+             (replace-regexp-in-string "\\s-*>}}\\'"
+                                       (format " link=\"%s\"\\&" path)
+                                       desc))
+            ;; Both link description and link attributes are present.
+            ((and desc
+                  link-param-str)
+             (format "<a href=\"%s\" %s>%s</a>"
+                     (org-html-encode-plain-text path)
+                     link-param-str
+                     (org-link-unescape desc)))
+            ;; Only link description, but no link attributes.
+            (desc
+             (let* ((path-has-space (and
+                                     (not (string-prefix-p "{{< relref " path))
+                                     (string-match-p "\\s-" path)))
+                    (path (if path-has-space
+                              ;; https://github.com/kaushalmodi/ox-hugo/issues/376
+                              ;; https://github.com/gohugoio/hugo/issues/6742#issuecomment-573924706
+                              (format "<%s>" path)
+                            path)))
+               (format "[%s](%s)" desc path)))
+            ;; Only link attributes, but no link description.
+            (link-param-str
+             (let ((path (org-html-encode-plain-text path)))
+               (format "<a href=\"%s\" %s>%s</a>"
+                       path
+                       link-param-str
+                       (org-link-unescape path))))
+            ;; Neither link description, nor link attributes.
+            (t
+             (if (string-prefix-p "{{< relref " path)
+                 (format "[%s](%s)" path path)
+               (format "<%s>" path))))))))))
 
 ;; Heavily modified based on https://github.com/novoid/title-capitalization.el/blob/master/title-capitalization.el
 (defun title-capitalization (str)
