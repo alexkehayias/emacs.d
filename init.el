@@ -509,7 +509,8 @@ Saves to a temp file and puts the filename in the kill ring."
 (eval-when-compile
   (require 'cl))
 
-(setq load-path (remove-if (lambda (x) (string-match-p "org$" x)) load-path))
+(setq load-path
+      (remove-if (lambda (x) (string-match-p "org$" x)) load-path))
 ;; Second, trick emacs into forgetting about the fact that org is
 ;; a "built-in" package by removing it from package--builtins.
 ;; Without this, package will refuse to install org, since it's
@@ -586,7 +587,7 @@ Saves to a temp file and puts the filename in the kill ring."
 
   ;; On startup show the agenda for the next 2 calendar weeks and all
   ;; todo items
-  (add-hook 'after-init-hook 'org-agenda-and-todos-two-weeks)
+  ;; (add-hook 'after-init-hook 'org-agenda-and-todos-two-weeks)
 
   ;; Show org timestamps in 12h time
   (setq org-agenda-timegrid-use-ampm 1)
@@ -743,6 +744,7 @@ Saves to a temp file and puts the filename in the kill ring."
 
 (use-package gnuplot
   :defer t
+  :after org
   :config
   ;; Enable gnuplot in babel
   (org-babel-do-load-languages
@@ -1152,6 +1154,7 @@ Saves to a temp file and puts the filename in the kill ring."
 
 (use-package org-roam
   :ensure t
+  :after org
   :hook
   ;; Need to add advice after-init otherwise they won't take
   ((after-init . (lambda ()
