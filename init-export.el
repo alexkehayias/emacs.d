@@ -4,7 +4,7 @@
 (add-to-list 'package-archives
              '("melpa-stable" . "https://stable.melpa.org/packages/") t)
 (add-to-list 'package-archives
-             '("org" . "http://orgmode.org/elpa/") t)
+             '("elpa" . "https://elpa.gnu.org/packages/"))
 (package-initialize)
 
 ;; Bootstrap `use-package'
@@ -155,8 +155,7 @@
 (setq package--builtins (assq-delete-all 'org package--builtins))
 
 (use-package org
-  :ensure org-plus-contrib
-  :pin org
+  :pin elpa
   :config
   (setq org-directory "~/Org")
 
