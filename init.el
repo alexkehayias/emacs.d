@@ -1182,7 +1182,7 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; draft
   (defun my/org-roam--backlinks-list (id file)
     (--reduce-from
-     (concat acc (format "- [[id:%s][%s]]\n#+begin_quote\n%s\n#+end_quote\n"
+     (concat acc (format "- [[id:%s][%s]]\n  #+begin_quote\n  %s\n  #+end_quote\n"
                          (car it)
                          (title-capitalization (org-roam-node-title (org-roam-node-from-id (car it))))
                          (my/org-roam--extract-note-body (org-roam-node-file (org-roam-node-from-id (car it))))))
