@@ -1,19 +1,23 @@
-(require 'package)
+;; Initialize straight.el and use-package.el
+;; Assumes every use-package uses straight
 (setq package-enable-at-startup nil)
-(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
-(add-to-list 'package-archives
-             '("melpa-stable" . "https://stable.melpa.org/packages/") t)
-(add-to-list 'package-archives
-             '("elpa" . "https://elpa.gnu.org/packages/"))
-(package-initialize)
 
-;; Bootstrap `use-package'
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
+(setq straight-repository-branch "develop")
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+      (bootstrap-version 5))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
 
-(eval-when-compile
-  (require 'use-package))
+(straight-use-package 'use-package)
+(setq straight-use-package-by-default t)
 
 ;; Disable backup files
 (setq make-backup-files nil)
@@ -21,7 +25,7 @@
 (setq auto-save-default nil)
 
 ;; Web mode
-(use-package web-mode :ensure t
+(use-package web-mode
   :config
   (defun web-mode-customization ()
     "Customization for web-mode."
@@ -42,38 +46,33 @@
   ;; CSS
   (add-to-list 'auto-mode-alist '("\\.css$" . web-mode)))
 
-(use-package typescript-mode :ensure t
+(use-package typescript-mode
   :config
   (setq typescript-indent-level 2)
   (add-to-list 'auto-mode-alist '("\\.ts$" . typescript-mode))
   (add-hook 'typescript-mode-hook #'eglot-ensure))
 
 (use-package toml-mode
-  :ensure t
   :config
   (add-to-list 'auto-mode-alist '("\\.toml$" . toml-mode)))
 
 (use-package rust-mode
-  :ensure t
   :config
   (define-key rust-mode-map (kbd "TAB") #'company-indent-or-complete-common)
   (add-hook 'rust-mode-hook #'eglot-ensure))
 
 ;; Python
 (use-package python-mode
-  :ensure t
   :config
   (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode)))
 
 (use-package elpy
-  :ensure t
   :config
   (elpy-enable)
   (setq elpy-rpc-backend "rope"))
 
 ;; Ruby
 (use-package robe
-  :ensure t
   :config
   ;; Sane indenting
   (setq ruby-deep-indent-paren nil)
@@ -94,25 +93,21 @@
 
 ;; Sass-mode
 (use-package sass-mode
-  :ensure t
   :config (setq sass-tab-width 2))
 
 ;; Processing mode
 (use-package processing-mode
-  :ensure t
   :config
   (add-to-list 'auto-mode-alist '("\\.pde$" . processing-mode))
   (setq processing-location "~/Library/Processing"))
 
 ;; Markdown
 (use-package markdown-mode
-  :ensure t
   :config
   (add-to-list 'auto-mode-alist '("\\.md$" . markdown-mode)))
 
 ;; Unity
 (use-package glsl-mode
-  :ensure t
   :config
   (add-to-list 'auto-mode-alist '("\\.shader$" . glsl-mode)))
 
@@ -123,11 +118,10 @@
 ;; Auto refresh all buffers when files change ie git branch switching
 (global-auto-revert-mode t)
 
-(use-package clojure-mode :ensure t)
+(use-package clojure-mode)
 
 ;; Rainbow parantheses
 (use-package rainbow-delimiters
-  :ensure t
   :config
   (add-hook 'prog-mode-hook 'rainbow-delimiters-mode))
 
@@ -155,7 +149,6 @@
 (setq package--builtins (assq-delete-all 'org package--builtins))
 
 (use-package org
-  :pin elpa
   :config
   (setq org-directory "~/Org")
 
@@ -356,27 +349,10 @@
   ;; Don't prompt for confirmation when exporting babel blocks
   (setq org-confirm-babel-evaluate nil))
 
-;; Babel setup
-(use-package ob-python
-  :defer t
-  :commands (org-babel-execute:python)
-  :config
-  (setq org-babel-python-command "python3"))
-
-(use-package ob-shell
-  :defer t
-  :commands
-  (org-babel-execute:sh
-   org-babel-expand-body:sh
-
-   org-babel-execute:bash
-   org-babel-expand-body:bash))
-
-(use-package htmlize :ensure t)
+(use-package htmlize)
 
 ;; Org export
 (use-package ox-hugo
-  :ensure t
   :after ox)
 
 (eval-after-load "ox-hugo"
@@ -769,7 +745,6 @@
 (setq org-roam-publish-path (or (getenv "ORG_ROAM_PUBLISH_PATH") "~/Projects/zettel"))
 
 (use-package org-roam
-  :ensure t
   :hook
   ;; Need to add advice after-init otherwise they won't take
   ((after-init . (lambda ()
@@ -939,7 +914,6 @@
 
 ;; Json mode
 (use-package json-mode
-  :ensure t
   :config
   (add-to-list 'auto-mode-alist '("\\.json\\'" . json-mode))
   (add-hook 'json-mode 'flymake-json-load))
