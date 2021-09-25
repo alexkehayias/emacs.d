@@ -28,7 +28,14 @@
   (setq mac-command-modifier 'super)
 
   ;; Always use Chrome when opening links
-  (setq browse-url-browser-function 'browse-url-default-macosx-browser))
+  (setq browse-url-browser-function 'browse-url-default-macosx-browser)
+
+  ;; Transparent title bar with no text
+  (add-to-list 'default-frame-alist '(ns-transparent-titlebar . t))
+  (add-to-list 'default-frame-alist '(ns-appearance . dark))
+  (setq ns-use-proxy-icon nil)
+  (setq frame-title-format nil))
+
 
 ;; Max image size when using the builtin viewer
 (setq max-image-size 50.0)
@@ -162,11 +169,12 @@ Saves to a temp file and puts the filename in the kill ring."
   :ensure t
   :config
   (global-flycheck-mode)
-  (setq flycheck-global-modes '(not rust-mode))
+  (setq flycheck-global-modes '((not rust-mode)
+                                (not python-mode)))
   (global-set-key (kbd "C-c M-n") 'flycheck-next-error)
   (global-set-key (kbd "C-c M-p") 'flycheck-previous-error)
-  (add-hook 'flycheck-mode-hook #'my/use-eslint-from-node-modules)
   (setq flycheck-check-syntax-automatically '(save mode-enabled))
+  (add-hook 'flycheck-mode-hook #'my/use-eslint-from-node-modules)
   (flycheck-add-mode 'javascript-eslint 'typescript-mode)
   (flycheck-add-mode 'javascript-eslint 'typescript-tsx-mode)
   (flycheck-add-mode 'javascript-eslint 'web-mode))
@@ -218,7 +226,6 @@ Saves to a temp file and puts the filename in the kill ring."
   :config
   (global-set-key (kbd "M-n") 'flymake-goto-next-error)
   (global-set-key (kbd "M-p") 'flymake-goto-prev-error)
-  (define-key eglot-mode-map (kbd "C-c h") 'eglot-help-at-point)
 
   ;; Better support for rust projects with multiple sub projects
   (defun my-project-try-cargo-toml (dir)
@@ -229,13 +236,45 @@ Saves to a temp file and puts the filename in the kill ring."
                 (found (cdr (assq 'workspace_root js))))
       (cons 'eglot-project found)))
 
-  (cl-defmethod project-roots ((project (head eglot-project)))
-    (list (cdr project)))
+  ;; Handle projects not in the root folder of a repo
+  (cl-defmethod project-root ((project (head eglot-project)))
+    (cdr project))
 
   (add-hook 'project-find-functions 'my-project-try-cargo-toml nil nil)
 
+  ;; (defun my-project-try-docker-host (dir)
+  ;;   (message (format "Looking for docker host path for %s" dir))
+  ;;   (when-let* ((root (cadr (split-string dir "\\/")))
+  ;;               (remote (not (equal root "Users")))
+  ;;               (found (locate-dominating-file "/Users/alex/mosey/app/backend/" ".projectile")))
+  ;;     (message (format "Found docker host directory %s" found))
+  ;;     (cons 'eglot-project found)))
+
+
+  ;; (add-hook 'project-find-functions 'my-project-try-docker-host nil nil)
+
+  ;; (setq eglot-workspace-configuration '(("pyls" "plugins.pyls_mypy" ("enabled" t)
+  ;;                                        "plugins.pycodestyle" ("enabled" json-false))))
+
+  ;; (add-to-list 'eglot-server-programs
+  ;;              '((typescript-mode) "/Users/alex/mosey/app/.docker-typescript-language-server"))
+
   (add-to-list 'eglot-server-programs
-               '((typescript-mode) "typescript-language-server" "--stdio")))
+               '((typescript-mode) "typescript-language-server" "--stdio"))
+
+  (add-to-list 'eglot-server-programs
+               '((python-mode) "/Users/alex/mosey/app/.docker-python-language-server"))
+  )
+
+;; HACK: If the xref file doesn't exist, it probably came from a
+;; remote LSP server using eglot. Try mapping it to the local
+;; file system. Maybe someday it will be supported in eglot.
+;; See: https://github.com/joaotavora/eglot/issues/350
+(eval-after-load "xref"
+  '(defun xref-make-file-location (file line column)
+     (if (not (file-exists-p file))
+         (make-instance 'xref-file-location :file (format "~/mosey%s" file) :line line :column column)
+       (make-instance 'xref-file-location :file file :line line :column column))))
 
 (use-package yasnippet
   :ensure t
@@ -260,16 +299,16 @@ Saves to a temp file and puts the filename in the kill ring."
   :ensure t
   :config
   (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
-  (add-hook 'python-mode-hook #'eglot-ensure)
-  (setq python-shell-completion-native-enable nil))
+  (add-hook 'python-mode-hook #'eglot-ensure))
 
-(use-package elpy
-  :ensure t
-  :config
-  (setq elpy-shell-echo-input nil)
-  (setq elpy-shell-echo-output nil)
-  (setq python-shell-interpreter "/Users/alex/mosey/app/.docker-python-shell")
-  (elpy-enable))
+;; Disabling in favor of using pyls and eglot
+;; (use-package elpy
+;;   :ensure t
+;;   :config
+;;   (setq elpy-shell-echo-input nil)
+;;   (setq elpy-shell-echo-output nil)
+;;   (setq python-shell-interpreter "/Users/alex/mosey/app/.docker-python-shell")
+;;   (elpy-enable))
 
 ;; Ruby
 (use-package robe
@@ -330,15 +369,9 @@ Saves to a temp file and puts the filename in the kill ring."
     '((t :family "Space Mono" :height 220))
     "Temporary buffer-local face")
   (buffer-face-set 'tmp-buffer-local-face)
-  ;; Add padding to the top of the frame
-  (setq header-line-format " ")
   ;; Use a skinny cursor
   (make-local-variable 'cursor-type)
-  (setq cursor-type 'bar)
-  ;; Set taller line spacing
-  ;; (toggle-line-spacing)
-  ;;(writeroom-adjust-width 20)
-  )
+  (setq cursor-type 'bar))
 
 ;; Nice writing layout
 (use-package writeroom-mode
