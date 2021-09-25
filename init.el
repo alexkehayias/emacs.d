@@ -719,10 +719,6 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; Don't prompt for confirmation when exporting babel blocks
   (setq org-confirm-babel-evaluate nil)
 
-  ;; Enable gnuplot in babel
-  (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((gnuplot . t)))
   )
 
 ;; Babel setup
@@ -745,11 +741,23 @@ Saves to a temp file and puts the filename in the kill ring."
   :defer t
   :commands (org-babel-execute:dot))
 
+(use-package gnuplot
+  :defer t
+  :config
+  ;; Enable gnuplot in babel
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((gnuplot . t))))
+
 (use-package htmlize :ensure t)
 
 ;; Org export
-(use-package ox-reveal :ensure t)
-(use-package ox-jira :ensure t)
+(use-package ox-reveal
+  :defer t)
+
+(use-package ox-jira
+  :defer t)
+
 (use-package ox-hugo
   :ensure t
   :after ox
@@ -1766,8 +1774,6 @@ Saves to a temp file and puts the filename in the kill ring."
       (set-face-attribute 'default nil :height 150)
       (setq big-screen 1))))
 (global-set-key (kbd "C-x M-b") 'toggle-big-screen)
-
-(use-package gnuplot)
 
 (use-package git-gutter
   :ensure t
