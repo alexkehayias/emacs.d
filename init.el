@@ -1,26 +1,28 @@
-(require 'package)
-(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
-(add-to-list 'package-archives
-             '("melpa-stable" . "https://stable.melpa.org/packages/") t)
-(add-to-list 'package-archives
-             '("elpa" . "https://elpa.gnu.org/packages/"))
-;; (add-to-list 'package-archives
-;;               '("org" . "http://orgmode.org/elpa/") t)
-(package-initialize)
+;; Initialize straight.el and use-package.el
+;; Assumes every use-package uses straight
+(setq package-enable-at-startup nil)
 
-;; Bootstrap `use-package'
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
+(setq straight-repository-branch "develop")
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+      (bootstrap-version 5))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
 
-(eval-when-compile
-  (require 'use-package))
+(straight-use-package 'use-package)
+(setq straight-use-package-by-default t)
 
 ;; macOS settings
 (when (memq window-system '(mac ns))
   ;; Set the environment to the same as the shell
   (use-package exec-path-from-shell
-    :ensure t
     :config
     (exec-path-from-shell-initialize))
 
@@ -113,7 +115,6 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; Nice startup screen
 (use-package dashboard
-  :ensure t
   :config
   (dashboard-setup-startup-hook)
   (setq dashboard-banner-logo-title "Welcome back Ender")
@@ -141,7 +142,6 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; Git using magit
 (use-package magit
-  :ensure t
   :config
   (global-set-key (kbd "C-c g") 'magit-status)
   ;; Disable built in VC mode for better performance
@@ -168,7 +168,6 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; Flycheck
 (use-package flycheck
-  :ensure t
   :config
   (global-flycheck-mode)
   (setq flycheck-global-modes '((not rust-mode)
@@ -182,7 +181,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (flycheck-add-mode 'javascript-eslint 'web-mode))
 
 ;; Web mode
-(use-package web-mode :ensure t
+(use-package web-mode
   :config
   (setq web-mode-js-indent-offset 2)
   (setq web-mode-markup-indent-offset 2)
@@ -203,7 +202,6 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-to-list 'auto-mode-alist '("\\.css$" . web-mode)))
 
 (use-package typescript-mode
-  :ensure t
   :init
   (define-derived-mode typescript-tsx-mode typescript-mode "tsx")
   :config
@@ -213,18 +211,15 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-hook 'typescript-mode-hook #'eglot-ensure))
 
 (use-package toml-mode
-  :ensure t
   :config
   (add-to-list 'auto-mode-alist '("\\.toml$" . toml-mode)))
 
 (use-package rust-mode
-  :ensure t
   :config
   (define-key rust-mode-map (kbd "TAB") #'company-indent-or-complete-common)
   (add-hook 'rust-mode-hook #'eglot-ensure))
 
 (use-package eglot
-  :ensure t
   :config
   (global-set-key (kbd "M-n") 'flymake-goto-next-error)
   (global-set-key (kbd "M-p") 'flymake-goto-prev-error)
@@ -279,13 +274,11 @@ Saves to a temp file and puts the filename in the kill ring."
        (make-instance 'xref-file-location :file file :line line :column column))))
 
 (use-package yasnippet
-  :ensure t
   :config
   (yas-global-mode 1))
 
 ;; Elisp
 (use-package paredit
-  :ensure t
   :config
   (add-hook 'elisp-mode-hook 'paredit-mode)
   (add-hook 'clojure-mode-hook 'paredit-mode))
@@ -298,23 +291,12 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; Python
 (use-package python-mode
-  :ensure t
   :config
   (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
   (add-hook 'python-mode-hook #'eglot-ensure))
 
-;; Disabling in favor of using pyls and eglot
-;; (use-package elpy
-;;   :ensure t
-;;   :config
-;;   (setq elpy-shell-echo-input nil)
-;;   (setq elpy-shell-echo-output nil)
-;;   (setq python-shell-interpreter "/Users/alex/mosey/app/.docker-python-shell")
-;;   (elpy-enable))
-
 ;; Ruby
 (use-package robe
-  :ensure t
   :config
   ;; Sane indenting
   (setq ruby-deep-indent-paren nil)
@@ -338,19 +320,16 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; Sass-mode
 (use-package sass-mode
-  :ensure t
   :config (setq sass-tab-width 2))
 
 ;; Processing mode
 (use-package processing-mode
-  :ensure t
   :config
   (add-to-list 'auto-mode-alist '("\\.pde$" . processing-mode))
   (setq processing-location "~/Library/Processing"))
 
 ;; Markdown
 (use-package markdown-mode
-  :ensure t
   :config
   (add-to-list 'auto-mode-alist '("\\.md$" . markdown-mode)))
 
@@ -377,20 +356,17 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; Nice writing layout
 (use-package writeroom-mode
-  :ensure t
   :config
   (add-hook 'writeroom-mode-hook 'writeroom-setup))
 
 ;; Detect things like weasel words
 (use-package writegood-mode
-  :ensure t
   :config
   (global-set-key "\C-c\C-gl" 'writegood-grade-level)
   (global-set-key "\C-c\C-ge" 'writegood-reading-ease))
 
 ;; Unity
 (use-package glsl-mode
-  :ensure t
   :config
   (add-to-list 'auto-mode-alist '("\\.shader$" . glsl-mode)))
 
@@ -409,7 +385,6 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; Auto-complete company-mode
 (use-package company
-  :ensure t
   :config
   (add-hook 'after-init-hook 'global-company-mode)
   (add-to-list 'company-backends 'company-capf))
@@ -420,13 +395,11 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; Expand region
 (use-package expand-region
-  :ensure t
   :config
   (global-set-key (kbd "\C-x\ =") 'er/expand-region))
 
 ;; Ace jump mode
 (use-package ace-jump-mode
-  :ensure t
   :config
   (define-key global-map (kbd "C-c C-SPC") 'ace-jump-mode))
 
@@ -446,7 +419,7 @@ Saves to a temp file and puts the filename in the kill ring."
 (setq scroll-step 1 scroll-conservatively 10000)
 (setq scroll-margin 0)
 
-(use-package clojure-mode :ensure t)
+(use-package clojure-mode)
 
 ;; Kibit for Clojure
 ;; A convenient command to run "lein kibit" in the project to which
@@ -459,13 +432,11 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; Rainbow parantheses
 (use-package rainbow-delimiters
-  :ensure t
   :config
   (add-hook 'prog-mode-hook 'rainbow-delimiters-mode))
 
 ;; Cider settings
 (use-package cider
-  :ensure t
   :config
   (add-hook 'cider-repl-mode-hook 'rainbow-delimiters-mode)
   (add-hook 'cider-repl-mode-hook 'paredit-mode)
@@ -520,7 +491,6 @@ Saves to a temp file and puts the filename in the kill ring."
 (setq package--builtins (assq-delete-all 'org package--builtins))
 
 (use-package org
-  :pin elpa
   :config
   (setq org-directory "~/Org")
 
@@ -718,29 +688,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (setq org-duration-format (quote h:mm))
 
   ;; Don't prompt for confirmation when exporting babel blocks
-  (setq org-confirm-babel-evaluate nil)
-
-  )
-
-;; Babel setup
-(use-package ob-python
-  :defer t
-  :commands (org-babel-execute:python)
-  :config
-  (setq org-babel-python-command "python3"))
-
-(use-package ob-shell
-  :defer t
-  :commands
-  (org-babel-execute:sh
-   org-babel-expand-body:sh
-
-   org-babel-execute:bash
-   org-babel-expand-body:bash))
-
-(use-package ob-dot
-  :defer t
-  :commands (org-babel-execute:dot))
+  (setq org-confirm-babel-evaluate nil))
 
 (use-package gnuplot
   :defer t
@@ -751,7 +699,7 @@ Saves to a temp file and puts the filename in the kill ring."
    'org-babel-load-languages
    '((gnuplot . t))))
 
-(use-package htmlize :ensure t)
+(use-package htmlize)
 
 ;; Org export
 (use-package ox-reveal
@@ -761,7 +709,6 @@ Saves to a temp file and puts the filename in the kill ring."
   :defer t)
 
 (use-package ox-hugo
-  :ensure t
   :after ox
   :config
   (defun org-hugo-link (link desc info)
@@ -1153,7 +1100,6 @@ Saves to a temp file and puts the filename in the kill ring."
 (setq org-roam-publish-path (or (getenv "ORG_ROAM_PUBLISH_PATH") "~/Projects/zettel"))
 
 (use-package org-roam
-  :ensure t
   :after org
   :hook
   ;; Need to add advice after-init otherwise they won't take
@@ -1329,7 +1275,6 @@ Saves to a temp file and puts the filename in the kill ring."
 
 
 (use-package which-key
-  :ensure t
   :config
   (which-key-mode))
 
@@ -1345,7 +1290,6 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; Use golden ratio mode which automatically resizes buffers based on
 ;; the golden ratio
 (use-package golden-ratio
-  :ensure t
   :config
   ;; (golden-ratio-mode 1)
   ;; (setq golden-ratio-auto-scale nil)
@@ -1435,7 +1379,6 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; Make sure we are using ido mode
 (use-package ido
-  :ensure t
   :config
   ;; (setq ido-everywhere t)    ; Not compatible with helm
   (ido-mode (quote both))
@@ -1450,7 +1393,6 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; Use ido inside ido buffer too
 (use-package flx-ido
-  :ensure t
   :config
   (flx-ido-mode 1)
   (setq ido-enable-flex-matching t)
@@ -1481,7 +1423,6 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; Json mode
 (use-package json-mode
-  :ensure t
   :config
   (add-to-list 'auto-mode-alist '("\\.json\\'" . json-mode))
   (add-hook 'json-mode 'flymake-json-load))
@@ -1599,7 +1540,6 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; Helm
 
 (use-package helm
-  :ensure t
   :config
   ;; Use helm with M-x
   (global-set-key (kbd "M-x") 'helm-M-x)
@@ -1608,7 +1548,6 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; Projectile
 (use-package projectile
-  :ensure t
   :config
   (projectile-mode)
   ;; Set the base keybinding
@@ -1658,13 +1597,11 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; Use ripgrep with projectile
 (use-package projectile-ripgrep
-  :ensure t
   :config
   (global-set-key (kbd "C-c p s r") 'projectile-ripgrep))
 
 ;; Use helm projectile
 (use-package helm-projectile
-  :ensure t
   :config
   (helm-projectile-on)
 
@@ -1698,7 +1635,6 @@ Saves to a temp file and puts the filename in the kill ring."
       (error "helm-ag not available"))))
 
 (use-package helm-rg
-  :ensure t
   :config
   ;; Add actions for inserting org file link from selected match
   (defun insert-org-mode-link-from-helm-result (candidate)
@@ -1722,7 +1658,6 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; browse-kill-ring with M-y
 (use-package browse-kill-ring
-  :ensure t
   :config
   (browse-kill-ring-default-keybindings))
 
@@ -1736,7 +1671,6 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; Use doom theme
 (use-package doom-themes
-  :ensure t
   :config
   (setq doom-themes-enable-bold t
         doom-themes-enable-italic t)
@@ -1745,12 +1679,11 @@ Saves to a temp file and puts the filename in the kill ring."
   (load-theme 'doom-challenger-deep t))
 
 (use-package doom-modeline
-  :ensure t
   :hook (after-init . doom-modeline-mode)
   :config
   (setq doom-modeline-height 40))
 
-(use-package all-the-icons :ensure t)
+(use-package all-the-icons)
 
 ;; Set default font
 ;; When using gui emacs with emacsclient, the following makes sure the
@@ -1776,7 +1709,6 @@ Saves to a temp file and puts the filename in the kill ring."
 (global-set-key (kbd "C-x M-b") 'toggle-big-screen)
 
 (use-package git-gutter
-  :ensure t
   :config
   (global-git-gutter-mode +1))
 
