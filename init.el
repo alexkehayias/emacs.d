@@ -1410,9 +1410,6 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; Enable system clipboard
 (setq x-select-enable-clipboard t)
 
-;; Stackoverflow plugin
-(use-package sos :ensure t)
-
 ;; Start emacs without all the fanfare
 (setq inhibit-startup-echo-area-message t)
 (setq inhibit-startup-message t)
