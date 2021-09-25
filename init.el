@@ -1299,7 +1299,8 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; Much better terminal emulator. Requires that emacs is installed
 ;; --with-modules to work.
-(use-package vterm)
+(use-package vterm
+  :defer t)
 
 (defun new-term (buffer-name)
   "Start a terminal and rename buffer."
