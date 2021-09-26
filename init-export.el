@@ -720,6 +720,10 @@
 
     (buffer-string)))
 
+;; Needed for functions like `first`
+(eval-when-compile
+  (require 'cl))
+
 ;; Org roam
 ;; These are specified so they can be dynamically configured
 ;; by calling emacs in batch mode in a CI context
@@ -899,5 +903,7 @@
   :config
   (add-to-list 'auto-mode-alist '("\\.json\\'" . json-mode))
   (add-hook 'json-mode 'flymake-json-load))
+
+(straight-thaw-versions)
 
 (provide 'export)
