@@ -130,24 +130,6 @@
 
 ;; Org-mode
 
-;; Copied from https://github.com/glasserc/etc/commit/3af96f2c780a35d35bdf1b9ac19d80fe2e6ebbf8
-;; Work around built-in org-mode so we can load from ELPA.
-;; First, remove the built-in org directory from the load-path.
-;; Thanks to
-;; http://stackoverflow.com/questions/20603578/emacs-does-not-see-new-installation-of-org-mode/20616703#20616703.
-;; Without this, use-package will try to require org and succeed.
-(eval-when-compile
-  (require 'cl))
-
-(setq load-path (remove-if (lambda (x) (string-match-p "org$" x)) load-path))
-;; Second, trick emacs into forgetting about the fact that org is
-;; a "built-in" package by removing it from package--builtins.
-;; Without this, package will refuse to install org, since it's
-;; "already installed".
-;; package--builtins is only initialized when a query needs it.
-(package-built-in-p 'org)   ;; prime package--builtins
-(setq package--builtins (assq-delete-all 'org package--builtins))
-
 (use-package org
   :config
   (setq org-directory "~/Org")
