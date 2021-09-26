@@ -22,5 +22,9 @@ jobs:
         version: ${{ matrix.emacs_version }}
 
     - uses: actions/checkout@v1
-    - name: Check startup
-      run: ./bin/test-startup.sh
+    - name: Test init
+      run: ./bin/test-init.sh
+
+    - uses: actions/checkout@v1
+    - name: Test init export
+      run: ./bin/test-init-export.sh
