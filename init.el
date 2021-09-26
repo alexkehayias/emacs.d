@@ -1,8 +1,8 @@
 ;; Initialize straight.el and use-package.el
 ;; Assumes every use-package uses straight
 (setq package-enable-at-startup nil)
-
 (setq straight-repository-branch "develop")
+
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
