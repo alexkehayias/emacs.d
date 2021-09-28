@@ -239,25 +239,22 @@ Saves to a temp file and puts the filename in the kill ring."
 
   (add-hook 'project-find-functions 'my-project-try-cargo-toml nil nil)
 
-  ;; (defun my-project-try-docker-host (dir)
-  ;;   (message (format "Looking for docker host path for %s" dir))
-  ;;   (when-let* ((root (cadr (split-string dir "\\/")))
-  ;;               (remote (not (equal root "Users")))
-  ;;               (found (locate-dominating-file "/Users/alex/mosey/app/backend/" ".projectile")))
-  ;;     (message (format "Found docker host directory %s" found))
-  ;;     (cons 'eglot-project found)))
+  (defun my-project-try-tsconfig-json (dir)
+    (message (format "Looking for host path for %s" dir))
+    (when-let* ((found (locate-dominating-file dir "tsconfig.json")))
+      (message (format "Found host directory %s" found))
+      (cons 'eglot-project found)))
 
-
-  ;; (add-hook 'project-find-functions 'my-project-try-docker-host nil nil)
-
-  ;; (setq eglot-workspace-configuration '(("pyls" "plugins.pyls_mypy" ("enabled" t)
-  ;;                                        "plugins.pycodestyle" ("enabled" json-false))))
-
-  ;; (add-to-list 'eglot-server-programs
-  ;;              '((typescript-mode) "/Users/alex/mosey/app/.docker-typescript-language-server"))
+  (add-hook 'project-find-functions 'my-project-try-tsconfig-json nil nil)
 
   (add-to-list 'eglot-server-programs
                '((typescript-mode) "typescript-language-server" "--stdio"))
+
+  (setq eglot-workspace-configuration
+        '((typescript-language-server
+           (plugins
+            (typescript-eslint-language-service
+             (enabled . t))))))
 
   (add-to-list 'eglot-server-programs
                '((python-mode) "/Users/alex/mosey/app/.docker-python-language-server"))
