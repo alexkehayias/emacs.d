@@ -240,9 +240,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-hook 'project-find-functions 'my-project-try-cargo-toml nil nil)
 
   (defun my-project-try-tsconfig-json (dir)
-    (message (format "Looking for host path for %s" dir))
     (when-let* ((found (locate-dominating-file dir "tsconfig.json")))
-      (message (format "Found host directory %s" found))
       (cons 'eglot-project found)))
 
   (add-hook 'project-find-functions 'my-project-try-tsconfig-json nil nil)
@@ -250,11 +248,16 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-to-list 'eglot-server-programs
                '((typescript-mode) "typescript-language-server" "--stdio"))
 
-  (setq eglot-workspace-configuration
-        '((typescript-language-server
-           (plugins
-            (typescript-eslint-language-service
-             (enabled . t))))))
+  (setq-default eglot-workspace-configuration
+        '((:pyls . ((:plugins .
+                              ((:pycodestyle . ((:enabled . :json-false)))
+                               (:pyls_black . ((:enabled . t)))))))))
+
+  (defun my-project-try-pyproject-toml (dir)
+    (when-let* ((found (locate-dominating-file dir "pyproject.toml")))
+      (cons 'eglot-project found)))
+
+  (add-hook 'project-find-functions 'my-project-try-pyproject-toml nil nil)
 
   (add-to-list 'eglot-server-programs
                '((python-mode) "/Users/alex/mosey/app/.docker-python-language-server"))
@@ -361,6 +364,13 @@ Saves to a temp file and puts the filename in the kill ring."
   :config
   (global-set-key "\C-c\C-gl" 'writegood-grade-level)
   (global-set-key "\C-c\C-ge" 'writegood-reading-ease))
+
+(use-package flymake-proselint
+  :defer t
+  :config
+  (add-hook 'org-mode-hook (lambda ()
+                             (flymake-mode +1)
+                             (flymake-proselint-setup))))
 
 ;; Unity
 (use-package glsl-mode
