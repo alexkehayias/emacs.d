@@ -1683,7 +1683,7 @@ Saves to a temp file and puts the filename in the kill ring."
         doom-themes-enable-italic t)
   (doom-themes-org-config)
   (doom-themes-visual-bell-config)
-  (load-theme 'doom-challenger-deep t))
+  (load-theme 'doom-monokai-octagon t))
 
 (use-package doom-modeline
   :hook (after-init . doom-modeline-mode)
