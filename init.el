@@ -294,6 +294,11 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
   (add-hook 'python-mode-hook #'eglot-ensure))
 
+(use-package python-black
+  :defer t
+  :config
+  (add-hook 'python-mode-hook #'python-black-on-save-mode-enable-dwim))
+
 ;; Ruby
 (use-package robe
   :config
@@ -737,7 +742,7 @@ Saves to a temp file and puts the filename in the kill ring."
       ;; (message "[ox-hugo-link DBG] link: %S" link)
       ;; (message "[ox-hugo-link DBG] link path: %s" (org-element-property :path link))
       ;; (message "[ox-hugo-link DBG] link filename: %s" (expand-file-name (plist-get (car (cdr link)) :path)))
-      (message "[ox-hugo-link DBG] link type: %s" type)
+      ;; (message "[ox-hugo-link DBG] link type: %s" type)
       (cond
        ;; Link type is handled by a special function.
        ((org-export-custom-protocol-maybe link desc 'md))
@@ -1279,6 +1284,20 @@ Saves to a temp file and puts the filename in the kill ring."
 
   (org-roam-db-autosync-mode))
 
+(use-package org-roam-ui
+  :defer t
+  :straight
+    (:host github :repo "org-roam/org-roam-ui" :branch "main" :files ("*.el" "out"))
+    :after org-roam
+;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
+;;         a hookable mode anymore, you're advised to pick something yourself
+;;         if you don't care about startup time, use
+;;  :hook (after-init . org-roam-ui-mode)
+    :config
+    (setq org-roam-ui-sync-theme t
+          org-roam-ui-follow t
+          org-roam-ui-update-on-save t
+          org-roam-ui-open-on-start t))
 
 (use-package which-key
   :config

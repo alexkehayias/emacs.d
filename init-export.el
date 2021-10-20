@@ -357,7 +357,7 @@
        ;; (message "[ox-hugo-link DBG] link: %S" link)
        ;; (message "[ox-hugo-link DBG] link path: %s" (org-element-property :path link))
        ;; (message "[ox-hugo-link DBG] link filename: %s" (expand-file-name (plist-get (car (cdr link)) :path)))
-       (message "[ox-hugo-link DBG] link type: %s" type)
+       ;; (message "[ox-hugo-link DBG] link type: %s" type)
        (cond
         ;; Link type is handled by a special function.
         ((org-export-custom-protocol-maybe link desc 'md))
