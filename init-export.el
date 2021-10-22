@@ -903,7 +903,4 @@
   (add-to-list 'auto-mode-alist '("\\.json\\'" . json-mode))
   (add-hook 'json-mode 'flymake-json-load))
 
-;; Make sure packages are the version specified in the lockfile
-(straight-thaw-versions)
-
 (provide 'export)
