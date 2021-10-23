@@ -248,9 +248,9 @@ Saves to a temp file and puts the filename in the kill ring."
                '((typescript-mode) "typescript-language-server" "--stdio"))
 
   (setq-default eglot-workspace-configuration
-        '((:pyls . ((:plugins .
-                              ((:pycodestyle . ((:enabled . :json-false)))
-                               (:pyls_black . ((:enabled . t)))))))))
+                '((:pyls . ((:plugins .
+                                      ((:pycodestyle . ((:enabled . :json-false)))
+                                       (:pyls_black . ((:enabled . t)))))))))
 
   (defun my-project-try-pyproject-toml (dir)
     (when-let* ((found (locate-dominating-file dir "pyproject.toml")))
@@ -720,10 +720,12 @@ Saves to a temp file and puts the filename in the kill ring."
   :defer t)
 
 (use-package ox-hugo
-  :after ox
+  :after org
   :config
+  ;; HACK: Override ox-hugo export of org-id links to make them relrefs
+  ;; This also can't be redefined in the `use-package` :config so use
+  ;; `eval-after-load`.
   (defun org-hugo-link (link desc info)
-    ;; HACK: Override ox-hugo export of org-id links to make them relrefs
     "Convert LINK to Markdown format.
 
      DESC is the link's description.
@@ -750,7 +752,7 @@ Saves to a temp file and puts the filename in the kill ring."
         (let ((destination (if (string= type "fuzzy")
                                (org-export-resolve-fuzzy-link link info)
                              (org-export-resolve-id-link link info))))
-          (message "[org-hugo-link DBG] link destination elem type: %S" (org-element-type destination))
+          ;; (message "[org-hugo-link DBG] link destination elem type: %S" (org-element-type destination))
           (pcase (org-element-type destination)
             (`plain-text                  ;External file
              (let ((path (progn
@@ -942,12 +944,11 @@ Saves to a temp file and puts the filename in the kill ring."
                   ;; (message "[org-hugo-link DBG] figure params: %s" figure-param-str)
                   (format "{{< figure %s >}}" (org-trim figure-param-str)))))))))
        ((equal type "id")
-        (let ((description (org-string-nw-p desc))
-              (path (org-hugo--attachment-rewrite-maybe raw-path info)))
+        (let ((description (org-string-nw-p desc)))
           (format "[%s]({{< relref \"%s\" >}})"
                   description
                   (file-name-sans-extension
-                   (file-name-nondirectory (car (org-id-find raw-path)))))))
+                   (file-name-nondirectory (org-id-find-id-file raw-path))))))
        ((string= type "coderef")
         (let ((ref (org-element-property :path link)))
           (format (org-export-get-coderef-format ref desc)
@@ -1151,10 +1152,12 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; draft
   (defun my/org-roam--backlinks-list (id file)
     (--reduce-from
-     (concat acc (format "- [[id:%s][%s]]\n  #+begin_quote\n  %s\n  #+end_quote\n"
-                         (car it)
-                         (title-capitalization (org-roam-node-title (org-roam-node-from-id (car it))))
-                         (my/org-roam--extract-note-body (org-roam-node-file (org-roam-node-from-id (car it))))))
+     (concat acc
+             (let ((node (org-roam-populate (org-roam-node-create :id id))))
+               (format "- [[id:%s][%s]]\n  #+begin_quote\n  %s\n  #+end_quote\n"
+                       (car it)
+                       (title-capitalization (org-roam-node-title node))
+                       (my/org-roam--extract-note-body (org-roam-node-file node)))))
      ""
      (org-roam-db-query
       (format
@@ -1171,6 +1174,49 @@ Saves to a temp file and puts the filename in the kill ring."
     (let* ((file-name (car (last (split-string path "--"))))
            (title (first (split-string file-name "\\."))))
       (replace-regexp-in-string (regexp-quote "_") "-" title nil 'literal)))
+
+  ;; Org export is very slow when processing org-id links. Override it
+  ;; to skip opening the file and loading all modes.
+  (defun org-export--collect-tree-properties (data info)
+    "Extract tree properties from parse tree.
+
+    DATA is the parse tree from which information is retrieved.  INFO
+    is a list holding export options.
+
+    Following tree properties are set or updated:
+
+    `:headline-offset' Offset between true level of headlines and
+                       local level.  An offset of -1 means a headline
+                       of level 2 should be considered as a level
+                       1 headline in the context.
+
+    `:headline-numbering' Alist of all headlines as key and the
+                          associated numbering as value.
+
+    `:id-alist' Alist of all ID references as key and associated file
+                as value.
+
+    Return updated plist."
+    ;; Install the parse tree in the communication channel.
+    (setq info (plist-put info :parse-tree data))
+    ;; Compute `:headline-offset' in order to be able to use
+    ;; `org-export-get-relative-level'.
+    (setq info
+          (plist-put info
+                     :headline-offset
+                     (- 1 (org-export--get-min-level data info))))
+    ;; From now on, properties order doesn't matter: get the rest of the
+    ;; tree properties.
+    (org-combine-plists
+     info
+     (list :headline-numbering (org-export--collect-headline-numbering data info)
+           :id-alist
+           (org-element-map data 'link
+             (lambda (l)
+               (and (string= (org-element-property :type l) "id")
+                    (let* ((id (org-element-property :path l))
+                           (file (org-id-find-id-file id)))
+                      (and file (cons id (file-relative-name file))))))))))
 
   ;; Fetches all org-roam files and exports to hugo markdown
   ;; files. Adds in necessary hugo properties
@@ -1287,17 +1333,17 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package org-roam-ui
   :defer t
   :straight
-    (:host github :repo "org-roam/org-roam-ui" :branch "main" :files ("*.el" "out"))
-    :after org-roam
-;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
-;;         a hookable mode anymore, you're advised to pick something yourself
-;;         if you don't care about startup time, use
-;;  :hook (after-init . org-roam-ui-mode)
-    :config
-    (setq org-roam-ui-sync-theme t
-          org-roam-ui-follow t
-          org-roam-ui-update-on-save t
-          org-roam-ui-open-on-start t))
+  (:host github :repo "org-roam/org-roam-ui" :branch "main" :files ("*.el" "out"))
+  :after org-roam
+  ;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
+  ;;         a hookable mode anymore, you're advised to pick something yourself
+  ;;         if you don't care about startup time, use
+  ;;  :hook (after-init . org-roam-ui-mode)
+  :config
+  (setq org-roam-ui-sync-theme t
+        org-roam-ui-follow t
+        org-roam-ui-update-on-save t
+        org-roam-ui-open-on-start t))
 
 (use-package which-key
   :config
@@ -1358,14 +1404,14 @@ Saves to a temp file and puts the filename in the kill ring."
   "Center the text in the middle of the buffer. Works best in full screen"
   (interactive)
   (set-window-margins (car (get-buffer-window-list (current-buffer) nil t))
-                        (/ (window-width) 4)
-                        (/ (window-width) 4)))
+                      (/ (window-width) 4)
+                      (/ (window-width) 4)))
 
 (defun center-text-clear ()
   (interactive)
   (set-window-margins (car (get-buffer-window-list (current-buffer) nil t))
-                        nil
-                        nil))
+                      nil
+                      nil))
 
 (setq centered nil)
 
@@ -1373,8 +1419,8 @@ Saves to a temp file and puts the filename in the kill ring."
   (interactive)
   (make-local-variable 'centered)
   (if (eq centered t)
-    (progn (center-text-clear)
-           (setq centered nil))
+      (progn (center-text-clear)
+             (setq centered nil))
     (progn (center-text)
            (setq centered t))))
 
@@ -1499,7 +1545,7 @@ Saves to a temp file and puts the filename in the kill ring."
 
 (defun describe-last-function ()
   (interactive)
-    (describe-function last-command))
+  (describe-function last-command))
 
 ;; Save a recorded macro with a name
 (defun save-macro (name)
@@ -1655,7 +1701,7 @@ Saves to a temp file and puts the filename in the kill ring."
     (if (require 'helm-ag nil  'noerror)
 	(if (projectile-project-p)
 	    (let ((helm-ag-command-option options)
-                (current-prefix-arg nil))
+                  (current-prefix-arg nil))
 	      (helm-do-ag (projectile-project-root) (car (projectile-parse-dirconfig-file))))
 	  (error "You're not in a project"))
       (error "helm-ag not available"))))
