@@ -852,8 +852,6 @@
          ;; Use temporary buffer to prevent a buffer being opened for
          ;; each note file.
          (with-temp-buffer
-           (message "Working on: %s" file)
-
            (insert-file-contents file)
 
            ;; Adding these tags must go after file content because it
