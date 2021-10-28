@@ -2,6 +2,10 @@
 ;; Assumes every use-package uses straight
 (setq package-enable-at-startup nil)
 
+;; Fix `void-function native-comp-available-p`
+(defun native-comp-available-p ()
+  nil)
+
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
