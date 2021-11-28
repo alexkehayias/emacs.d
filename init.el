@@ -1151,7 +1151,7 @@ Saves to a temp file and puts the filename in the kill ring."
                        (end (plist-get (first (cdr paragraph)) :end)))
                    (buffer-substring begin end)))))))
   ;; Include backlinks in org exported notes not tagged as private or
-  ;; draft
+  ;; draft or section
   (defun my/org-roam--backlinks-list (id file)
     (--reduce-from
      (concat acc
@@ -1165,7 +1165,7 @@ Saves to a temp file and puts the filename in the kill ring."
       (format
        ;; The percentage sign needs to be escaped twice because there
        ;; is two format calls—once here and the other by emacsql
-       "SELECT id FROM (SELECT links.source AS id, group_concat(tags.tag) AS alltags FROM links LEFT OUTER JOIN tags ON links.source = tags.node_id WHERE links.type = '\"id\"' AND links.dest = '\"%s\"' GROUP BY links.source) Q WHERE alltags IS NULL OR (','||alltags||',' NOT LIKE '%%%%,\"private\",%%%%' AND ','||alltags||',' NOT LIKE '%%%%,\"draft\",%%%%')"
+       "SELECT id FROM (SELECT links.source AS id, group_concat(tags.tag) AS alltags FROM links LEFT OUTER JOIN tags ON links.source = tags.node_id WHERE links.type = '\"id\"' AND links.dest = '\"%s\"' GROUP BY links.source) Q WHERE alltags IS NULL OR (','||alltags||',' NOT LIKE '%%%%,\"private\",%%%%' AND ','||alltags||',' NOT LIKE '%%%%,\"draft\",%%%%' AND ','||alltags||',' NOT LIKE '%%%%,\"section\",%%%%')"
        id))))
 
   (defun file-path-to-md-file-name (path)
