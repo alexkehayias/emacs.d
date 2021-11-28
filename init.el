@@ -341,8 +341,8 @@ Saves to a temp file and puts the filename in the kill ring."
   "Toggle line spacing between no extra space to extra half line height."
   (interactive)
   (if (eq line-spacing nil)
-      (setq-default line-spacing 0.5) ; add 0.5 height between lines
-    (setq-default line-spacing nil)   ; no extra heigh between lines
+      (setq line-spacing 0.5) ; add 0.5 height between lines
+    (setq line-spacing nil)   ; no extra heigh between lines
     ))
 
 (global-set-key (kbd "C-c s") 'toggle-line-spacing)
@@ -351,12 +351,14 @@ Saves to a temp file and puts the filename in the kill ring."
   (interactive)
   ;; Use custom font face for this buffer only
   (defface tmp-buffer-local-face
-    '((t :family "Space Mono" :height 220))
+    '((t :family "iA Writer Duospace" :height 240))
     "Temporary buffer-local face")
   (buffer-face-set 'tmp-buffer-local-face)
   ;; Use a skinny cursor
   (make-local-variable 'cursor-type)
-  (setq cursor-type 'bar))
+  (setq cursor-type 'bar)
+  ;; Add extra line spacing
+  (setq-local line-spacing 0.5))
 
 ;; Nice writing layout
 (use-package writeroom-mode
@@ -1171,8 +1173,9 @@ Saves to a temp file and puts the filename in the kill ring."
       (concat (first (split-string file-name "\\.")) ".md")))
 
   (defun file-path-to-slug (path)
-    (let* ((file-name (car (last (split-string path "--"))))
-           (title (first (split-string file-name "\\."))))
+    (let* ((file-name (file-name-nondirectory path))
+           (note-name (car (last (split-string file-name "--"))))
+           (title (first (split-string note-name "\\."))))
       (replace-regexp-in-string (regexp-quote "_") "-" title nil 'literal)))
 
   ;; Org export is very slow when processing org-id links. Override it
@@ -1308,7 +1311,13 @@ Saves to a temp file and puts the filename in the kill ring."
                  :if-new (file+head
                           "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--${slug}.org\" (current-time) t)"
                           "#+TITLE: ${title}\n#+DATE: %<%Y-%m-%d>\n\n")
-                 :unnarrowed t))))
+                 :unnarrowed t)
+                ("s" "Section" plain
+                  "%?"
+                  :if-new (file+head
+                           "${slug}.org"
+                           "#+TITLE: ${title}\n#+FILETAGS: section\n\n")
+                  :unnarrowed t))))
 
   ;; Journaling setup
   (setq org-roam-dailies-directory "")
@@ -1317,7 +1326,7 @@ Saves to a temp file and puts the filename in the kill ring."
 	(quote (("d" "Default" plain
                  "%?"
                  :if-new (file+head
-                          "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--journal.org\" (current-time) t)"
+                          "%(format-time-string \"%Y-%m-%d--journal.org\" (current-time) t)"
                           "#+TITLE: Journal %<%Y-%m-%d>\n#+DATE: %<%Y-%m-%d>\n#+FILETAGS: private journal\n\n\n")
                  :unnarrowed t))))
 
