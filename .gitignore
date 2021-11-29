@@ -6,3 +6,9 @@ projectile-bookmarks.eld
 projectile.cache
 transient/
 url/
+straight/
+.customizations.el
+.org-id-locations
+amx-items
+org-roam.db
+recentf
