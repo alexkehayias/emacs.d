@@ -351,7 +351,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (interactive)
   ;; Use custom font face for this buffer only
   (defface tmp-buffer-local-face
-    '((t :family "iA Writer Duospace" :height 240))
+    '((t :family "iA Writer Duospace" :height 180))
     "Temporary buffer-local face")
   (buffer-face-set 'tmp-buffer-local-face)
   ;; Use a skinny cursor
@@ -411,10 +411,10 @@ Saves to a temp file and puts the filename in the kill ring."
   :config
   (global-set-key (kbd "\C-x\ =") 'er/expand-region))
 
-;; Ace jump mode
-(use-package ace-jump-mode
+;; Avy
+(use-package avy
   :config
-  (define-key global-map (kbd "C-c C-SPC") 'ace-jump-mode))
+  (global-set-key (kbd "C-c SPC") 'avy-goto-char))
 
 ;; Auto refresh all buffers when files change ie git branch switching
 (global-auto-revert-mode t)
