@@ -260,6 +260,9 @@ Saves to a temp file and puts the filename in the kill ring."
 
   (add-to-list 'eglot-server-programs
                '((python-mode) "/Users/alex/mosey/app/.docker-python-language-server"))
+
+  (add-to-list 'eglot-server-programs
+               '((org-mode) "efm-langserver"))
   )
 
 ;; HACK: If the xref file doesn't exist, it probably came from a
@@ -364,19 +367,6 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package writeroom-mode
   :config
   (add-hook 'writeroom-mode-hook 'writeroom-setup))
-
-;; Detect things like weasel words
-(use-package writegood-mode
-  :config
-  (global-set-key "\C-c\C-gl" 'writegood-grade-level)
-  (global-set-key "\C-c\C-ge" 'writegood-reading-ease))
-
-(use-package flymake-proselint
-  :defer t
-  :config
-  (add-hook 'org-mode-hook (lambda ()
-                             (flymake-mode +1)
-                             (flymake-proselint-setup))))
 
 ;; Unity
 (use-package glsl-mode
@@ -526,6 +516,9 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; Refile to the root of a file
   (setq org-refile-use-outline-path 'file)
   (setq org-refile-targets '((org-agenda-files :level . 1)))
+
+  ;; Use efm-langserver for prose linting
+  (add-hook 'org-mode-hook #'eglot-ensure)
 
   ;; Show the agenda helper and viewer in split screen
   (defadvice org-agenda (around split-vertically activate)
