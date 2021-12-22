@@ -12,7 +12,7 @@
  ("eldoc" . "24ab6e066c7a7536dc4346dc9e6090636ef58f0e")
  ("emacs-async" . "5d365ffc6a2c2041657eaa5d762c395ea748c8d7")
  ("emacs-dashboard" . "b40d342c513fd17743fa35c5820435a4ccfad2bb")
- ("emacs-doom-themes" . "9966728accf0251e7c40ddaa1547325955bfeab1")
+ ("emacs-doom-themes" . "2d7bf3daa50a4e0a612faed43cd8cd4af33b9e19")
  ("emacs-htmlize" . "dd27bc3f26efd728f2b1f01f9e4ac4f61f2ffbf9")
  ("emacs-libvterm" . "2681120b770573044832ba8c22ccbac192e1a294")
  ("emacs-python-black" . "6b6ab71d2762b6da703f8d1d3d964b712a98939e")
