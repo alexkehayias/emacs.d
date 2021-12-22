@@ -263,6 +263,9 @@ Saves to a temp file and puts the filename in the kill ring."
 
   (add-to-list 'eglot-server-programs
                '((org-mode) "efm-langserver"))
+
+  (add-to-list 'eglot-server-programs
+               '((org-capture-mode) "efm-langserver"))
   )
 
 ;; HACK: If the xref file doesn't exist, it probably came from a
@@ -516,9 +519,6 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; Refile to the root of a file
   (setq org-refile-use-outline-path 'file)
   (setq org-refile-targets '((org-agenda-files :level . 1)))
-
-  ;; Use efm-langserver for prose linting
-  (add-hook 'org-mode-hook #'eglot-ensure)
 
   ;; Show the agenda helper and viewer in split screen
   (defadvice org-agenda (around split-vertically activate)
@@ -1131,6 +1131,9 @@ Saves to a temp file and puts the filename in the kill ring."
   (setq org-roam-directory org-roam-notes-path)
   ;; Needed to supress update warning
   (setq org-roam-v2-ack t)
+  ;; Use efm-langserver for prose linting
+  (add-hook 'org-roam-mode #'eglot-ensure)
+  (add-hook 'org-roam-capture-new-node-hook #'eglot-ensure)
   ;; These functions need to be in :init otherwise they will not be
   ;; callable in an emacs --batch context which for some reason
   ;; can't be found in autoloads if it's under :config
