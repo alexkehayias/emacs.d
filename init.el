@@ -39,6 +39,14 @@
   (setq ns-use-proxy-icon nil)
   (setq frame-title-format nil))
 
+;; Magit can run into an error where it won't open a commit buffer.
+;; See https://github.com/magit/with-editor/issues/41
+(defadvice server-ensure-safe-dir (around
+                                   my-around-server-ensure-safe-dir
+                                   activate)
+  "Ignores any errors raised from server-ensure-safe-dir"
+  (ignore-errors ad-do-it))
+
 
 ;; Max image size when using the builtin viewer
 (setq max-image-size 50.0)
