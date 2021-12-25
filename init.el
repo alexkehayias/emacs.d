@@ -283,6 +283,9 @@ Saves to a temp file and puts the filename in the kill ring."
 
   (add-to-list 'eglot-server-programs
                '((org-capture-mode) "efm-langserver"))
+
+  (add-to-list 'eglot-server-programs
+               '((markdown-mode) "efm-langserver"))
   )
 
 ;; HACK: If the xref file doesn't exist, it probably came from a
@@ -358,7 +361,8 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; Markdown
 (use-package markdown-mode
   :config
-  (add-to-list 'auto-mode-alist '("\\.md$" . markdown-mode)))
+  (add-to-list 'auto-mode-alist '("\\.md$" . markdown-mode))
+  (add-hook 'markdown-mode-hook #'eglot-ensure))
 
 (defun toggle-line-spacing ()
   "Toggle line spacing between no extra space to extra half line height."
