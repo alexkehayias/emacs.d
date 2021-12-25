@@ -1,6 +1,8 @@
 ;; Initialize straight.el and use-package.el
 ;; Assumes every use-package uses straight
 (setq package-enable-at-startup nil)
+;; Make startup faster by skipping this check
+(setq straight-check-for-modifications nil)
 
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -38,6 +40,13 @@
   (add-to-list 'default-frame-alist '(ns-appearance . dark))
   (setq ns-use-proxy-icon nil)
   (setq frame-title-format nil))
+
+;; Linux settings
+(when (eq system-type 'gnu/linux)
+  ;; Turn off the menu bar on top
+  (menu-bar-mode -1)
+  ;; Fix M-backspace to delete previous word
+  (global-set-key (kbd "C-w") 'backward-kill-word))
 
 ;; Magit can run into an error where it won't open a commit buffer.
 ;; See https://github.com/magit/with-editor/issues/41
@@ -1115,7 +1124,7 @@ Saves to a temp file and puts the filename in the kill ring."
 (setq org-roam-publish-path (or (getenv "ORG_ROAM_PUBLISH_PATH") "~/Projects/zettel"))
 
 (use-package org-roam
-  :after org
+  :after (org helm)
   :hook
   ;; Need to add advice after-init otherwise they won't take
   ((after-init . (lambda ()
@@ -1142,6 +1151,11 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; Use efm-langserver for prose linting
   (add-hook 'org-roam-mode #'eglot-ensure)
   (add-hook 'org-roam-capture-new-node-hook #'eglot-ensure)
+  ;; Fix helm results wrapping when there are tags
+  ;; https://github.com/org-roam/org-roam/issues/1640
+  (require 'helm-mode)
+  (add-to-list 'helm-completing-read-handlers-alist
+               '(org-roam-node-find . helm-completing-read-sync-default-handler))
   ;; These functions need to be in :init otherwise they will not be
   ;; callable in an emacs --batch context which for some reason
   ;; can't be found in autoloads if it's under :config
@@ -1623,7 +1637,6 @@ Saves to a temp file and puts the filename in the kill ring."
 
 
 ;; Helm
-
 (use-package helm
   :config
   ;; Use helm with M-x
