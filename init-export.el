@@ -2,6 +2,9 @@
 ;; Assumes every use-package uses straight
 (setq package-enable-at-startup nil)
 
+;; Make startup faster by skipping this check
+(setq straight-check-for-modifications nil)
+
 ;; Fix `void-function native-comp-available-p`
 (defun native-comp-available-p ()
   nil)
@@ -949,5 +952,7 @@
   :config
   (add-to-list 'auto-mode-alist '("\\.json\\'" . json-mode))
   (add-hook 'json-mode 'flymake-json-load))
+  
+(straight-thaw-versions)
 
 (provide 'export)
