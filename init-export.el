@@ -517,6 +517,13 @@
                            (file (org-id-find-id-file id)))
                       (and file (cons id (file-relative-name file))))))))))
 
+  ;; ox-hugo doesn't set the `relref` path correctly so we need to
+  ;; tell it how to do it
+  (defun my/org-id-path-fix (strlist)
+    (file-name-nondirectory strlist))
+
+  (advice-add 'org-export-resolve-id-link :filter-return #'my/org-id-path-fix)
+
   ;; Fetches all org-roam files and exports to hugo markdown
   ;; files. Adds in necessary hugo properties
   ;; e.g. HUGO_BASE_DIR. Ignores notes tagged as private or draft
