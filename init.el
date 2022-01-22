@@ -217,6 +217,17 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; CSS
   (add-to-list 'auto-mode-alist '("\\.css$" . web-mode)))
 
+;; (use-package tree-sitter
+;;   :commands (tree-sitter-mode))
+
+;; (use-package tree-sitter-langs
+;;   :after tree-sitter
+;; ;;  :init (setf tree-sitter-langs--testing lyn--self-compiled-tsc)
+;;   :config
+;;   (tree-sitter-require 'tsx)
+;;   (add-to-list 'tree-sitter-major-mode-language-alist
+;;   '(typescript-tsx-mode . tsx)))
+
 (use-package typescript-mode
   :init
   (define-derived-mode typescript-tsx-mode typescript-mode "tsx")
@@ -224,6 +235,11 @@ Saves to a temp file and puts the filename in the kill ring."
   (setq typescript-indent-level 2)
   (add-hook 'typescript-mode #'subword-mode)
   (add-to-list 'auto-mode-alist '("\\.tsx?\\'" . typescript-tsx-mode))
+  ;; (add-hook 'typescript-tsx-mode-hook #'web-mode)
+  ;; (add-hook 'typescript-tsx-mode-hook
+  ;;           (lambda ()
+  ;;             (tree-sitter-mode)
+  ;;             (tree-sitter-hl-mode)))
   (add-hook 'typescript-mode-hook #'eglot-ensure))
 
 (use-package toml-mode
@@ -526,8 +542,9 @@ Saves to a temp file and puts the filename in the kill ring."
   (setq svg-tag-tags
         `(
           ;; Org tags
-          (":\\([A-Za-z0-9]+\\)" . ((lambda (tag) (svg-tag-make tag))))
-          (":\\([A-Za-z0-9]+[ \-]\\)" . ((lambda (tag) tag)))
+          ;; TODO fix these also match timestamps in LOGBOOK
+          ;; (":\\([A-Za-z0-9]+\\)" . ((lambda (tag) (svg-tag-make tag))))
+          ;; (":\\([A-Za-z0-9]+[ \-]\\)" . ((lambda (tag) tag)))
 
           ;; Task priority
           ("\\[#[A-Z]\\]" . ( (lambda (tag)
