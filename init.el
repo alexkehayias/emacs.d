@@ -308,11 +308,11 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; remote LSP server using eglot. Try mapping it to the local
 ;; file system. Maybe someday it will be supported in eglot.
 ;; See: https://github.com/joaotavora/eglot/issues/350
-;; (eval-after-load "xref"
-;;   '(defun xref-make-file-location (file line column)
-;;      (if (not (file-exists-p file))
-;;          (make-instance 'xref-file-location :file (format "~/mosey%s" file) :line line :column column)
-;;        (make-instance 'xref-file-location :file file :line line :column column))))
+(eval-after-load "xref"
+  '(defun xref-make-file-location (file line column)
+     (if (not (file-exists-p file))
+         (make-instance 'xref-file-location :file (format "~/mosey%s" file) :line line :column column)
+       (make-instance 'xref-file-location :file file :line line :column column))))
 
 (use-package yasnippet
   :config
@@ -513,9 +513,11 @@ Saves to a temp file and puts the filename in the kill ring."
 (setq-default indent-tabs-mode nil)
 
 (use-package svg-lib
+  :defer t
   :straight (svg-lib :type git :host github :repo "rougier/svg-lib"))
 
 (use-package svg-tag-mode
+  :defer t
   :straight (svg-tag-mode :type git :host github :repo "rougier/svg-tag-mode")
   :config
   (defconst date-re "[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}")
