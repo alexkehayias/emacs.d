@@ -308,11 +308,11 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; remote LSP server using eglot. Try mapping it to the local
 ;; file system. Maybe someday it will be supported in eglot.
 ;; See: https://github.com/joaotavora/eglot/issues/350
-(eval-after-load "xref"
-  '(defun xref-make-file-location (file line column)
-     (if (not (file-exists-p file))
-         (make-instance 'xref-file-location :file (format "~/mosey%s" file) :line line :column column)
-       (make-instance 'xref-file-location :file file :line line :column column))))
+;; (eval-after-load "xref"
+;;   '(defun xref-make-file-location (file line column)
+;;      (if (not (file-exists-p file))
+;;          (make-instance 'xref-file-location :file (format "~/mosey%s" file) :line line :column column)
+;;        (make-instance 'xref-file-location :file file :line line :column column))))
 
 (use-package yasnippet
   :config
@@ -394,7 +394,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (interactive)
   ;; Use custom font face for this buffer only
   (defface tmp-buffer-local-face
-    '((t :family "iA Writer Duospace" :height 180))
+    '((t :family "SF Mono" :height 160))
     "Temporary buffer-local face")
   (buffer-face-set 'tmp-buffer-local-face)
   ;; Use a skinny cursor
@@ -980,7 +980,7 @@ Saves to a temp file and puts the filename in the kill ring."
 
   ;; Org export is very slow when processing org-id links. Override it
   ;; to skip opening the file and loading all modes.
-  (defun org-export--collect-tree-properties (data info)
+  (defun my/org-export--collect-tree-properties (data info)
     "Extract tree properties from parse tree.
 
     DATA is the parse tree from which information is retrieved.  INFO
@@ -1020,6 +1020,8 @@ Saves to a temp file and puts the filename in the kill ring."
                     (let* ((id (org-element-property :path l))
                            (file (org-id-find-id-file id)))
                       (and file (cons id (file-relative-name file))))))))))
+
+  (advice-add 'org-export--collect-tree-properties :override #'my/org-export--collect-tree-properties)
 
   ;; Fetches all org-roam files and exports to hugo markdown
   ;; files. Adds in necessary hugo properties

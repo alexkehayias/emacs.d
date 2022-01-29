@@ -476,7 +476,7 @@
 
   ;; Org export is very slow when processing org-id links. Override it
   ;; to skip opening the file and loading all modes.
-  (defun org-export--collect-tree-properties (data info)
+  (defun my/org-export--collect-tree-properties (data info)
     "Extract tree properties from parse tree.
 
     DATA is the parse tree from which information is retrieved.  INFO
@@ -516,6 +516,8 @@
                     (let* ((id (org-element-property :path l))
                            (file (org-id-find-id-file id)))
                       (and file (cons id (file-relative-name file))))))))))
+
+  (advice-add 'org-export--collect-tree-properties :override #'my/org-export--collect-tree-properties)
 
   ;; ox-hugo doesn't set the `relref` path correctly so we need to
   ;; tell it how to do it
