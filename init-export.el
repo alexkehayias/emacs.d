@@ -519,6 +519,11 @@
 
   (advice-add 'org-export--collect-tree-properties :override #'my/org-export--collect-tree-properties)
 
+  ;; No notes use anchor links so ignore this to speed it up
+  (defun my/org-hugo-link--headline-anchor-maybe (link)
+    "")
+  (advice-add 'org-hugo-link--headline-anchor-maybe :override #'my/org-hugo-link--headline-anchor-maybe)
+
   ;; ox-hugo doesn't set the `relref` path correctly so we need to
   ;; tell it how to do it
   (defun my/org-id-path-fix (strlist)

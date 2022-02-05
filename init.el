@@ -396,7 +396,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (interactive)
   ;; Use custom font face for this buffer only
   (defface tmp-buffer-local-face
-    '((t :family "SF Mono" :height 160))
+    '((t :family "iA Writer Duospace" :height 160))
     "Temporary buffer-local face")
   (buffer-face-set 'tmp-buffer-local-face)
   ;; Use a skinny cursor
@@ -1026,6 +1026,11 @@ Saves to a temp file and puts the filename in the kill ring."
                       (and file (cons id (file-relative-name file))))))))))
 
   (advice-add 'org-export--collect-tree-properties :override #'my/org-export--collect-tree-properties)
+
+  ;; No notes use anchor links so ignore this to speed it up
+  (defun my/org-hugo-link--headline-anchor-maybe (link)
+    "")
+  (advice-add 'org-hugo-link--headline-anchor-maybe :override #'my/org-hugo-link--headline-anchor-maybe)
 
   ;; Fetches all org-roam files and exports to hugo markdown
   ;; files. Adds in necessary hugo properties
