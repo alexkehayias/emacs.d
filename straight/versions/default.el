@@ -12,7 +12,7 @@
  ("emacs-async" . "0d52411d3accc3e11a2c64838703a8ce9755c77c")
  ("emacs-dashboard" . "719f77444569c4303c02853f1e622975642ea1aa")
  ("emacs-htmlize" . "dd27bc3f26efd728f2b1f01f9e4ac4f61f2ffbf9")
- ("emacs-libvterm" . "a940dd2ee8a82684860e320c0f6d5e15d31d916f")
+ ("emacs-libvterm" . "2681120b770573044832ba8c22ccbac192e1a294")
  ("emacs-python-black" . "cc6919e758b5845b201e1cb08a9b5d9a2598a7f1")
  ("emacs-reformatter" . "b57f5d480003ab7b0880e0059dcc51747fb2e088")
  ("emacs-web-server" . "22ce66ea43e0eadb9ec1d691a35d9695fc29cee6")
