@@ -911,6 +911,8 @@ Saves to a temp file and puts the filename in the kill ring."
 
 (use-package org-roam
   :after (org helm)
+  :bind (("M-." . my/org-roam-open-note)
+         ("M-," . org-mark-ring-goto))
   :hook
   ;; Need to add advice after-init otherwise they won't take
   ((after-init . (lambda ()
@@ -1137,7 +1139,7 @@ Saves to a temp file and puts the filename in the kill ring."
 	(quote (("d" "Default" plain
                  "%?"
                  :if-new (file+head
-                          "%(format-time-string \"%Y-%m-%d--journal.org\" (current-time) t)"
+                          "%(format-time-string \"%Y-%m-%d--journal.org\" (current-time-zone) t)"
                           "#+TITLE: Journal %<%Y-%m-%d>\n#+DATE: %<%Y-%m-%d>\n#+FILETAGS: private journal\n\n\n")
                  :unnarrowed t))))
 
@@ -1147,6 +1149,12 @@ Saves to a temp file and puts the filename in the kill ring."
     (with-current-buffer (current-buffer)
       (writeroom-mode)
       (scroll-up-command 6)))
+
+  ;; Also open note links and set up writeroom
+  (defun my/org-roam-open-note ()
+    (interactive)
+    (org-open-at-point)
+    (my/note-taking-init))
 
   (org-roam-db-autosync-mode))
 
