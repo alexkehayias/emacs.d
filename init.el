@@ -313,8 +313,8 @@ Saves to a temp file and puts the filename in the kill ring."
 (eval-after-load "xref"
   '(defun xref-make-file-location (file line column)
      (if (not (file-exists-p file))
-         (make-instance 'xref-file-location :file (format "~/mosey%s" file) :line line :column column)
-       (make-instance 'xref-file-location :file file :line line :column column))))
+         (xref-make-file-location (format "~/mosey%s" file) line column)
+       (xref-make-file-location file line column))))
 
 (use-package yasnippet
   :config
@@ -911,8 +911,9 @@ Saves to a temp file and puts the filename in the kill ring."
 
 (use-package org-roam
   :after (org helm)
-  :bind (("M-." . my/org-roam-open-note)
-         ("M-," . org-mark-ring-goto))
+  :bind (:map org-mode-map
+              ("M-." . my/org-roam-open-note)
+              ("M-," . org-mark-ring-goto))
   :hook
   ;; Need to add advice after-init otherwise they won't take
   ((after-init . (lambda ()
@@ -1139,7 +1140,7 @@ Saves to a temp file and puts the filename in the kill ring."
 	(quote (("d" "Default" plain
                  "%?"
                  :if-new (file+head
-                          "%(format-time-string \"%Y-%m-%d--journal.org\" (current-time-zone) t)"
+                          "%(format-time-string \"%Y-%m-%d--journal.org\" (current-time) t)"
                           "#+TITLE: Journal %<%Y-%m-%d>\n#+DATE: %<%Y-%m-%d>\n#+FILETAGS: private journal\n\n\n")
                  :unnarrowed t))))
 
@@ -1232,8 +1233,8 @@ Saves to a temp file and puts the filename in the kill ring."
   "Center the text in the middle of the buffer. Works best in full screen"
   (interactive)
   (set-window-margins (car (get-buffer-window-list (current-buffer) nil t))
-                      (/ (window-width) 4)
-                      (/ (window-width) 4)))
+                      (/ (window-width) 5)
+                      (/ (window-width) 5)))
 
 (defun center-text-clear ()
   (interactive)
