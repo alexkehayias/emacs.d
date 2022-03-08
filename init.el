@@ -1585,6 +1585,8 @@ Saves to a temp file and puts the filename in the kill ring."
 
 (use-package all-the-icons)
 
+(use-package terraform-mode)
+
 ;; Set default font
 ;; When using gui emacs with emacsclient, the following makes sure the
 ;; window is opened with the correct font size otherwise it will
