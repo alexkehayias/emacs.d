@@ -1164,10 +1164,6 @@ Saves to a temp file and puts the filename in the kill ring."
   :straight
   (:host github :repo "org-roam/org-roam-ui" :branch "main" :files ("*.el" "out"))
   :after org-roam
-  ;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
-  ;;         a hookable mode anymore, you're advised to pick something yourself
-  ;;         if you don't care about startup time, use
-  ;;  :hook (after-init . org-roam-ui-mode)
   :config
   (setq org-roam-ui-sync-theme t
         org-roam-ui-follow t
@@ -1392,51 +1388,6 @@ Saves to a temp file and puts the filename in the kill ring."
   (insert-kbd-macro name)               ; copy the macro
   (newline)                             ; insert a newline
   (switch-to-buffer nil))               ; return to the initial buffer
-
-;; Growl integration
-(defvar growlnotify-command
-  (executable-find "growlnotify")
-  "/usr/local/bin/growlnotify")
-
-(defun growl (title message)
-  "Shows a message through the growl notification system using
- `growlnotify-command` as the program."
-  (cl-flet ((encfn (s) (encode-coding-string s (keyboard-coding-system))))
-    (let* ((process (start-process "growlnotify" nil
-                                   growlnotify-command
-                                   (encfn title)
-                                   "-a" "Emacs"
-                                   "-n" "Emacs")))
-      (process-send-string process (encfn message))
-      (process-send-string process "\n")
-      (process-send-eof process)))
-  t)
-
-;; IRC
-(add-hook 'erc-join-hook 'bitlbee-identify)
-(defun bitlbee-identify ()
-  "If we're on the bitlbee server, send the identify command to the
- &bitlbee channel."
-  (when (and (string= "localhost" erc-session-server)
-             (string= "&bitlbee" (buffer-name)))
-    (erc-message "PRIVMSG" (format "%s identify %s"
-                                   (erc-default-target)
-                                   bitlbee-password))))
-
-;; Growl notification when mentioned in ERC
-(defun erc-growl-hook (match-type nick message)
-  "Shows a growl notification, when user's nick was mentioned. If the buffer is currently not visible, makes it sticky."
-  (growl
-   (concat "ERC: new message on: " (buffer-name (current-buffer)))
-   message)
-  ;; (unless (posix-string-match "^\\** *Users on #" message)
-  ;;   (growl
-  ;;    (concat "ERC: name mentioned on: " (buffer-name (current-buffer)))
-  ;;    message))
-  )
-
-(add-hook 'erc-text-matched-hook 'erc-growl-hook)
-
 
 ;; Helm
 (use-package helm
