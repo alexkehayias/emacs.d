@@ -396,7 +396,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (interactive)
   ;; Use custom font face for this buffer only
   (defface tmp-buffer-local-face
-    '((t :family "iA Writer Duospace" :height 160))
+    '((t :family "iA Writer Duospace" :height 130))
     "Temporary buffer-local face")
   (buffer-face-set 'tmp-buffer-local-face)
   ;; Use a skinny cursor
@@ -914,6 +914,12 @@ Saves to a temp file and puts the filename in the kill ring."
   :bind (:map org-mode-map
               ("M-." . my/org-roam-open-note)
               ("M-," . org-mark-ring-goto))
+  :custom
+  (org-roam-completion-everywhere t)
+  (org-roam-mode-section-functions
+   (list #'org-roam-backlinks-section
+         #'org-roam-reflinks-section
+         #'org-roam-unlinked-references-section))
   :hook
   ;; Need to add advice after-init otherwise they won't take
   ((after-init . (lambda ()
@@ -945,6 +951,25 @@ Saves to a temp file and puts the filename in the kill ring."
   (require 'helm-mode)
   (add-to-list 'helm-completing-read-handlers-alist
                '(org-roam-node-find . helm-completing-read-sync-default-handler))
+  ;; Include tags in note search results
+  (setq org-roam-node-display-template "${title}      ${tags}")
+  ;; Customize the org-roam buffer
+  (add-to-list 'display-buffer-alist
+               '("\\*org-roam\\*"
+                 (display-buffer-in-direction)
+                 (direction . right)
+                 (window-width . 0.33)
+                 (window-height . fit-window-to-buffer)))
+  ;; Only show the paragraph with the link in the org-roam buffer
+  (defun my/preview-fetcher ()
+    (let* ((elem (org-element-context))
+           (parent (org-element-property :parent elem)))
+      ;; TODO: alt handling for non-paragraph elements
+      (string-trim-right (buffer-substring-no-properties
+                          (org-element-property :begin parent)
+                          (org-element-property :end parent)))))
+
+  (setq org-roam-preview-function #'my/preview-fetcher)
   ;; These functions need to be in :init otherwise they will not be
   ;; callable in an emacs --batch context which for some reason
   ;; can't be found in autoloads if it's under :config
