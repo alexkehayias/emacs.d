@@ -915,7 +915,6 @@ Saves to a temp file and puts the filename in the kill ring."
               ("M-." . my/org-roam-open-note)
               ("M-," . org-mark-ring-goto))
   :custom
-  (org-roam-completion-everywhere t)
   (org-roam-mode-section-functions
    (list #'org-roam-backlinks-section
          #'org-roam-reflinks-section
@@ -1156,7 +1155,13 @@ Saves to a temp file and puts the filename in the kill ring."
                   :if-new (file+head
                            "${slug}.org"
                            "#+TITLE: ${title}\n#+FILETAGS: section\n\n")
-                  :unnarrowed t))))
+                  :unnarrowed t)
+                ("t" "To Do" plain
+                 "%?"
+                 :if-new (file+head
+                          "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--todo-${slug}.org\" (current-time) t)"
+                          "#+TITLE: To Do - ${title}\n#+DATE: %<%Y-%m-%d>\n#+FILETAGS: private todo\n\n")
+                 :unnarrowed t))))
 
   ;; Journaling setup
   (setq org-roam-dailies-directory "")
@@ -1173,8 +1178,7 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; preamble of org attributes by scrolling up.
   (defun my/note-taking-init (&rest r)
     (with-current-buffer (current-buffer)
-      (writeroom-mode)
-      (scroll-up-command 6)))
+      (writeroom-mode)))
 
   ;; Also open note links and set up writeroom
   (defun my/org-roam-open-note ()
@@ -1552,7 +1556,7 @@ Saves to a temp file and puts the filename in the kill ring."
         doom-themes-enable-italic t)
   (doom-themes-org-config)
   (doom-themes-visual-bell-config)
-  (load-theme 'doom-ephemeral t))
+  (load-theme 'doom-dracula t))
 
 (use-package doom-modeline
   :hook (after-init . doom-modeline-mode)
