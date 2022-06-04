@@ -5,6 +5,9 @@
 ;; Make startup faster by skipping this check
 (setq straight-check-for-modifications nil)
 
+;; Fix detached heads when bootstrapping straight.el
+(setq straight-repository-branch "develop")
+
 ;; Fix `void-function native-comp-available-p`
 (defun native-comp-available-p ()
   nil)

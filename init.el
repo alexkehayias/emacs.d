@@ -3,6 +3,8 @@
 (setq package-enable-at-startup nil)
 ;; Make startup faster by skipping this check
 (setq straight-check-for-modifications nil)
+;; Fix detached heads when bootstrapping straight.el
+(setq straight-repository-branch "develop")
 
 (defvar bootstrap-version)
 (let ((bootstrap-file
