@@ -5,6 +5,7 @@
 (setq straight-check-for-modifications nil)
 ;; Fix detached heads when bootstrapping straight.el
 (setq straight-repository-branch "develop")
+(setq straight-repository-user "radian-software")
 
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -13,7 +14,7 @@
   (unless (file-exists-p bootstrap-file)
     (with-current-buffer
         (url-retrieve-synchronously
-         "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
          'silent 'inhibit-cookies)
       (goto-char (point-max))
       (eval-print-last-sexp)))

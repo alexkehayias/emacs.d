@@ -72,7 +72,6 @@
  ("sesman" . "e0f555f963c9f02f8e4a50e06fc353eb4c15ee77")
  ("shrink-path.el" . "c14882c8599aec79a6e8ef2d06454254bb3e1e41")
  ("spinner" . "34905eae12a236753fa88abc831eff1e41e8576e")
- ("straight.el" . "af5437f2afd00936c883124d6d3098721c2d306c")
  ("svg-lib" . "0486c9453449771bc3f5872f70bc5cb23580d0f4")
  ("svg-tag-mode" . "fee61c6a0b0570bd24fd335efef17c7385297aa0")
  ("terraform-mode" . "e560caaa9d9a11b0868adf6d9dcae5ebb5055730")
