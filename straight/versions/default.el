@@ -72,7 +72,7 @@
  ("sesman" . "e0f555f963c9f02f8e4a50e06fc353eb4c15ee77")
  ("shrink-path.el" . "c14882c8599aec79a6e8ef2d06454254bb3e1e41")
  ("spinner" . "34905eae12a236753fa88abc831eff1e41e8576e")
- ("straight.el" . "07cedf0c2b1a649cf3e378e4ba4b9943441c23d6")
+ ("straight.el" . "d2940b812fcf87f7b42c0f56ad25a8b1f4cd2389")
  ("svg-lib" . "212cc8c8b762afd60b8f2f27411417c771f2bc44")
  ("svg-tag-mode" . "efd22edf650fb25e665269ba9fed7ccad0771a2f")
  ("terraform-mode" . "e560caaa9d9a11b0868adf6d9dcae5ebb5055730")
