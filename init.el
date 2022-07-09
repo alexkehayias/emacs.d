@@ -286,9 +286,10 @@ Saves to a temp file and puts the filename in the kill ring."
                '((typescript-mode) "typescript-language-server" "--stdio"))
 
   (setq-default eglot-workspace-configuration
-                '((:pyls . ((:plugins .
-                                      ((:pycodestyle . ((:enabled . :json-false)))
-                                       (:pyls_black . ((:enabled . t)))))))))
+                '((:pylsp . ((:plugins .
+                                       ((:pycodestyle . ((:enabled . :json-false)))
+                                        (:pyflakes . ((:enabled . t)))
+                                        (:black . ((:enabled . t)))))))))
 
   (defun my-project-try-pyproject-toml (dir)
     (when-let* ((found (locate-dominating-file dir "pyproject.toml")))
@@ -296,8 +297,7 @@ Saves to a temp file and puts the filename in the kill ring."
 
   (add-hook 'project-find-functions 'my-project-try-pyproject-toml nil nil)
 
-  (add-to-list 'eglot-server-programs
-               '((python-mode) "/Users/alex/mosey/app/.docker-python-language-server"))
+  (add-to-list 'eglot-server-programs '(python-mode . ("pylsp")))
 
   (add-to-list 'eglot-server-programs
                '((org-mode) "efm-langserver"))
@@ -308,16 +308,6 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-to-list 'eglot-server-programs
                '((markdown-mode) "efm-langserver"))
   )
-
-;; HACK: If the xref file doesn't exist, it probably came from a
-;; remote LSP server using eglot. Try mapping it to the local
-;; file system. Maybe someday it will be supported in eglot.
-;; See: https://github.com/joaotavora/eglot/issues/350
-(eval-after-load "xref"
-  '(defun xref-make-file-location (file line column)
-     (if (not (file-exists-p file))
-         (xref-make-file-location (format "~/mosey%s" file) line column)
-       (xref-make-file-location file line column))))
 
 (use-package yasnippet
   :config
@@ -339,7 +329,8 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package python-mode
   :config
   (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
-  (add-hook 'python-mode-hook #'eglot-ensure))
+  (add-hook 'python-mode-hook #'eglot-ensure)
+  (setq-default py-shell-name "python3"))
 
 (use-package python-black
   :defer t
@@ -917,6 +908,19 @@ Saves to a temp file and puts the filename in the kill ring."
   :bind (:map org-mode-map
               ("M-." . my/org-roam-open-note)
               ("M-," . org-mark-ring-goto))
+  :bind  (("C-c n l" . org-roam-buffer-toggle)
+          ("C-c n f" . org-roam-node-find)
+          ("C-c n g" . org-roam-graph)
+          ("C-c n c" . org-roam-capture)
+          ("C-c n i" . org-roam-node-insert)
+          ("C-c n j" . org-roam-dailies-capture-today)
+          ("C-c n r" . org-roam-random-note)
+          ("C-c n u" . org-roam-unlinked-references)
+          ("C-c n e" . org-roam-to-hugo-md)
+          ;; Full text search notes with an action to insert
+          ;; org-mode link
+          ("C-c n s" . helm-rg))
+
   :custom
   (org-roam-mode-section-functions
    (list #'org-roam-backlinks-section
@@ -948,6 +952,7 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; Use efm-langserver for prose linting
   (add-hook 'org-roam-mode #'eglot-ensure)
   (add-hook 'org-roam-capture-new-node-hook #'eglot-ensure)
+  (setq org-roam-dailies-directory org-roam-notes-path)
   ;; Fix helm results wrapping when there are tags
   ;; https://github.com/org-roam/org-roam/issues/1640
   (require 'helm-mode)
@@ -1125,19 +1130,6 @@ Saves to a temp file and puts the filename in the kill ring."
 
            (org-hugo-export-to-md)))
        notes)))
-
-  :bind  (("C-c n l" . org-roam-buffer-toggle)
-          ("C-c n f" . org-roam-node-find)
-          ("C-c n g" . org-roam-graph)
-          ("C-c n c" . org-roam-capture)
-          ("C-c n i" . org-roam-node-insert)
-          ("C-c n j" . org-roam-dailies-capture-today)
-          ("C-c n r" . org-roam-random-note)
-          ("C-c n u" . org-roam-unlinked-references)
-          ("C-c n e" . org-roam-to-hugo-md)
-          ;; Full text search notes with an action to insert
-          ;; org-mode link
-          ("C-c n s" . helm-rg))
 
   :config
   (defun my/org-id-update-org-roam-files ()
@@ -1596,6 +1588,8 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package git-gutter
   :config
   (global-git-gutter-mode +1))
+
+(use-package docker-tramp)
 
 ;; Store customizations in a separate file
 (setq custom-file "~/.emacs.d/.customizations.el")
