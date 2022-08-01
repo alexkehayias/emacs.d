@@ -167,6 +167,8 @@ Saves to a temp file and puts the filename in the kill ring."
   (setq vc-handled-backends nil)
   ;; Disable refreshing status for better performance
   (setq magit-refresh-status-buffer nil)
+  ;; Show actual dates instead of relative dates in log view
+  (setq magit-log-margin '(t "%Y-%m-%d %H:%M " magit-log-margin-width t 18))
   ;; Always open the commit edit message in a new window instead of the
   ;; *magit* window so you can see the diff
   (add-to-list 'display-buffer-alist
@@ -423,10 +425,10 @@ Saves to a temp file and puts the filename in the kill ring."
 (remove-hook 'text-mode-hook #'turn-on-auto-fill)
 
 ;; Auto-complete company-mode
-(use-package company
-  :config
-  (add-hook 'after-init-hook 'global-company-mode)
-  (add-to-list 'company-backends 'company-capf))
+;; (use-package company
+;;   :config
+;;   (add-hook 'after-init-hook 'global-company-mode)
+;;   (add-to-list 'company-backends 'company-capf))
 
 ;; Shortcuts for going forward and backwards cycling windows
 (global-set-key (kbd "C-x p") 'other-window)
@@ -1585,11 +1587,66 @@ Saves to a temp file and puts the filename in the kill ring."
       (setq big-screen 1))))
 (global-set-key (kbd "C-x M-b") 'toggle-big-screen)
 
-(use-package git-gutter
+;; (use-package git-gutter
+;;   :config
+;;   (global-git-gutter-mode +1))
+
+(use-package diff-hl
   :config
-  (global-git-gutter-mode +1))
+  (global-diff-hl-mode))
 
 (use-package docker-tramp)
+
+;; Add gh codespaces ssh method support for tramp editing
+;; e.g. C-x C-f /ghcs:codespace-name:/path/to/file :)
+;; cp'd from https://github.com/anticomputer/emacs-codeql
+(let ((ghcs (assoc "ghcs" tramp-methods))
+      (ghcs-methods '((tramp-login-program "gh")
+                      (tramp-login-args (("codespace") ("ssh") ("-c") ("%h")))
+                      (tramp-remote-shell "/bin/sh")
+                      (tramp-remote-shell-login ("-l"))
+                      (tramp-remote-shell-args ("-c")))))
+  ;; just for debugging the methods
+  (if ghcs (setcdr ghcs ghcs-methods)
+    (push (cons "ghcs" ghcs-methods) tramp-methods)))
+
+;; provide codespace name completion for ghcs tramp method
+;; use C-j if you use ivy to kick in host completion
+(defun my/tramp-parse-codespaces (&optional nop)
+  (let ((results '())
+        (codespaces
+         (split-string
+          (shell-command-to-string
+           "gh codespace list --json name -q '.[].name'"))))
+    (dolist (name codespaces)
+      ;; tramp completion expects a list of (user host)
+      (add-to-list 'results (list nil name)))
+    results))
+
+(tramp-set-completion-function "ghcs" '((my/tramp-parse-codespaces "")))
+
+;; Speed up Tramp by using the same connection
+(customize-set-variable
+ 'tramp-ssh-controlmaster-options
+ (concat
+   "-o ControlPath=/tmp/ssh-ControlPath-%%r@%%h:%%p "
+   "-o ControlMaster=auto -o ControlPersist=yes"))
+
+(use-package corfu
+  :custom
+  (corfu-cycle t)             ;; Enable cycling for `corfu-next/previous'
+  (corfu-auto t)                 ;; Enable auto completion
+  (corfu-preselect-first nil) ;; Disable candidate preselection
+
+  ;; Use TAB for cycling, default is `corfu-complete'.
+  :bind
+  (:map corfu-map
+        ("TAB" . corfu-next)
+        ([tab] . corfu-next)
+        ("S-TAB" . corfu-previous)
+        ([backtab] . corfu-previous))
+  :init
+  (global-corfu-mode))
 
 ;; Store customizations in a separate file
 (setq custom-file "~/.emacs.d/.customizations.el")
