@@ -45,11 +45,11 @@
   (setq frame-title-format nil))
 
 ;; Linux settings
-(when (eq system-type 'gnu/linux)
+(when (or
+       (eq system-type 'gnu/linux)
+       (not (display-graphic-p)))
   ;; Turn off the menu bar on top
-  (menu-bar-mode -1)
-  ;; Fix M-backspace to delete previous word
-  (global-set-key (kbd "C-w") 'backward-kill-word))
+  (menu-bar-mode -1))
 
 ;; Magit can run into an error where it won't open a commit buffer.
 ;; See https://github.com/magit/with-editor/issues/41
@@ -304,8 +304,8 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-to-list 'eglot-server-programs
                '((org-mode) "efm-langserver"))
 
-  (add-to-list 'eglot-server-programs
-               '((org-capture-mode) "efm-langserver"))
+  ;; (add-to-list 'eglot-server-programs
+  ;;              '((org-capture-mode) "efm-langserver"))
 
   (add-to-list 'eglot-server-programs
                '((markdown-mode) "efm-langserver"))
@@ -392,7 +392,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (interactive)
   ;; Use custom font face for this buffer only
   (defface tmp-buffer-local-face
-    '((t :family "iA Writer Duospace" :height 130))
+    '((t :family "iA Writer Duospace" :height 140))
     "Temporary buffer-local face")
   (buffer-face-set 'tmp-buffer-local-face)
   ;; Use a skinny cursor
@@ -401,7 +401,7 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; Add extra line spacing
   (setq-local line-spacing 0.5))
 
-;; Nice writing layout
+;; ;; Nice writing layout
 (use-package writeroom-mode
   :config
   (add-hook 'writeroom-mode-hook 'writeroom-setup))
@@ -905,6 +905,15 @@ Saves to a temp file and puts the filename in the kill ring."
 (setq org-roam-notes-path (or (getenv "ORG_ROAM_NOTES_PATH") "~/Org/notes"))
 (setq org-roam-publish-path (or (getenv "ORG_ROAM_PUBLISH_PATH") "~/Projects/zettel"))
 
+(defun my/org-roam-capture-set-file-name (&rest r)
+  "Set the file name as the buffer name if possible. Fixes eglot not
+     working on capture and dailies."
+  (when-let* ((buf-name (buffer-name)))
+    (setq-local buffer-file-name
+                (format "%s/%s"
+                        (file-truename org-roam-notes-path)
+                        (string-replace "CAPTURE-" "" (buffer-name))))))
+
 (use-package org-roam
   :after (org helm)
   :bind (:map org-mode-map
@@ -939,6 +948,10 @@ Saves to a temp file and puts the filename in the kill ring."
                                :after
                                'my/note-taking-init)
 
+                   (advice-add 'org-roam-dailies-capture-today
+                               :after
+                               'my/org-roam-capture-set-file-name)
+
                    (advice-add 'org-roam-node-find
                                :after
                                'my/note-taking-init)
@@ -954,6 +967,7 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; Use efm-langserver for prose linting
   (add-hook 'org-roam-mode #'eglot-ensure)
   (add-hook 'org-roam-capture-new-node-hook #'eglot-ensure)
+
   (setq org-roam-dailies-directory org-roam-notes-path)
   ;; Fix helm results wrapping when there are tags
   ;; https://github.com/org-roam/org-roam/issues/1640
@@ -1279,6 +1293,10 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; Enable system clipboard
 (setq x-select-enable-clipboard t)
+
+(use-package clipetty
+  :ensure t
+  :hook (after-init . global-clipetty-mode))
 
 ;; Start emacs without all the fanfare
 (setq inhibit-startup-echo-area-message t)
@@ -1647,6 +1665,25 @@ Saves to a temp file and puts the filename in the kill ring."
         ([backtab] . corfu-previous))
   :init
   (global-corfu-mode))
+
+(use-package kind-icon
+  :ensure t
+  :after corfu
+  :custom
+  (kind-icon-default-face 'corfu-default) ; to compute blended backgrounds correctly
+  :config
+  (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
+
+(straight-use-package
+ '(popon :type git :repo "https://codeberg.org/akib/emacs-popon.git"))
+
+(straight-use-package
+ '(corfu-terminal
+   :type git
+   :repo "https://codeberg.org/akib/emacs-corfu-terminal.git"))
+
+(unless (display-graphic-p)
+  (corfu-terminal-mode +1))
 
 ;; Store customizations in a separate file
 (setq custom-file "~/.emacs.d/.customizations.el")
