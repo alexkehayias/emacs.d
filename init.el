@@ -944,6 +944,10 @@ Saves to a temp file and puts the filename in the kill ring."
                                :after
                                'my/note-taking-init)
 
+                   (advice-add 'org-roam-capture
+                               :after
+                               'my/org-roam-capture-set-file-name)
+
                    (advice-add 'org-roam-dailies-capture-today
                                :after
                                'my/note-taking-init)
