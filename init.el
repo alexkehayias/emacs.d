@@ -97,6 +97,9 @@
 ;; Shortcut for rectangle edits
 (global-set-key (kbd "C-x r i") 'string-insert-rectangle)
 
+;; Shortcut for jumping to next error with flymake (used by eglot)
+(global-set-key (kbd "M-n") 'flymake-goto-next-error)
+(global-set-key (kbd "M-p") 'flymake-goto-prev-error)
 
 (setq completion-styles '(flex basic partial-completion emacs22))
 
@@ -258,11 +261,10 @@ Saves to a temp file and puts the filename in the kill ring."
   (define-key rust-mode-map (kbd "TAB") #'company-indent-or-complete-common)
   (add-hook 'rust-mode-hook #'eglot-ensure))
 
+(setq grammarly-client-id (or (getenv "GRAMMARLY_CLIENT_ID") "client_testing"))
+
 (use-package eglot
   :config
-  (global-set-key (kbd "M-n") 'flymake-goto-next-error)
-  (global-set-key (kbd "M-p") 'flymake-goto-prev-error)
-
   ;; Better support for rust projects with multiple sub projects
   (defun my-project-try-cargo-toml (dir)
     (when-let* ((output
@@ -287,6 +289,13 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-to-list 'eglot-server-programs
                '((typescript-mode) "typescript-language-server" "--stdio"))
 
+  (defclass eglot-grammarlylsp (eglot-lsp-server) ()
+    :documentation "Grammarly Language Server.")
+
+  (cl-defmethod eglot-initialization-options ((server eglot-grammarlylsp))
+    "Passes the initializationOptions required to run the server."
+    `(:clientId ,grammarly-client-id))
+
   (setq-default eglot-workspace-configuration
                 '((:pylsp . ((:plugins .
                                        ((:pycodestyle . ((:enabled . :json-false)))
@@ -302,14 +311,10 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-to-list 'eglot-server-programs '(python-mode . ("pylsp")))
 
   (add-to-list 'eglot-server-programs
-               '((org-mode) "efm-langserver"))
-
-  ;; (add-to-list 'eglot-server-programs
-  ;;              '((org-capture-mode) "efm-langserver"))
+               `(markdown-mode . (eglot-grammarlylsp ,(executable-find "grammarlylsp"))))
 
   (add-to-list 'eglot-server-programs
-               '((markdown-mode) "efm-langserver"))
-  )
+               `(org-mode . (eglot-grammarlylsp ,(executable-find "grammarlylsp")))))
 
 (use-package yasnippet
   :config
@@ -375,6 +380,11 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; Markdown
 (use-package markdown-mode
   :config
+  ;; Remove keymapping that conflicts with flymake next error
+  (add-hook 'markdown-mode-hook
+            (lambda ()
+              (local-unset-key (kbd "M-n"))
+              (local-unset-key (kbd "M-p"))))
   (add-to-list 'auto-mode-alist '("\\.md$" . markdown-mode))
   (add-hook 'markdown-mode-hook #'eglot-ensure))
 
@@ -515,9 +525,27 @@ Saves to a temp file and puts the filename in the kill ring."
   :straight (svg-lib :type git :host github :repo "rougier/svg-lib"))
 
 (use-package svg-tag-mode
-  :defer t
   :straight (svg-tag-mode :type git :host github :repo "rougier/svg-tag-mode")
   :config
+  ;; Show SVG tags when in org mode
+  (add-hook 'org-mode-hook #'svg-tag-mode)
+
+  ;; Fix SVG tags don't show up in org-agenda consistently
+  ;; https://github.com/rougier/svg-tag-mode/issues/27
+  (defun my/org-agenda-show-svg ()
+    (let* ((case-fold-search nil)
+           (keywords (mapcar #'svg-tag--build-keywords svg-tag--active-tags))
+           (keyword (car keywords)))
+      (while keyword
+        (save-excursion
+          (while (re-search-forward (nth 0 keyword) nil t)
+            (overlay-put (make-overlay
+                          (match-beginning 0) (match-end 0))
+                         'display  (nth 3 (eval (nth 2 keyword)))) ))
+        (pop keywords)
+        (setq keyword (car keywords)))))
+  (add-hook 'org-agenda-finalize-hook #'my/org-agenda-show-svg)
+
   (defconst date-re "[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}")
   (defconst time-re "[0-9]\\{2\\}:[0-9]\\{2\\}")
   (defconst day-re "[A-Za-z]\\{3\\}")
@@ -541,10 +569,13 @@ Saves to a temp file and puts the filename in the kill ring."
 
   (setq svg-tag-tags
         `(
-          ;; Org tags
-          ;; TODO fix these also match timestamps in LOGBOOK
-          ;; (":\\([A-Za-z0-9]+\\)" . ((lambda (tag) (svg-tag-make tag))))
-          ;; (":\\([A-Za-z0-9]+[ \-]\\)" . ((lambda (tag) tag)))
+
+          ;; Tags
+          ;; This fixes multiple tags e.g. :tag1:tag2:tag3: but breaks timestamps
+          ;; ("\\(:[A-Za-z0-9]+\\)" . ((lambda (tag)
+          ;;                              (svg-tag-make tag :beg 1))))
+          ("\\(:[A-Za-z0-9]+:\\)$" . ((lambda (tag)
+                                         (svg-tag-make tag :beg 1 :end -1))))
 
           ;; Task priority
           ("\\[#[A-Z]\\]" . ( (lambda (tag)
@@ -557,11 +588,6 @@ Saves to a temp file and puts the filename in the kill ring."
           ("\\(\\[[0-9]+/[0-9]+\\]\\)" . ((lambda (tag)
                                             (svg-progress-count (substring tag 1 -1)))))
 
-          ;; TODO / DONE
-          ("TODO" . ((lambda (tag) (svg-tag-make "TODO" :face 'org-todo :inverse t :margin 0))))
-          ("DONE" . ((lambda (tag) (svg-tag-make "DONE" :face 'org-done :margin 0))))
-
-
           ;; Citation of the form [cite:@Knuth:1984]
           ("\\(\\[cite:@[A-Za-z]+:\\)" . ((lambda (tag)
                                             (svg-tag-make tag
@@ -573,31 +599,47 @@ Saves to a temp file and puts the filename in the kill ring."
                                                                    :end -1
                                                                    :crop-left t))))
 
+          ;; 12h Time
+          ;; (,(format "\\(%s[AaPp][Mm]\\)" time-re) .
+          ;;  ((lambda (tag)
+          ;;     (svg-tag-make tag :beg 0 :end -1 :inverse nil :margin 0))))
 
-          ;; Active date (without day name, with or without time)
+          ;; Active date (with or without day name, with or without time)
           (,(format "\\(<%s>\\)" date-re) .
            ((lambda (tag)
               (svg-tag-make tag :beg 1 :end -1 :margin 0))))
+          (,(format "\\(<%s %s>\\)" date-re day-re) .
+           ((lambda (tag)
+              (svg-tag-make tag :beg 1 :end -1 :inverse nil :margin 0 :face 'org-scheduled))))
           (,(format "\\(<%s *\\)%s>" date-re time-re) .
            ((lambda (tag)
               (svg-tag-make tag :beg 1 :inverse nil :crop-right t :margin 0))))
-          (,(format "<%s %s %s>" date-re day-re time-re) .
+          (,(format "\\(<%s %s %s>\\)" date-re day-re time-re) .
            ((lambda (tag)
               (svg-tag-make tag :beg 1 :end -1 :inverse nil :margin 0))))
           (,(format "<%s *\\(%s>\\)" date-re time-re) .
            ((lambda (tag)
               (svg-tag-make tag :end -1 :inverse t :crop-left t :margin 0))))
 
-          ;; Inactive date  (without day name, with or without time)
+          ;; Inactive date  (with or without day name, with or without time)
           (,(format "\\(\\[%s\\]\\)" date-re) .
            ((lambda (tag)
               (svg-tag-make tag :beg 1 :end -1 :margin 0 :face 'org-date))))
           (,(format "\\(\\[%s *\\)%s\\]" date-re time-re) .
            ((lambda (tag)
               (svg-tag-make tag :beg 1 :inverse nil :crop-right t :margin 0 :face 'org-date))))
+          (,(format "\\(\\[%s %s %s\\]\\)" date-re day-re time-re) .
+           ((lambda (tag)
+              (svg-tag-make tag :beg 1 :end -1 :inverse nil :margin 0 :face 'org-date))))
           (,(format "\\[%s *\\(%s\\]\\)" date-re time-re) .
            ((lambda (tag)
-              (svg-tag-make tag :end -1 :inverse t :crop-left t :margin 0 :face 'org-date)))))))
+              (svg-tag-make tag :end -1 :inverse t :crop-left t :margin 0 :face 'org-date))))
+
+          ;; TODO sequences
+          ("TODO" . ((lambda (tag) (svg-tag-make "TODO" :face 'org-todo :inverse t :margin 0))))
+          ("NEXT" . ((lambda (tag) (svg-tag-make "NEXT" :face 'org-upcoming-deadline :inverse t :margin 0))))
+          ("DONE" . ((lambda (tag) (svg-tag-make "DONE" :face 'org-done :inverse t :margin 0))))
+          ("CANCELED" . ((lambda (tag) (svg-tag-make "CANCELED" :face 'org-warning :inverse t :margin 0)))))))
 
 ;; Org-mode
 
@@ -620,9 +662,14 @@ Saves to a temp file and puts the filename in the kill ring."
 (package-built-in-p 'org)   ;; prime package--builtins
 (setq package--builtins (assq-delete-all 'org package--builtins))
 
+(setq org-refile-path (or (getenv "ORG_REFILE_PATH") "~/Org/refile.org"))
+
 (use-package org
   :config
   (setq org-directory "~/Org")
+
+  ;; Maybe fix org hangs occasionally
+  (setq org-element-use-cache nil)
 
   ;; When opening a file make sure everything is expanded
   (setq org-startup-folded nil)
@@ -639,10 +686,6 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; Don't show full size images otherwise it's too large when
   ;; displaying inline
   (setq org-image-actual-width nil)
-
-  ;; Refile to the root of a file
-  (setq org-refile-use-outline-path 'file)
-  (setq org-refile-targets '((org-agenda-files :level . 1)))
 
   ;; Show the agenda helper and viewer in split screen
   (defadvice org-agenda (around split-vertically activate)
@@ -668,7 +711,7 @@ Saves to a temp file and puts the filename in the kill ring."
       (call-interactively 'org-agenda-and-todos)))
 
   ;; Don't export headings with numbers
-  ;; (setq org-export-with-section-numbers nil)
+  (setq org-export-with-section-numbers nil)
 
   ;; gnuplot
   (local-set-key (kbd "M-C-g") 'org-plot/gnuplot)
@@ -707,11 +750,11 @@ Saves to a temp file and puts the filename in the kill ring."
       (add-text-properties (match-beginning 0) (point-at-eol)
 			   `(face (:foreground ,col)))))
 
-  (add-hook 'org-finalize-agenda-hook
-	    (lambda ()
-	      (save-excursion
-		(color-org-header "notes:"  "#66D9EF")
-		(color-org-header "refile:" "#F92672"))))
+  ;; (add-hook 'org-finalize-agenda-hook
+  ;;           (lambda ()
+  ;;             (save-excursion
+  ;;       	(color-org-header "notes:"  "#66D9EF")
+  ;;       	(color-org-header "refile:" "#F92672"))))
 
   ;; Use longtable as the default table style when exporting
   (setq org-latex-default-table-environment "longtable")
@@ -770,17 +813,15 @@ Saves to a temp file and puts the filename in the kill ring."
 
   ;; Capture
   (global-set-key (kbd "C-c c") 'org-capture)
-  (setq org-default-notes-file "~/Org/refile.org")
-  ;; Allow the creation of parent headings when refiling
-  (setq org-refile-allow-creating-parent-nodes t)
+
   (setq org-capture-templates
-	(quote (("t" "To Do" entry (file "~/Org/refile.org")
+	(quote (("t" "To Do" entry (file org-refile-path)
 		 "* TODO %?\n%U" :clock-in t :clock-resume t)
-		("n" "Note" entry (file "~/Org/refile.org")
+		("n" "Note" entry (file org-refile-path)
 		 "* %? %T :note:\n%U\n%a\n" :clock-in t :clock-resume t)
-		("m" "Meeting" entry (file "~/Org/refile.org")
+		("m" "Meeting" entry (file org-refile-path)
 		 "* Meeting w/%? %T :meeting:\n%U" :clock-in t :clock-resume t)
-		("i" "Interview" entry (file "~/Org/refile.org")
+		("i" "Interview" entry (file org-refile-path)
 		 "* Interview w/%? %T :interview:\n%U" :clock-in t :clock-resume t))))
 
   ;; Auto mark parent todos as done if childrend are done
@@ -790,28 +831,22 @@ Saves to a temp file and puts the filename in the kill ring."
       (org-todo (if (= n-not-done 0) "DONE" "TODO"))))
 
   ;; Refile
-
-					; Targets include this file and any file contributing to the agenda -
-                                        ; up to 9 levels deep
+  (setq org-default-notes-file "~/Org/refile.org")
+  ;; Allow refile to the root of a file
+  (setq org-refile-use-outline-path 'file)
+  ;; Targets include this file and any file contributing to the agenda
+  ;; up to 9 levels deep
   (setq org-refile-targets (quote ((nil :maxlevel . 9)
 				   (org-agenda-files :maxlevel . 9))))
-
-					; Use full outline paths for refile targets - we file directly with
-                                        ; IDO
-  (setq org-refile-use-outline-path t)
-
-                                        ; Targets complete directly with IDO
+  ;; Targets complete directly with IDO
   (setq org-outline-path-complete-in-steps nil)
-
-                                        ; Allow refile to create parent tasks with confirmation
+  ;; Allow refile to create parent tasks with confirmation
   (setq org-refile-allow-creating-parent-nodes (quote confirm))
-
-                                        ; Use IDO for both buffer and file completion and ido-everywhere to t
+  ;; Use IDO for both buffer and file completion and ido-everywhere to t
   (setq org-completion-use-ido t)
-                                        ; Use the current window for indirect buffer display
+  ;; Use the current window for indirect buffer display
   (setq org-indirect-buffer-display 'current-window)
 
-;;;; Refile settings
   (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
 
   ;; Time format for clock table durations as h:mm
@@ -840,6 +875,8 @@ Saves to a temp file and puts the filename in the kill ring."
 
 (use-package ox-hugo
   :after org)
+
+(use-package emacsql-sqlite3)
 
 ;; Heavily modified based on https://github.com/novoid/title-capitalization.el/blob/master/title-capitalization.el
 (defun title-capitalization (str)
@@ -968,6 +1005,8 @@ Saves to a temp file and puts the filename in the kill ring."
   (setq org-roam-directory org-roam-notes-path)
   ;; Needed to supress update warning
   (setq org-roam-v2-ack t)
+  ;; Fix Emacs 28.2 can't find `sqlite`
+  (setq org-roam-database-connector 'sqlite3)
   ;; Use efm-langserver for prose linting
   (add-hook 'org-roam-mode #'eglot-ensure)
   (add-hook 'org-roam-capture-new-node-hook #'eglot-ensure)
@@ -1685,6 +1724,11 @@ Saves to a temp file and puts the filename in the kill ring."
  '(corfu-terminal
    :type git
    :repo "https://codeberg.org/akib/emacs-corfu-terminal.git"))
+
+(use-package graphviz-dot-mode
+  :ensure t
+  :config
+  (setq graphviz-dot-indent-width 4))
 
 (unless (display-graphic-p)
   (corfu-terminal-mode +1))
