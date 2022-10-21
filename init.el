@@ -265,6 +265,10 @@ Saves to a temp file and puts the filename in the kill ring."
 
 (use-package eglot
   :config
+  ;; Fix breaking change introduced in
+  ;; https://github.com/joaotavora/eglot/commit/d0a657e81c5b02529c4f32c2e51e00bdf4729a9e
+  (defun eglot--major-mode (server) (car (eglot--major-modes server)))
+
   ;; Better support for rust projects with multiple sub projects
   (defun my-project-try-cargo-toml (dir)
     (when-let* ((output
@@ -509,13 +513,13 @@ Saves to a temp file and puts the filename in the kill ring."
            (figwheel-sidecar.repl-api/cljs-repl))"))
 
 ;; Flyspell mode
-(use-package flyspell
-  :config
-  (setq ispell-program-name "/opt/homebrew/bin/aspell")
-  (add-hook 'python-mode-hook (lambda () (flyspell-prog-mode)))
-  (add-hook 'coffee-mode-hook (lambda () (flyspell-prog-mode)))
-  (add-hook 'hbs-mode-hook (lambda () (flyspell-prog-mode)))
-  (add-hook 'org-mode-hook (lambda () (flyspell-prog-mode))))
+;; (use-package flyspell
+;;   :config
+;;   (setq ispell-program-name "/opt/homebrew/bin/aspell")
+;;   (add-hook 'python-mode-hook (lambda () (flyspell-prog-mode)))
+;;   (add-hook 'coffee-mode-hook (lambda () (flyspell-prog-mode)))
+;;   (add-hook 'hbs-mode-hook (lambda () (flyspell-prog-mode)))
+;;   (add-hook 'org-mode-hook (lambda () (flyspell-prog-mode))))
 
 ;; Use spaces instead of tabs when indenting
 (setq-default indent-tabs-mode nil)
@@ -749,12 +753,6 @@ Saves to a temp file and puts the filename in the kill ring."
     (while (re-search-forward tag nil t)
       (add-text-properties (match-beginning 0) (point-at-eol)
 			   `(face (:foreground ,col)))))
-
-  ;; (add-hook 'org-finalize-agenda-hook
-  ;;           (lambda ()
-  ;;             (save-excursion
-  ;;       	(color-org-header "notes:"  "#66D9EF")
-  ;;       	(color-org-header "refile:" "#F92672"))))
 
   ;; Use longtable as the default table style when exporting
   (setq org-latex-default-table-environment "longtable")
@@ -1253,9 +1251,9 @@ Saves to a temp file and puts the filename in the kill ring."
         org-roam-ui-update-on-save t
         org-roam-ui-open-on-start t))
 
-(use-package which-key
-  :config
-  (which-key-mode))
+;; (use-package which-key
+;;   :config
+;;   (which-key-mode))
 
 ;; Macro for running a function repeatedly in the back ground
 ;; https://github.com/punchagan/dot-emacs/blob/master/punchagan.org
@@ -1542,20 +1540,6 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package helm-projectile
   :config
   (helm-projectile-on)
-
-  ;; Speed up helm flx matching
-  (defvar helm-ido-like-user-gc-setting nil)
-
-  (defun helm-ido-like-higher-gc ()
-    (setq helm-ido-like-user-gc-setting gc-cons-threshold)
-    (setq gc-cons-threshold most-positive-fixnum))
-
-  (defun helm-ido-like-lower-gc ()
-    (setq gc-cons-threshold helm-ido-like-user-gc-setting))
-
-  (defun helm-ido-like-load-fuzzy-enhancements ()
-    (add-hook 'minibuffer-setup-hook #'helm-ido-like-higher-gc)
-    (add-hook 'minibuffer-exit-hook #'helm-ido-like-lower-gc))
 
   ;; Use ripgrep with helm
   (setq helm-ag-base-command "rg --vimgrep --no-heading")
