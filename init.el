@@ -343,43 +343,12 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-hook 'python-mode-hook #'eglot-ensure)
   (setq-default py-shell-name "python3"))
 
-(use-package python-black
-  :defer t
-  :config
-  (add-hook 'python-mode-hook #'python-black-on-save-mode-enable-dwim))
-
-;; Ruby
-(use-package robe
-  :config
-  ;; Sane indenting
-  (setq ruby-deep-indent-paren nil)
-  ;; Don't auto add file encodings!!!
-  (setq ruby-insert-encoding-magic-comment nil)
-  (add-hook 'ruby-mode-hook 'robe-mode)
-  ;; Use specific rubocop
-  (defun use-custom-rubocop ()
-    (let* ((root (locate-dominating-file
-		  (or (buffer-file-name) default-directory)
-		  "scripts/bin/rubocop"))
-	   (rubocop (and root
-			 (expand-file-name "scripts/bin/rubocop"
-					   root))))
-      (when (and rubocop (file-executable-p rubocop))
-	(setq-local flycheck-ruby-rubocop-executable rubocop))))
-  (add-hook 'flycheck-mode-hook #'use-custom-rubocop))
-
 ;; Format line numbers nicely
 (setq linum-format (quote " %3d "))
 
 ;; Sass-mode
 (use-package sass-mode
   :config (setq sass-tab-width 2))
-
-;; Processing mode
-(use-package processing-mode
-  :config
-  (add-to-list 'auto-mode-alist '("\\.pde$" . processing-mode))
-  (setq processing-location "~/Library/Processing"))
 
 ;; Markdown
 (use-package markdown-mode
@@ -391,16 +360,6 @@ Saves to a temp file and puts the filename in the kill ring."
               (local-unset-key (kbd "M-p"))))
   (add-to-list 'auto-mode-alist '("\\.md$" . markdown-mode))
   (add-hook 'markdown-mode-hook #'eglot-ensure))
-
-(defun toggle-line-spacing ()
-  "Toggle line spacing between no extra space to extra half line height."
-  (interactive)
-  (if (eq line-spacing nil)
-      (setq line-spacing 0.5) ; add 0.5 height between lines
-    (setq line-spacing nil)   ; no extra heigh between lines
-    ))
-
-(global-set-key (kbd "C-c s") 'toggle-line-spacing)
 
 (defun writeroom-setup ()
   (interactive)
@@ -437,12 +396,6 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; Disable auto fill mode because it's annoying
 (auto-fill-mode -1)
 (remove-hook 'text-mode-hook #'turn-on-auto-fill)
-
-;; Auto-complete company-mode
-;; (use-package company
-;;   :config
-;;   (add-hook 'after-init-hook 'global-company-mode)
-;;   (add-to-list 'company-backends 'company-capf))
 
 ;; Shortcuts for going forward and backwards cycling windows
 (global-set-key (kbd "C-x p") 'other-window)
@@ -1143,16 +1096,6 @@ Saves to a temp file and puts the filename in the kill ring."
     ,repeat-time
     (lambda () (run-with-idle-timer ,idle-time nil ,function ,@args))))
 
-;; Use golden ratio mode which automatically resizes buffers based on
-;; the golden ratio
-(use-package golden-ratio
-  :config
-  ;; (golden-ratio-mode 1)
-  ;; (setq golden-ratio-auto-scale nil)
-  (defadvice previous-multiframe-window
-      (after golden-ratio-resize-window)
-    (golden-ratio) nil))
-
 ;; Much better terminal emulator. Requires that emacs is installed
 ;; --with-modules to work.
 (use-package vterm
@@ -1510,10 +1453,6 @@ Saves to a temp file and puts the filename in the kill ring."
       (set-face-attribute 'default nil :height 150)
       (setq big-screen 1))))
 (global-set-key (kbd "C-x M-b") 'toggle-big-screen)
-
-;; (use-package git-gutter
-;;   :config
-;;   (global-git-gutter-mode +1))
 
 (use-package diff-hl
   :config
