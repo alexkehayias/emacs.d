@@ -523,11 +523,6 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; displaying inline
   (setq org-image-actual-width nil)
 
-  ;; Show the agenda helper and viewer in split screen
-  (defadvice org-agenda (around split-vertically activate)
-    (let ((split-width-threshold 80))
-      ad-do-it))
-
   (defadvice org-agenda-list (around split-vertically activate)
     (let ((split-width-threshold 80))
       ad-do-it))
@@ -545,6 +540,19 @@ Saves to a temp file and puts the filename in the kill ring."
     (interactive)
     (let ((current-prefix-arg -7))
       (call-interactively 'org-agenda-and-todos)))
+
+  ;; Show icons for categories in agenda
+  (customize-set-value
+   'org-agenda-category-icon-alist
+   `(("refile" ,(list (all-the-icons-material "folder")) nil nil :ascent center :mask heuristic)
+     ("personal" ,(list (all-the-icons-material "home")) nil nil :ascent center :mask heuristic)
+     ("work" ,(list (all-the-icons-material "work")) nil nil :ascent center :mask heuristic)))
+
+  ;; Fix agenda lines wrapping
+  (add-hook 'org-agenda-mode-hook
+            (lambda ()
+              (visual-line-mode -1)
+              (setq truncate-lines 1)))
 
   ;; Don't export headings with numbers
   (setq org-export-with-section-numbers nil)
