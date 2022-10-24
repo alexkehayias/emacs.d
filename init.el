@@ -377,6 +377,9 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; ;; Nice writing layout
 (use-package writeroom-mode
   :config
+  (customize-set-value
+   'writeroom-fullscreen-effect
+   nil)
   (add-hook 'writeroom-mode-hook 'writeroom-setup))
 
 ;; Unity
@@ -477,6 +480,9 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; Use spaces instead of tabs when indenting
 (setq-default indent-tabs-mode nil)
 
+(use-package all-the-icons
+  :ensure t)
+
 ;; Org-mode
 
 ;; Copied from https://github.com/glasserc/etc/commit/3af96f2c780a35d35bdf1b9ac19d80fe2e6ebbf8
@@ -546,13 +552,40 @@ Saves to a temp file and puts the filename in the kill ring."
    'org-agenda-category-icon-alist
    `(("refile" ,(list (all-the-icons-material "folder")) nil nil :ascent center :mask heuristic)
      ("personal" ,(list (all-the-icons-material "home")) nil nil :ascent center :mask heuristic)
-     ("work" ,(list (all-the-icons-material "work")) nil nil :ascent center :mask heuristic)))
+     ("work" ,(list (all-the-icons-material "work")) nil nil :ascent center :mask heuristic)
+     ("goals" ,(list (all-the-icons-material "star")) nil nil :ascent center :mask heuristic)
+))
 
   ;; Fix agenda lines wrapping
   (add-hook 'org-agenda-mode-hook
             (lambda ()
               (visual-line-mode -1)
               (setq truncate-lines 1)))
+
+  ;; Set up custom agenda commands
+  (setq org-agenda-custom-commands
+        '(
+          ("a" "My Agenda"
+           (
+            (tags "CATEGORY=\"goals\""
+                  ((org-agenda-overriding-header "GOALS")
+                   (org-agenda-remove-tags t)
+                   (org-agenda-prefix-format "%-2i %?b")
+                   (org-agenda-todo-keyword-format "")))
+            (agenda "" (
+                        (org-agenda-overriding-header "TODAY\n")
+                        (org-agenda-span 1)
+                        (org-agenda-skip-scheduled-if-done t)
+                        (org-agenda-skip-timestamp-if-done t)
+                        (org-agenda-skip-deadline-if-done t)
+                        (org-agenda-start-day "+0d")
+                        (org-agenda-repeating-timestamp-show-all nil)
+                        (org-agenda-remove-tags t)
+                        (org-agenda-prefix-format "%i %?-2 t%s")
+                        (org-agenda-time)
+                        (org-agenda-scheduled-leaders '("" ""))
+                        (org-agenda-deadline-leaders '("Deadline:  ""In %d days : " "%d days ago: "))
+                        (org-agenda-time-grid (quote ((today require-timed remove-match) () "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))))))))
 
   ;; Don't export headings with numbers
   (setq org-export-with-section-numbers nil)
@@ -1434,8 +1467,6 @@ Saves to a temp file and puts the filename in the kill ring."
   :hook (after-init . doom-modeline-mode)
   :config
   (setq doom-modeline-height 40))
-
-(use-package all-the-icons)
 
 (use-package terraform-mode)
 
