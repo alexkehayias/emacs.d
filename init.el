@@ -191,18 +191,18 @@ Saves to a temp file and puts the filename in the kill ring."
       (setq-local flycheck-javascript-eslint-executable eslint))))
 
 ;; Flycheck
-(use-package flycheck
-  :config
-  (global-flycheck-mode)
-  (setq flycheck-global-modes '((not rust-mode)
-                                (not python-mode)))
-  (global-set-key (kbd "C-c M-n") 'flycheck-next-error)
-  (global-set-key (kbd "C-c M-p") 'flycheck-previous-error)
-  (setq flycheck-check-syntax-automatically '(save mode-enabled))
-  (add-hook 'flycheck-mode-hook #'my/use-eslint-from-node-modules)
-  (flycheck-add-mode 'javascript-eslint 'typescript-mode)
-  (flycheck-add-mode 'javascript-eslint 'typescript-tsx-mode)
-  (flycheck-add-mode 'javascript-eslint 'web-mode))
+;; (use-package flycheck
+;;   :config
+;;   (global-flycheck-mode)
+;;   (setq flycheck-global-modes '((not rust-mode)
+;;                                 (not python-mode)))
+;;   (global-set-key (kbd "C-c M-n") 'flycheck-next-error)
+;;   (global-set-key (kbd "C-c M-p") 'flycheck-previous-error)
+;;   (setq flycheck-check-syntax-automatically '(save mode-enabled))
+;;   (add-hook 'flycheck-mode-hook #'my/use-eslint-from-node-modules)
+;;   (flycheck-add-mode 'javascript-eslint 'typescript-mode)
+;;   (flycheck-add-mode 'javascript-eslint 'typescript-tsx-mode)
+;;   (flycheck-add-mode 'javascript-eslint 'web-mode))
 
 ;; Web mode
 (use-package web-mode
@@ -320,9 +320,9 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-to-list 'eglot-server-programs
                `(org-mode . (eglot-grammarlylsp ,(executable-find "grammarlylsp")))))
 
-(use-package yasnippet
-  :config
-  (yas-global-mode 1))
+;; (use-package yasnippet
+;;   :config
+;;   (yas-global-mode 1))
 
 ;; Elisp
 (use-package paredit
@@ -1198,9 +1198,9 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; Enable system clipboard
 (setq x-select-enable-clipboard t)
 
-(use-package clipetty
-  :ensure t
-  :hook (after-init . global-clipetty-mode))
+;; (use-package clipetty
+;;   :ensure t
+;;   :hook (after-init . global-clipetty-mode))
 
 ;; Start emacs without all the fanfare
 (setq inhibit-startup-echo-area-message t)
@@ -1493,9 +1493,9 @@ Saves to a temp file and puts the filename in the kill ring."
       (setq big-screen 1))))
 (global-set-key (kbd "C-x M-b") 'toggle-big-screen)
 
-(use-package diff-hl
-  :config
-  (global-diff-hl-mode))
+;; (use-package diff-hl
+;;   :config
+;;   (global-diff-hl-mode))
 
 (use-package docker-tramp)
 
@@ -1550,29 +1550,29 @@ Saves to a temp file and puts the filename in the kill ring."
   :init
   (global-corfu-mode))
 
-(use-package kind-icon
-  :ensure t
-  :after corfu
-  :custom
-  (kind-icon-default-face 'corfu-default) ; to compute blended backgrounds correctly
-  :config
-  (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
+;; (use-package kind-icon
+;;   :ensure t
+;;   :after corfu
+;;   :custom
+;;   (kind-icon-default-face 'corfu-default) ; to compute blended backgrounds correctly
+;;   :config
+;;   (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
 
-(straight-use-package
- '(popon :type git :repo "https://codeberg.org/akib/emacs-popon.git"))
+;; (straight-use-package
+;;  '(popon :type git :repo "https://codeberg.org/akib/emacs-popon.git"))
 
-(straight-use-package
- '(corfu-terminal
-   :type git
-   :repo "https://codeberg.org/akib/emacs-corfu-terminal.git"))
+;; (straight-use-package
+;;  '(corfu-terminal
+;;    :type git
+;;    :repo "https://codeberg.org/akib/emacs-corfu-terminal.git"))
 
-(use-package graphviz-dot-mode
-  :ensure t
-  :config
-  (setq graphviz-dot-indent-width 4))
+;; (use-package graphviz-dot-mode
+;;   :ensure t
+;;   :config
+;;   (setq graphviz-dot-indent-width 4))
 
-(unless (display-graphic-p)
-  (corfu-terminal-mode +1))
+;; (unless (display-graphic-p)
+;;   (corfu-terminal-mode +1))
 
 ;; Store customizations in a separate file
 (setq custom-file "~/.emacs.d/.customizations.el")
