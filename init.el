@@ -178,32 +178,6 @@ Saves to a temp file and puts the filename in the kill ring."
 	       '(".*COMMIT_EDITMSG". ((display-buffer-pop-up-window) .
 				      ((inhibit-same-window . t))))))
 
-;; use local eslint from node_modules before global
-;; http://emacs.stackexchange.com/questions/21205/flycheck-with-file-relative-eslint-executable
-(defun my/use-eslint-from-node-modules ()
-  (let* ((root (locate-dominating-file
-                (or (buffer-file-name) default-directory)
-                "node_modules"))
-         (eslint (and root
-                      (expand-file-name "node_modules/eslint/bin/eslint.js"
-                                        root))))
-    (when (and eslint (file-executable-p eslint))
-      (setq-local flycheck-javascript-eslint-executable eslint))))
-
-;; Flycheck
-;; (use-package flycheck
-;;   :config
-;;   (global-flycheck-mode)
-;;   (setq flycheck-global-modes '((not rust-mode)
-;;                                 (not python-mode)))
-;;   (global-set-key (kbd "C-c M-n") 'flycheck-next-error)
-;;   (global-set-key (kbd "C-c M-p") 'flycheck-previous-error)
-;;   (setq flycheck-check-syntax-automatically '(save mode-enabled))
-;;   (add-hook 'flycheck-mode-hook #'my/use-eslint-from-node-modules)
-;;   (flycheck-add-mode 'javascript-eslint 'typescript-mode)
-;;   (flycheck-add-mode 'javascript-eslint 'typescript-tsx-mode)
-;;   (flycheck-add-mode 'javascript-eslint 'web-mode))
-
 ;; Web mode
 (use-package web-mode
   :config
@@ -320,10 +294,6 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-to-list 'eglot-server-programs
                `(org-mode . (eglot-grammarlylsp ,(executable-find "grammarlylsp")))))
 
-;; (use-package yasnippet
-;;   :config
-;;   (yas-global-mode 1))
-
 ;; Elisp
 (use-package paredit
   :config
@@ -365,7 +335,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (interactive)
   ;; Use custom font face for this buffer only
   (defface tmp-buffer-local-face
-    '((t :family "iA Writer Duospace" :height 140))
+    '((t :family "Space Mono" :height 150))
     "Temporary buffer-local face")
   (buffer-face-set 'tmp-buffer-local-face)
   ;; Use a skinny cursor
@@ -491,18 +461,18 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; Thanks to
 ;; http://stackoverflow.com/questions/20603578/emacs-does-not-see-new-installation-of-org-mode/20616703#20616703.
 ;; Without this, use-package will try to require org and succeed.
-(eval-when-compile
-  (require 'cl))
+;; (eval-when-compile
+;;   (require 'cl))
 
-(setq load-path
-      (remove-if (lambda (x) (string-match-p "org$" x)) load-path))
-;; Second, trick emacs into forgetting about the fact that org is
-;; a "built-in" package by removing it from package--builtins.
-;; Without this, package will refuse to install org, since it's
-;; "already installed".
-;; package--builtins is only initialized when a query needs it.
-(package-built-in-p 'org)   ;; prime package--builtins
-(setq package--builtins (assq-delete-all 'org package--builtins))
+;; (setq load-path
+;;       (remove-if (lambda (x) (string-match-p "org$" x)) load-path))
+;; ;; Second, trick emacs into forgetting about the fact that org is
+;; ;; a "built-in" package by removing it from package--builtins.
+;; ;; Without this, package will refuse to install org, since it's
+;; ;; "already installed".
+;; ;; package--builtins is only initialized when a query needs it.
+;; (package-built-in-p 'org)   ;; prime package--builtins
+;; (setq package--builtins (assq-delete-all 'org package--builtins))
 
 (setq org-refile-path (or (getenv "ORG_REFILE_PATH") "~/Org/refile.org"))
 
@@ -527,7 +497,7 @@ Saves to a temp file and puts the filename in the kill ring."
 
   ;; Don't show full size images otherwise it's too large when
   ;; displaying inline
-  (setq org-image-actual-width nil)
+  (setq org-image-actual-width "100%")
 
   (defadvice org-agenda-list (around split-vertically activate)
     (let ((split-width-threshold 80))
@@ -547,45 +517,56 @@ Saves to a temp file and puts the filename in the kill ring."
     (let ((current-prefix-arg -7))
       (call-interactively 'org-agenda-and-todos)))
 
+  (setq org-agenda-prefix-format "  %-11:c %?-2 t%s")
+
+  ;; Set up custom agenda commands
+  ;; This needs to be in an after-init-hook otherwise it will throw an
+  ;; error because it's using the wrong version of org
+  ;; For example: https://github.com/syl20bnr/spacemacs/issues/7120
+  (add-hook 'after-init-hook
+   (lambda ()
+     (add-to-list 'org-agenda-custom-commands
+                  '("a" "Today's Agenda"
+                    (
+                     (tags "CATEGORY=\"goals\""
+                           ((org-agenda-overriding-header "GOALS")
+                            (org-agenda-remove-tags t)
+                            (org-agenda-prefix-format "")
+                            (org-agenda-todo-keyword-format "")))
+                     (agenda "" (
+                                 (org-agenda-skip-function
+                                  '(org-agenda-skip-entry-if 'regexp ":delegate:"))
+                                 (org-agenda-overriding-header "TODAY\n")
+                                 (org-agenda-span 1)
+                                 (org-agenda-skip-scheduled-if-done t)
+                                 (org-agenda-skip-timestamp-if-done t)
+                                 (org-agenda-skip-deadline-if-done t)
+                                 (org-agenda-start-day "+0d")
+                                 (org-agenda-repeating-timestamp-show-all nil)
+                                 (org-agenda-remove-tags t)
+                                 (org-agenda-prefix-format "%i %?-2 t%s")
+                                 (org-agenda-time)
+                                 (org-agenda-scheduled-leaders '("Scheduled: ""Sched.%2dx: "))
+                                 (org-agenda-deadline-leaders '("Deadline:  ""In %d days: " "%d days ago: "))
+                                 (org-agenda-time-grid (quote ((today require-timed remove-match) () "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))))
+                     (tags-todo "delegate"
+                                ((org-agenda-overriding-header "DELEGATED\n")
+                                 (org-agenda-prefix-format "%-2i %?b")
+                                 (org-agenda-todo-keyword-format ""))))))))
+
   ;; Show icons for categories in agenda
   (customize-set-value
    'org-agenda-category-icon-alist
    `(("refile" ,(list (all-the-icons-material "folder")) nil nil :ascent center :mask heuristic)
      ("personal" ,(list (all-the-icons-material "home")) nil nil :ascent center :mask heuristic)
      ("work" ,(list (all-the-icons-material "work")) nil nil :ascent center :mask heuristic)
-     ("goals" ,(list (all-the-icons-material "star")) nil nil :ascent center :mask heuristic)
-))
+     ("goals" ,(list (all-the-icons-material "star")) nil nil :ascent center :mask heuristic)))
 
   ;; Fix agenda lines wrapping
   (add-hook 'org-agenda-mode-hook
             (lambda ()
               (visual-line-mode -1)
               (setq truncate-lines 1)))
-
-  ;; Set up custom agenda commands
-  (setq org-agenda-custom-commands
-        '(
-          ("a" "My Agenda"
-           (
-            (tags "CATEGORY=\"goals\""
-                  ((org-agenda-overriding-header "GOALS")
-                   (org-agenda-remove-tags t)
-                   (org-agenda-prefix-format "%-2i %?b")
-                   (org-agenda-todo-keyword-format "")))
-            (agenda "" (
-                        (org-agenda-overriding-header "TODAY\n")
-                        (org-agenda-span 1)
-                        (org-agenda-skip-scheduled-if-done t)
-                        (org-agenda-skip-timestamp-if-done t)
-                        (org-agenda-skip-deadline-if-done t)
-                        (org-agenda-start-day "+0d")
-                        (org-agenda-repeating-timestamp-show-all nil)
-                        (org-agenda-remove-tags t)
-                        (org-agenda-prefix-format "%i %?-2 t%s")
-                        (org-agenda-time)
-                        (org-agenda-scheduled-leaders '("" ""))
-                        (org-agenda-deadline-leaders '("Deadline:  ""In %d days : " "%d days ago: "))
-                        (org-agenda-time-grid (quote ((today require-timed remove-match) () "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))))))))
 
   ;; Don't export headings with numbers
   (setq org-export-with-section-numbers nil)
@@ -605,10 +586,6 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; Shortcut to jump to last running clock
   (global-set-key (kbd "C-c C-x C-j") 'org-clock-jump-to-current-clock)
 
-  ;; On startup show the agenda for the next 2 calendar weeks and all
-  ;; todo items
-  ;; (add-hook 'after-init-hook 'org-agenda-and-todos-two-weeks)
-
   ;; Show org timestamps in 12h time
   (setq org-agenda-timegrid-use-ampm 1)
 
@@ -616,7 +593,8 @@ Saves to a temp file and puts the filename in the kill ring."
   (setq org-agenda-time-grid (quote
                               ((daily today today)
                                (800 1000 1200 1400 1600 1800 2000)
-                               "......" "----------------")))
+                               "......."
+                               "-----------------------------------------------------")))
 
   ;; Color code the agenda based on type
   ;; http://dept.stat.lsa.umich.edu/~jerrick/org_agenda_calendar.html
@@ -633,18 +611,7 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; Don't position tables in the center
   (setq org-latex-tables-centered nil)
 
-  ;; Fix some org-mode + yasnippet conflicts
-  ;; http://stackoverflow.com/questions/9418148/conflicts-between-org-mode-and-yasnippet
-  (defun yas/org-very-safe-expand ()
-    (let ((yas/fallback-behavior 'return-nil)) (yas/expand)))
-
-  (add-hook 'org-mode-hook
-	    (lambda ()
-	      (make-variable-buffer-local 'yas/trigger-key)
-	      (setq yas/trigger-key [tab])
-	      (add-to-list 'org-tab-first-hook 'yas/org-very-safe-expand)
-	      (define-key yas/keymap [tab] 'yas/next-field)))
-
+  ;; Always use visual line mode to make it more like a document
   (add-hook 'org-mode-hook (lambda ()
                              (make-variable-buffer-local 'visual-line-mode)
                              (visual-line-mode)))
@@ -666,7 +633,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (define-key global-map (kbd "C-c C-a") 'org-agenda)
 
   ;; In org agenda log view also show recurring tasks
-  (setq org-agenda-log-mode-items '(closed clock state))
+  (setq org-agenda-log-mode-items '(closed))
 
   (defun org-archive-done-tasks ()
     "Archive all DONE and WONT-DO tasks."
@@ -1081,11 +1048,23 @@ Saves to a temp file and puts the filename in the kill ring."
                            "${slug}.org"
                            "#+TITLE: ${title}\n#+FILETAGS: section\n\n")
                   :unnarrowed t)
-                ("t" "To Do" plain
+                ("P" "Project" plain
                  "%?"
                  :if-new (file+head
-                          "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--todo-${slug}.org\" (current-time) t)"
-                          "#+TITLE: To Do - ${title}\n#+DATE: %<%Y-%m-%d>\n#+FILETAGS: private todo\n\n")
+                          "%(format-time-string \"%Y-%m-%d--project-${slug}.org\" (current-time) t)"
+                          "#+TITLE: ${title}\n#+DATE: %<%Y-%m-%d>\n#+CATEGORY: ${slug}\n#+FILETAGS: private project\n\n")
+                 :unnarrowed t)
+                ("p" "Project Note" plain
+                 "%?"
+                 :if-new (file+head
+                          "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--project-${slug}.org\" (current-time) t)"
+                          "#+TITLE: ${title}\n#+DATE: %<%Y-%m-%d>\n#+FILETAGS: private project_note\n\n")
+                 :unnarrowed t)
+                ("e" "Entity" plain
+                 "%?"
+                 :if-new (file+head
+                          "%(format-time-string \"%Y-%m-%d--entity-${slug}.org\" (current-time) t)"
+                          "#+TITLE: @${title}\n#+DATE: %<%Y-%m-%d>\n#+FILETAGS: private entity\n\n")
                  :unnarrowed t))))
 
   ;; Journaling setup
@@ -1197,10 +1176,6 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; Enable system clipboard
 (setq x-select-enable-clipboard t)
-
-;; (use-package clipetty
-;;   :ensure t
-;;   :hook (after-init . global-clipetty-mode))
 
 ;; Start emacs without all the fanfare
 (setq inhibit-startup-echo-area-message t)
@@ -1493,10 +1468,6 @@ Saves to a temp file and puts the filename in the kill ring."
       (setq big-screen 1))))
 (global-set-key (kbd "C-x M-b") 'toggle-big-screen)
 
-;; (use-package diff-hl
-;;   :config
-;;   (global-diff-hl-mode))
-
 (use-package docker-tramp)
 
 ;; Add gh codespaces ssh method support for tramp editing
@@ -1534,45 +1505,29 @@ Saves to a temp file and puts the filename in the kill ring."
    "-o ControlPath=/tmp/ssh-ControlPath-%%r@%%h:%%p "
    "-o ControlMaster=auto -o ControlPersist=yes"))
 
-(use-package corfu
-  :custom
-  (corfu-cycle t)             ;; Enable cycling for `corfu-next/previous'
-  (corfu-auto t)                 ;; Enable auto completion
-  (corfu-preselect-first nil) ;; Disable candidate preselection
+(use-package org-remark)
 
-  ;; Use TAB for cycling, default is `corfu-complete'.
-  :bind
-  (:map corfu-map
-        ("TAB" . corfu-next)
-        ([tab] . corfu-next)
-        ("S-TAB" . corfu-previous)
-        ([backtab] . corfu-previous))
-  :init
-  (global-corfu-mode))
+(use-package org-download
+  :config
+  (setq-default org-download-image-dir (format "%s/img" org-roam-directory)))
 
-;; (use-package kind-icon
-;;   :ensure t
-;;   :after corfu
-;;   :custom
-;;   (kind-icon-default-face 'corfu-default) ; to compute blended backgrounds correctly
-;;   :config
-;;   (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
+;; Display macros inline in buffers
+(add-to-list 'font-lock-extra-managed-props 'display)
 
-;; (straight-use-package
-;;  '(popon :type git :repo "https://codeberg.org/akib/emacs-popon.git"))
-
-;; (straight-use-package
-;;  '(corfu-terminal
-;;    :type git
-;;    :repo "https://codeberg.org/akib/emacs-corfu-terminal.git"))
-
-;; (use-package graphviz-dot-mode
-;;   :ensure t
-;;   :config
-;;   (setq graphviz-dot-indent-width 4))
-
-;; (unless (display-graphic-p)
-;;   (corfu-terminal-mode +1))
+(font-lock-add-keywords
+ 'org-mode
+ '(("\\({{{[a-zA-Z#%)(_-+0-9]+}}}\\)" 0
+    `(face nil display
+           ,(format "%s"
+                    (let* ((input-str (match-string 0))
+                          (el (with-temp-buffer
+                                (insert input-str)
+                                (goto-char (point-min))
+                                (org-element-context)))
+                          (text (org-macro-expand el org-macro-templates)))
+                      (if text
+                          text
+                        input-str)))))))
 
 ;; Store customizations in a separate file
 (setq custom-file "~/.emacs.d/.customizations.el")
