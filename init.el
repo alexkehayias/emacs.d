@@ -712,7 +712,11 @@ Saves to a temp file and puts the filename in the kill ring."
   :defer t)
 
 (use-package ox-hugo
-  :after org)
+  :after org
+  :config
+  ;; Assume all static files are images for now otherwise this
+  ;; defaults to /ox-hugo/mypicture.png which is ugly
+  (setq org-hugo-default-static-subdirectory-for-externals "img"))
 
 (use-package emacsql-sqlite3)
 

@@ -345,7 +345,11 @@
 
 ;; Org export
 (use-package ox-hugo
-  :after org)
+  :after org
+  :config
+  ;; Assume all static files are images for now otherwise this
+  ;; defaults to /ox-hugo/mypicture.png which is ugly
+  (setq org-hugo-default-static-subdirectory-for-externals "img"))
 
 ;; Heavily modified based on https://github.com/novoid/title-capitalization.el/blob/master/title-capitalization.el
 (defun title-capitalization (str)
