@@ -79,6 +79,9 @@
   ;; Disable the tool bar in gui emacs
   (tool-bar-mode -1))
 
+;; Highlight the current line
+(global-hl-line-mode 1)
+
 ;; Change the scratch buffer message to nothing
 (setq initial-scratch-message nil)
 
@@ -461,18 +464,18 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; Thanks to
 ;; http://stackoverflow.com/questions/20603578/emacs-does-not-see-new-installation-of-org-mode/20616703#20616703.
 ;; Without this, use-package will try to require org and succeed.
-;; (eval-when-compile
-;;   (require 'cl))
+(eval-when-compile
+  (require 'cl))
 
-;; (setq load-path
-;;       (remove-if (lambda (x) (string-match-p "org$" x)) load-path))
+(setq load-path
+      (remove-if (lambda (x) (string-match-p "org$" x)) load-path))
 ;; ;; Second, trick emacs into forgetting about the fact that org is
 ;; ;; a "built-in" package by removing it from package--builtins.
 ;; ;; Without this, package will refuse to install org, since it's
 ;; ;; "already installed".
 ;; ;; package--builtins is only initialized when a query needs it.
-;; (package-built-in-p 'org)   ;; prime package--builtins
-;; (setq package--builtins (assq-delete-all 'org package--builtins))
+(package-built-in-p 'org)   ;; prime package--builtins
+(setq package--builtins (assq-delete-all 'org package--builtins))
 
 (setq org-refile-path (or (getenv "ORG_REFILE_PATH") "~/Org/refile.org"))
 
@@ -499,6 +502,10 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; displaying inline
   (setq org-image-actual-width "100%")
 
+  ;; Define global workflows
+  (setq org-todo-keywords
+        '((sequence "TODO(t!)" "NEXT(n!)" "WAITING(w@/!)" "SOMEDAY(s!)" "|" "DONE(d!)" "CANCELED(c@/!)")))
+
   (defadvice org-agenda-list (around split-vertically activate)
     (let ((split-width-threshold 80))
       ad-do-it))
@@ -517,7 +524,7 @@ Saves to a temp file and puts the filename in the kill ring."
     (let ((current-prefix-arg -7))
       (call-interactively 'org-agenda-and-todos)))
 
-  (setq org-agenda-prefix-format "  %-11:c %?-2 t%s")
+  (setq org-agenda-prefix-format '((agenda . "  %-11:c %?-2 t%s")))
 
   ;; Set up custom agenda commands
   ;; This needs to be in an after-init-hook otherwise it will throw an
@@ -525,34 +532,52 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; For example: https://github.com/syl20bnr/spacemacs/issues/7120
   (add-hook 'after-init-hook
    (lambda ()
-     (add-to-list 'org-agenda-custom-commands
-                  '("a" "Today's Agenda"
-                    (
-                     (tags "CATEGORY=\"goals\""
-                           ((org-agenda-overriding-header "GOALS")
-                            (org-agenda-remove-tags t)
-                            (org-agenda-prefix-format "")
-                            (org-agenda-todo-keyword-format "")))
-                     (agenda "" (
-                                 (org-agenda-skip-function
-                                  '(org-agenda-skip-entry-if 'regexp ":delegate:"))
-                                 (org-agenda-overriding-header "TODAY\n")
-                                 (org-agenda-span 1)
-                                 (org-agenda-skip-scheduled-if-done t)
-                                 (org-agenda-skip-timestamp-if-done t)
-                                 (org-agenda-skip-deadline-if-done t)
-                                 (org-agenda-start-day "+0d")
-                                 (org-agenda-repeating-timestamp-show-all nil)
-                                 (org-agenda-remove-tags t)
-                                 (org-agenda-prefix-format "%i %?-2 t%s")
-                                 (org-agenda-time)
-                                 (org-agenda-scheduled-leaders '("Scheduled: ""Sched.%2dx: "))
-                                 (org-agenda-deadline-leaders '("Deadline:  ""In %d days: " "%d days ago: "))
-                                 (org-agenda-time-grid (quote ((today require-timed remove-match) () "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))))
-                     (tags-todo "delegate"
-                                ((org-agenda-overriding-header "DELEGATED\n")
-                                 (org-agenda-prefix-format "%-2i %?b")
-                                 (org-agenda-todo-keyword-format ""))))))))
+     (setq org-agenda-custom-commands
+           '(
+             ("a" "Today's Agenda"
+              ((tags "CATEGORY=\"goals\""
+                     ((org-agenda-overriding-header "GOALS\n")
+                      (org-agenda-remove-tags t)
+                      (org-agenda-prefix-format "")
+                      (org-agenda-todo-keyword-format "")))
+               (agenda "" (
+                           (org-agenda-skip-function
+                            '(org-agenda-skip-entry-if 'regexp ":delegate:"))
+                           (org-agenda-overriding-header "TODAY\n")
+                           (org-agenda-span 1)
+                           (org-agenda-skip-scheduled-if-done t)
+                           (org-agenda-skip-timestamp-if-done t)
+                           (org-agenda-skip-deadline-if-done t)
+                           (org-agenda-start-day "+0d")
+                           (org-agenda-repeating-timestamp-show-all nil)
+                           (org-agenda-remove-tags t)
+                           (org-agenda-prefix-format "  %-11:c %?-2 t%s")
+                           (org-agenda-time)
+                           (org-agenda-scheduled-leaders '("Scheduled: ""Sched.%2dx: "))
+                           (org-agenda-deadline-leaders '("Deadline:  ""In %d days: " "%d days ago: "))
+                           (org-agenda-time-grid (quote ((today require-timed remove-match) () "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))))
+               (todo "NEXT"
+                     ((org-agenda-overriding-header "NEXT\n")
+                      (org-agenda-remove-tags t)))
+               (todo "WAITING"
+                     ((org-agenda-overriding-header "WAITING\n")
+                      (org-agenda-remove-tags t)))
+               (tags-todo "delegate"
+                          ((org-agenda-overriding-header "DELEGATED\n")
+                           (org-agenda-prefix-format "  %-11:c %?b")
+                           (org-agenda-todo-keyword-format "")))))
+           ("b" "Today's Agenda (Alt)"
+            ((tags "CATEGORY=\"goals\""
+                   ((org-agenda-overriding-header "GOALS")
+                    (org-agenda-remove-tags t)
+                    (org-agenda-prefix-format "")
+                    (org-agenda-todo-keyword-format "")))
+             (todo "NEXT"
+                   ((org-agenda-overriding-header "Next")
+                    (org-agenda-remove-tags t))))))
+
+           )
+     ))
 
   ;; Show icons for categories in agenda
   (customize-set-value
@@ -654,13 +679,13 @@ Saves to a temp file and puts the filename in the kill ring."
 
   (setq org-capture-templates
 	(quote (("t" "To Do" entry (file org-refile-path)
-		 "* TODO %?\n%U" :clock-in t :clock-resume t)
+		 "* TODO %?\n%U")
 		("n" "Note" entry (file org-refile-path)
-		 "* %? %T :note:\n%U\n%a\n" :clock-in t :clock-resume t)
+		 "* %? :note:\n%U\n%a\n")
 		("m" "Meeting" entry (file org-refile-path)
-		 "* Meeting w/%? %T :meeting:\n%U" :clock-in t :clock-resume t)
+		 "* Meeting w/%? %T :meeting:\n%U")
 		("i" "Interview" entry (file org-refile-path)
-		 "* Interview w/%? %T :interview:\n%U" :clock-in t :clock-resume t))))
+		 "* Interview w/%? %T :interview:\n%U"))))
 
   ;; Auto mark parent todos as done if childrend are done
   (defun org-summary-todo (n-done n-not-done)
@@ -692,6 +717,8 @@ Saves to a temp file and puts the filename in the kill ring."
 
   ;; Don't prompt for confirmation when exporting babel blocks
   (setq org-confirm-babel-evaluate nil))
+
+(use-package org-super-agenda)
 
 (use-package gnuplot
   :defer t
@@ -796,7 +823,7 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package org-roam
   :after (org helm)
   :bind (:map org-mode-map
-              ("M-." . my/org-roam-open-note)
+              ("M-." . org-open-at-point)
               ("M-," . org-mark-ring-goto))
   :bind  (("C-c n l" . org-roam-buffer-toggle)
           ("C-c n f" . org-roam-node-find)
@@ -835,13 +862,14 @@ Saves to a temp file and puts the filename in the kill ring."
                                :after
                                'my/org-roam-capture-set-file-name)
 
-                   (advice-add 'org-roam-node-find
-                               :after
-                               'my/note-taking-init)
+                   ;; (advice-add 'org-roam-node-find
+                   ;;             :after
+                   ;;             'my/note-taking-init)
 
-                   (advice-add 'org-roam-node-insert
-                               :after
-                               'my/note-taking-init))))
+                   ;; (advice-add 'org-roam-node-insert
+                   ;;             :after
+                   ;;             'my/note-taking-init)
+                   )))
 
   :init
   (setq org-roam-directory org-roam-notes-path)
@@ -868,6 +896,15 @@ Saves to a temp file and puts the filename in the kill ring."
                  (direction . right)
                  (window-width . 0.33)
                  (window-height . fit-window-to-buffer)))
+  ;; Find only projects
+  (defun my/org-roam-node-find-project ()
+    (interactive)
+    (org-roam-node-find
+     nil nil
+     (lambda (node)
+       (seq-contains-p (org-roam-node-tags node) "project"))))
+  (global-set-key (kbd "C-c n p") 'my/org-roam-node-find-project)
+
   ;; Only show the paragraph with the link in the org-roam buffer
   (defun my/preview-fetcher ()
     (let* ((elem (org-element-context))
@@ -894,12 +931,10 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; draft or section
   (defun my/org-roam--backlinks-list (id file)
     (--reduce-from
-     (concat acc
-             (let ((node (org-roam-populate (org-roam-node-create :id id))))
-               (format "- [[id:%s][%s]]\n  #+begin_quote\n  %s\n  #+end_quote\n"
-                       (car it)
-                       (title-capitalization (org-roam-node-title node))
-                       (my/org-roam--extract-note-body (org-roam-node-file node)))))
+     (concat acc (format "- [[id:%s][%s]]\n  #+begin_quote\n  %s\n  #+end_quote\n"
+                         (car it)
+                         (title-capitalization (org-roam-node-title (org-roam-node-from-id (car it))))
+                         (my/org-roam--extract-note-body (org-roam-node-file (org-roam-node-from-id (car it))))))
      ""
      (org-roam-db-query
       (format
@@ -967,6 +1002,13 @@ Saves to a temp file and puts the filename in the kill ring."
   (defun my/org-hugo-link--headline-anchor-maybe (link)
     "")
   (advice-add 'org-hugo-link--headline-anchor-maybe :override #'my/org-hugo-link--headline-anchor-maybe)
+
+  ;; ox-hugo doesn't set the `relref` path correctly so we need to
+  ;; tell it how to do it
+  (defun my/org-id-path-fix (strlist)
+    (file-name-nondirectory strlist))
+
+  (advice-add 'org-export-resolve-id-link :filter-return #'my/org-id-path-fix)
 
   ;; Fetches all org-roam files and exports to hugo markdown
   ;; files. Adds in necessary hugo properties
@@ -1037,7 +1079,7 @@ Saves to a temp file and puts the filename in the kill ring."
     "Update Org-ID locations for all Org-roam files."
     ;; https://org-roam.discourse.group/t/org-roam-v2-org-id-id-link-resolution-problem/1491/4
     (interactive)
-    (org-id-update-id-locations (org-roam--list-all-files)))
+    (org-id-update-id-locations (org-roam-list-files)))
 
   (setq org-roam-capture-templates
 	(quote (("d" "Default" plain
@@ -1456,7 +1498,7 @@ Saves to a temp file and puts the filename in the kill ring."
 (add-to-list 'default-frame-alist '(font . "Cascadia Code"))
 ;; Make the default face the same font
 (set-face-attribute 'default t :font "Cascadia Code")
-(set-face-attribute 'default nil :height 120)
+(set-face-attribute 'default nil :height 140)
 
 ;; Keyboard shortcut for using a big screen
 (setq big-screen nil)
@@ -1509,11 +1551,25 @@ Saves to a temp file and puts the filename in the kill ring."
    "-o ControlPath=/tmp/ssh-ControlPath-%%r@%%h:%%p "
    "-o ControlMaster=auto -o ControlPersist=yes"))
 
+;; Speed up Tramp by turning off version control when remote
+(defun my/vc-off-if-remote ()
+  (if (file-remote-p (buffer-file-name))
+      (setq-local vc-handled-backends nil)))
+
+(add-hook 'find-file-hook 'my/vc-off-if-remote)
+
 (use-package org-remark)
 
 (use-package org-download
   :config
   (setq-default org-download-image-dir (format "%s/img" org-roam-directory)))
+
+(use-package mastodon
+  :ensure t
+  :config
+  ;; I am @cpbotha@emacs.ch on Mastodon which translates to:
+  (setq mastodon-instance-url "https://mastodon.social")
+  (setq mastodon-active-user "alexkehayias"))
 
 ;; Display macros inline in buffers
 (add-to-list 'font-lock-extra-managed-props 'display)
