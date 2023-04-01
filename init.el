@@ -23,6 +23,279 @@
 (straight-use-package 'use-package)
 (setq straight-use-package-by-default t)
 
+;; Org-mode
+
+;; Copied from https://github.com/glasserc/etc/commit/3af96f2c780a35d35bdf1b9ac19d80fe2e6ebbf8
+;; Work around built-in org-mode so we can load from ELPA.
+;; First, remove the built-in org directory from the load-path.
+;; Thanks to
+;; http://stackoverflow.com/questions/20603578/emacs-does-not-see-new-installation-of-org-mode/20616703#20616703.
+;; Without this, use-package will try to require org and succeed.
+(eval-when-compile
+  (require 'cl))
+
+;; (setq load-path
+;;       (remove-if (lambda (x) (string-match-p "org$" x)) load-path))
+;; ;; ;; Second, trick emacs into forgetting about the fact that org is
+;; ;; ;; a "built-in" package by removing it from package--builtins.
+;; ;; ;; Without this, package will refuse to install org, since it's
+;; ;; ;; "already installed".
+;; ;; ;; package--builtins is only initialized when a query needs it.
+;; (package-built-in-p 'org)   ;; prime package--builtins
+;; (setq package--builtins (assq-delete-all 'org package--builtins))
+
+(setq org-refile-path (or (getenv "ORG_REFILE_PATH") "~/Org/refile.org"))
+
+(use-package org
+  :config
+  (setq org-directory "~/Org")
+
+  ;; Maybe fix org hangs occasionally
+  (setq org-element-use-cache nil)
+
+  ;; When opening a file make sure everything is expanded
+  ;; (setq org-startup-folded nil)
+
+  ;; Always wrap lines
+  (setq org-startup-truncated nil)
+
+  ;; Hide markers like /emphasis/
+  (setq org-hide-emphasis-markers t)
+
+  ;; Show inline images
+  (org-display-inline-images t t)
+
+  ;; Don't show full size images otherwise it's too large when
+  ;; displaying inline
+  (setq org-image-actual-width "100%")
+
+  ;; Define global workflows
+  (setq org-todo-keywords
+        '((sequence "TODO(t!)" "NEXT(n!)" "WAITING(w@/!)" "SOMEDAY(s!)" "|" "DONE(d!)" "CANCELED(c@/!)")))
+
+  ;; (defadvice org-agenda-list (around split-vertically activate)
+  ;;   (let ((split-width-threshold 80))
+  ;;     ad-do-it))
+
+  ;; (defun org-agenda-and-todos ()
+  ;;   (interactive)
+  ;;   (org-agenda nil "n"))
+
+  ;; (defun org-agenda-and-todos-two-weeks ()
+  ;;   (interactive)
+  ;;   (let ((current-prefix-arg 14))
+  ;;     (call-interactively 'org-agenda-and-todos)))
+
+  ;; (defun org-agenda-and-todos-last-week ()
+  ;;   (interactive)
+  ;;   (let ((current-prefix-arg -7))
+  ;;     (call-interactively 'org-agenda-and-todos)))
+
+  ;; (setq org-agenda-prefix-format '((agenda . "  %-11:c %?-2 t%s")))
+
+  ;; Set up custom agenda commands
+
+  (setq org-agenda-custom-commands
+           '(
+             ("a" "Today's Agenda"
+              ((tags "CATEGORY=\"goals\""
+                     ((org-agenda-overriding-header "GOALS\n")
+                      (org-agenda-remove-tags t)
+                      (org-agenda-prefix-format "")
+                      (org-agenda-todo-keyword-format "")))
+               (agenda "" (
+                           (org-agenda-skip-function
+                            '(org-agenda-skip-entry-if 'regexp ":delegate:"))
+                           (org-agenda-overriding-header "TODAY\n")
+                           (org-agenda-span 1)
+                           (org-agenda-skip-scheduled-if-done t)
+                           (org-agenda-skip-timestamp-if-done t)
+                           (org-agenda-skip-deadline-if-done t)
+                           (org-agenda-start-day "+0d")
+                           (org-agenda-repeating-timestamp-show-all nil)
+                           (org-agenda-remove-tags t)
+                           (org-agenda-prefix-format "  %-11:c %?-2 t%s")
+                           (org-agenda-time)
+                           (org-agenda-scheduled-leaders '("Scheduled: ""Sched.%2dx: "))
+                           (org-agenda-deadline-leaders '("Deadline:  ""In %d days: " "%d days ago: "))
+                           (org-agenda-time-grid (quote ((today require-timed remove-match) () "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))))
+               (todo "NEXT"
+                     ((org-agenda-overriding-header "NEXT\n")
+                      (org-agenda-remove-tags t)))
+               (todo "WAITING"
+                     ((org-agenda-overriding-header "WAITING\n")
+                      (org-agenda-remove-tags t)))
+               (tags-todo "delegate"
+                          ((org-agenda-overriding-header "DELEGATED\n")
+                           (org-agenda-prefix-format "  %-11:c %?b")
+                           (org-agenda-todo-keyword-format "")))))
+           ("b" "Today's Agenda (Alt)"
+            ((tags "CATEGORY=\"goals\""
+                   ((org-agenda-overriding-header "GOALS")
+                    (org-agenda-remove-tags t)
+                    (org-agenda-prefix-format "")
+                    (org-agenda-todo-keyword-format "")))
+             (todo "NEXT"
+                   ((org-agenda-overriding-header "Next")
+                    (org-agenda-remove-tags t)))))
+
+           ("r" "Daily Review"
+            (
+             (agenda "" (
+                         (org-agenda-skip-function
+                          '(org-agenda-skip-entry-if 'regexp ":delegate:"))
+                         (org-agenda-overriding-header "Daily Review\n")
+                         (org-agenda-start-with-log-mode '(closed))
+                         (org-agenda-show-log 'only)
+                         (org-agenda-span 1)
+                         (org-agenda-skip-scheduled-if-done t)
+                         (org-agenda-skip-timestamp-if-done t)
+                         (org-agenda-skip-deadline-if-done t)
+                         (org-agenda-start-day "+0d")
+                         (org-agenda-repeating-timestamp-show-all nil)
+                         (org-agenda-remove-tags t)
+                         (org-agenda-prefix-format "  %-11:c %?-2 t%s")
+                         (org-agenda-time)
+                         (org-agenda-scheduled-leaders '("Scheduled: ""Sched.%2dx: "))
+                         (org-agenda-deadline-leaders '("Deadline:  ""In %d days: " "%d days ago: "))
+                         (org-agenda-time-grid (quote ((today require-timed remove-match) () "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))))
+             (todo ""
+                   ((org-agenda-overriding-header "")
+                    (org-agenda-skip-function '(org-agenda-skip-entry-if 'nottodo '("NEXT" "WAITING")))
+                    (org-super-agenda-groups '((:auto-category t)))))))
+
+           ("u" "Unscheduled"
+            (
+             (todo "TODO"
+                   ((org-agenda-overriding-header "")
+                    (org-agenda-sorting-strategy '(tsia-down))
+                    ;; TODO only show work items
+                    ;; TODO update this to show the inactive timestamps
+                    (org-agenda-prefix-format '((todo . "  %-11:c %?-2 t%s")))
+                    ))))
+           )
+           )
+
+  ;; Fix agenda lines wrapping
+  (add-hook 'org-agenda-mode-hook
+            (lambda ()
+              (visual-line-mode -1)
+              (setq truncate-lines 1)))
+
+  ;; Don't export headings with numbers
+  (setq org-export-with-section-numbers nil)
+
+  ;; gnuplot
+  (local-set-key (kbd "M-C-g") 'org-plot/gnuplot)
+
+  ;; Shortcut copy an internal link
+  (global-set-key (kbd "C-c l") 'org-store-link)
+
+  ;; Show hours:minutes instead of days:hours
+  (setq org-time-clocksum-format (quote (:hours "%d" :require-hours t :minutes ":%02d" :require-minutes t)))
+
+  ;; Shortcut to jump to last running clock
+  (global-set-key (kbd "C-c C-x C-j") 'org-clock-jump-to-current-clock)
+
+  ;; ;; Show org timestamps in 12h time
+  (setq org-agenda-timegrid-use-ampm 1)
+
+  ;; ;; Always show the current day in org agenda
+  (setq org-agenda-time-grid (quote
+                              ((daily today today)
+                               (800 1000 1200 1400 1600 1800 2000)
+                               "......."
+                               "-----------------------------------------------------")))
+
+  ;; Use longtable as the default table style when exporting
+  (setq org-latex-default-table-environment "longtable")
+
+  ;; Don't position tables in the center
+  (setq org-latex-tables-centered nil)
+
+  ;; Always use visual line mode to make it more like a document
+  (add-hook 'org-mode-hook (lambda ()
+                             (make-variable-buffer-local 'visual-line-mode)
+                             (visual-line-mode)))
+
+  ;; Show syntax highlighting per language native mode in *.org
+  (setq org-src-fontify-natively t)
+  ;; For languages with significant whitespace like Python:
+  (setq org-src-preserve-indentation t)
+
+  ;; Timestamp new todos
+  (setq org-log-done 'time)
+  (setq org-startup-indented t)
+
+  ;; Agenda
+  (setq org-agenda-text-search-extra-files
+	'(agenda-archives
+	  "~/Org/notes.org_archive"))
+  (define-key global-map (kbd "C-c a") 'org-agenda)
+  (define-key global-map (kbd "C-c C-a") 'org-agenda)
+
+  ;; In org agenda log view also show recurring tasks
+  (setq org-agenda-log-mode-items '(closed))
+
+  (defun org-archive-done-tasks ()
+    "Archive all DONE and WONT-DO tasks."
+    (interactive)
+    (org-map-entries
+     (lambda ()
+       (org-archive-subtree)
+       (setq org-map-continue-from (outline-previous-heading)))
+     "+TODO=\"DONE\"" 'tree)
+    (org-map-entries
+     (lambda ()
+       (org-archive-subtree)
+       (setq org-map-continue-from (outline-previous-heading)))
+     "+TODO=\"WONT-DO\"" 'tree))
+
+  ;; Capture
+  (global-set-key (kbd "C-c c") 'org-capture)
+
+  (setq org-capture-templates
+	(quote (("t" "To Do" entry (file org-refile-path)
+		 "* TODO %?\n%U")
+		("n" "Note" entry (file org-refile-path)
+		 "* %? :note:\n%U\n%a\n")
+		("m" "Meeting" entry (file org-refile-path)
+		 "* Meeting w/%? %T :meeting:\n%U")
+		("i" "Interview" entry (file org-refile-path)
+		 "* Interview w/%? %T :interview:\n%U"))))
+
+  ;; Auto mark parent todos as done if childrend are done
+  (defun org-summary-todo (n-done n-not-done)
+    "Switch entry to DONE when all subentries are done, to TODO otherwise."
+    (let (org-log-done org-log-states)   ; turn off logging
+      (org-todo (if (= n-not-done 0) "DONE" "TODO"))))
+
+  ;; Refile
+  (setq org-default-notes-file "~/Org/refile.org")
+  ;; Allow refile to the root of a file
+  (setq org-refile-use-outline-path 'file)
+  ;; Targets include this file and any file contributing to the agenda
+  ;; up to 9 levels deep
+  (setq org-refile-targets (quote ((nil :maxlevel . 9)
+        			   (org-agenda-files :maxlevel . 9))))
+  ;; Targets complete directly with IDO
+  (setq org-outline-path-complete-in-steps nil)
+  ;; Allow refile to create parent tasks with confirmation
+  (setq org-refile-allow-creating-parent-nodes (quote confirm))
+  ;; Use IDO for both buffer and file completion and ido-everywhere to t
+  (setq org-completion-use-ido t)
+  ;; Use the current window for indirect buffer display
+  (setq org-indirect-buffer-display 'current-window)
+
+  (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
+
+  ;; Time format for clock table durations as h:mm
+  (setq org-duration-format (quote h:mm))
+
+  ;; Don't prompt for confirmation when exporting babel blocks
+  (setq org-confirm-babel-evaluate nil))
+
+
 ;; macOS settings
 (when (memq window-system '(mac ns))
   ;; Set the environment to the same as the shell
@@ -150,7 +423,8 @@ Saves to a temp file and puts the filename in the kill ring."
                           (agenda . 5)))
   (setq dashboard-set-heading-icons t)
   (setq dashboard-set-file-icons t)
-  (setq show-week-agenda-p t))
+  (setq show-week-agenda-p t)
+  )
 
 ;; Emdash
 (defun insert-em-dash ()
@@ -313,6 +587,9 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package python-mode
   :config
   (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((python . t)))
   (add-hook 'python-mode-hook #'eglot-ensure)
   (setq-default py-shell-name "python3"))
 
@@ -456,270 +733,6 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package all-the-icons
   :ensure t)
 
-;; Org-mode
-
-;; Copied from https://github.com/glasserc/etc/commit/3af96f2c780a35d35bdf1b9ac19d80fe2e6ebbf8
-;; Work around built-in org-mode so we can load from ELPA.
-;; First, remove the built-in org directory from the load-path.
-;; Thanks to
-;; http://stackoverflow.com/questions/20603578/emacs-does-not-see-new-installation-of-org-mode/20616703#20616703.
-;; Without this, use-package will try to require org and succeed.
-(eval-when-compile
-  (require 'cl))
-
-(setq load-path
-      (remove-if (lambda (x) (string-match-p "org$" x)) load-path))
-;; ;; Second, trick emacs into forgetting about the fact that org is
-;; ;; a "built-in" package by removing it from package--builtins.
-;; ;; Without this, package will refuse to install org, since it's
-;; ;; "already installed".
-;; ;; package--builtins is only initialized when a query needs it.
-(package-built-in-p 'org)   ;; prime package--builtins
-(setq package--builtins (assq-delete-all 'org package--builtins))
-
-(setq org-refile-path (or (getenv "ORG_REFILE_PATH") "~/Org/refile.org"))
-
-(use-package org
-  :config
-  (setq org-directory "~/Org")
-
-  ;; Maybe fix org hangs occasionally
-  (setq org-element-use-cache nil)
-
-  ;; When opening a file make sure everything is expanded
-  (setq org-startup-folded nil)
-
-  ;; Always wrap lines
-  (setq org-startup-truncated nil)
-
-  ;; Hide markers like /emphasis/
-  (setq org-hide-emphasis-markers t)
-
-  ;; Show inline images
-  (org-display-inline-images t t)
-
-  ;; Don't show full size images otherwise it's too large when
-  ;; displaying inline
-  (setq org-image-actual-width "100%")
-
-  ;; Define global workflows
-  (setq org-todo-keywords
-        '((sequence "TODO(t!)" "NEXT(n!)" "WAITING(w@/!)" "SOMEDAY(s!)" "|" "DONE(d!)" "CANCELED(c@/!)")))
-
-  (defadvice org-agenda-list (around split-vertically activate)
-    (let ((split-width-threshold 80))
-      ad-do-it))
-
-  (defun org-agenda-and-todos ()
-    (interactive)
-    (org-agenda nil "n"))
-
-  (defun org-agenda-and-todos-two-weeks ()
-    (interactive)
-    (let ((current-prefix-arg 14))
-      (call-interactively 'org-agenda-and-todos)))
-
-  (defun org-agenda-and-todos-last-week ()
-    (interactive)
-    (let ((current-prefix-arg -7))
-      (call-interactively 'org-agenda-and-todos)))
-
-  (setq org-agenda-prefix-format '((agenda . "  %-11:c %?-2 t%s")))
-
-  ;; Set up custom agenda commands
-  ;; This needs to be in an after-init-hook otherwise it will throw an
-  ;; error because it's using the wrong version of org
-  ;; For example: https://github.com/syl20bnr/spacemacs/issues/7120
-  (add-hook 'after-init-hook
-   (lambda ()
-     (setq org-agenda-custom-commands
-           '(
-             ("a" "Today's Agenda"
-              ((tags "CATEGORY=\"goals\""
-                     ((org-agenda-overriding-header "GOALS\n")
-                      (org-agenda-remove-tags t)
-                      (org-agenda-prefix-format "")
-                      (org-agenda-todo-keyword-format "")))
-               (agenda "" (
-                           (org-agenda-skip-function
-                            '(org-agenda-skip-entry-if 'regexp ":delegate:"))
-                           (org-agenda-overriding-header "TODAY\n")
-                           (org-agenda-span 1)
-                           (org-agenda-skip-scheduled-if-done t)
-                           (org-agenda-skip-timestamp-if-done t)
-                           (org-agenda-skip-deadline-if-done t)
-                           (org-agenda-start-day "+0d")
-                           (org-agenda-repeating-timestamp-show-all nil)
-                           (org-agenda-remove-tags t)
-                           (org-agenda-prefix-format "  %-11:c %?-2 t%s")
-                           (org-agenda-time)
-                           (org-agenda-scheduled-leaders '("Scheduled: ""Sched.%2dx: "))
-                           (org-agenda-deadline-leaders '("Deadline:  ""In %d days: " "%d days ago: "))
-                           (org-agenda-time-grid (quote ((today require-timed remove-match) () "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))))
-               (todo "NEXT"
-                     ((org-agenda-overriding-header "NEXT\n")
-                      (org-agenda-remove-tags t)))
-               (todo "WAITING"
-                     ((org-agenda-overriding-header "WAITING\n")
-                      (org-agenda-remove-tags t)))
-               (tags-todo "delegate"
-                          ((org-agenda-overriding-header "DELEGATED\n")
-                           (org-agenda-prefix-format "  %-11:c %?b")
-                           (org-agenda-todo-keyword-format "")))))
-           ("b" "Today's Agenda (Alt)"
-            ((tags "CATEGORY=\"goals\""
-                   ((org-agenda-overriding-header "GOALS")
-                    (org-agenda-remove-tags t)
-                    (org-agenda-prefix-format "")
-                    (org-agenda-todo-keyword-format "")))
-             (todo "NEXT"
-                   ((org-agenda-overriding-header "Next")
-                    (org-agenda-remove-tags t))))))
-
-           )
-     ))
-
-  ;; Show icons for categories in agenda
-  (customize-set-value
-   'org-agenda-category-icon-alist
-   `(("refile" ,(list (all-the-icons-material "folder")) nil nil :ascent center :mask heuristic)
-     ("personal" ,(list (all-the-icons-material "home")) nil nil :ascent center :mask heuristic)
-     ("work" ,(list (all-the-icons-material "work")) nil nil :ascent center :mask heuristic)
-     ("goals" ,(list (all-the-icons-material "star")) nil nil :ascent center :mask heuristic)))
-
-  ;; Fix agenda lines wrapping
-  (add-hook 'org-agenda-mode-hook
-            (lambda ()
-              (visual-line-mode -1)
-              (setq truncate-lines 1)))
-
-  ;; Don't export headings with numbers
-  (setq org-export-with-section-numbers nil)
-
-  ;; gnuplot
-  (local-set-key (kbd "M-C-g") 'org-plot/gnuplot)
-
-  ;; Shortcut copy an internal link
-  (global-set-key (kbd "C-c l") 'org-store-link)
-
-  ;; Shortcut to show preferred agenda view
-  (global-set-key (kbd "C-c A") 'org-agenda-and-todos-two-weeks)
-
-  ;; Show hours:minutes instead of days:hours
-  (setq org-time-clocksum-format (quote (:hours "%d" :require-hours t :minutes ":%02d" :require-minutes t)))
-
-  ;; Shortcut to jump to last running clock
-  (global-set-key (kbd "C-c C-x C-j") 'org-clock-jump-to-current-clock)
-
-  ;; Show org timestamps in 12h time
-  (setq org-agenda-timegrid-use-ampm 1)
-
-  ;; Always show the current day in org agenda
-  (setq org-agenda-time-grid (quote
-                              ((daily today today)
-                               (800 1000 1200 1400 1600 1800 2000)
-                               "......."
-                               "-----------------------------------------------------")))
-
-  ;; Color code the agenda based on type
-  ;; http://dept.stat.lsa.umich.edu/~jerrick/org_agenda_calendar.html
-  (defun color-org-header (tag col)
-    (interactive)
-    (goto-char (point-min))
-    (while (re-search-forward tag nil t)
-      (add-text-properties (match-beginning 0) (point-at-eol)
-			   `(face (:foreground ,col)))))
-
-  ;; Use longtable as the default table style when exporting
-  (setq org-latex-default-table-environment "longtable")
-
-  ;; Don't position tables in the center
-  (setq org-latex-tables-centered nil)
-
-  ;; Always use visual line mode to make it more like a document
-  (add-hook 'org-mode-hook (lambda ()
-                             (make-variable-buffer-local 'visual-line-mode)
-                             (visual-line-mode)))
-
-  ;; Show syntax highlighting per language native mode in *.org
-  (setq org-src-fontify-natively t)
-  ;; For languages with significant whitespace like Python:
-  (setq org-src-preserve-indentation t)
-
-  ;; Timestamp new todos
-  (setq org-log-done 'time)
-  (setq org-startup-indented t)
-
-  ;; Agenda
-  (setq org-agenda-text-search-extra-files
-	'(agenda-archives
-	  "~/Org/notes.org_archive"))
-  (define-key global-map (kbd "C-c a") 'org-agenda)
-  (define-key global-map (kbd "C-c C-a") 'org-agenda)
-
-  ;; In org agenda log view also show recurring tasks
-  (setq org-agenda-log-mode-items '(closed))
-
-  (defun org-archive-done-tasks ()
-    "Archive all DONE and WONT-DO tasks."
-    (interactive)
-    (org-map-entries
-     (lambda ()
-       (org-archive-subtree)
-       (setq org-map-continue-from (outline-previous-heading)))
-     "+TODO=\"DONE\"" 'tree)
-    (org-map-entries
-     (lambda ()
-       (org-archive-subtree)
-       (setq org-map-continue-from (outline-previous-heading)))
-     "+TODO=\"WONT-DO\"" 'tree))
-
-  ;; Capture
-  (global-set-key (kbd "C-c c") 'org-capture)
-
-  (setq org-capture-templates
-	(quote (("t" "To Do" entry (file org-refile-path)
-		 "* TODO %?\n%U")
-		("n" "Note" entry (file org-refile-path)
-		 "* %? :note:\n%U\n%a\n")
-		("m" "Meeting" entry (file org-refile-path)
-		 "* Meeting w/%? %T :meeting:\n%U")
-		("i" "Interview" entry (file org-refile-path)
-		 "* Interview w/%? %T :interview:\n%U"))))
-
-  ;; Auto mark parent todos as done if childrend are done
-  (defun org-summary-todo (n-done n-not-done)
-    "Switch entry to DONE when all subentries are done, to TODO otherwise."
-    (let (org-log-done org-log-states)   ; turn off logging
-      (org-todo (if (= n-not-done 0) "DONE" "TODO"))))
-
-  ;; Refile
-  (setq org-default-notes-file "~/Org/refile.org")
-  ;; Allow refile to the root of a file
-  (setq org-refile-use-outline-path 'file)
-  ;; Targets include this file and any file contributing to the agenda
-  ;; up to 9 levels deep
-  (setq org-refile-targets (quote ((nil :maxlevel . 9)
-				   (org-agenda-files :maxlevel . 9))))
-  ;; Targets complete directly with IDO
-  (setq org-outline-path-complete-in-steps nil)
-  ;; Allow refile to create parent tasks with confirmation
-  (setq org-refile-allow-creating-parent-nodes (quote confirm))
-  ;; Use IDO for both buffer and file completion and ido-everywhere to t
-  (setq org-completion-use-ido t)
-  ;; Use the current window for indirect buffer display
-  (setq org-indirect-buffer-display 'current-window)
-
-  (add-hook 'org-after-todo-statistics-hook 'org-summary-todo)
-
-  ;; Time format for clock table durations as h:mm
-  (setq org-duration-format (quote h:mm))
-
-  ;; Don't prompt for confirmation when exporting babel blocks
-  (setq org-confirm-babel-evaluate nil))
-
-(use-package org-super-agenda)
-
 (use-package gnuplot
   :defer t
   :after org
@@ -826,7 +839,6 @@ Saves to a temp file and puts the filename in the kill ring."
               ("M-." . org-open-at-point)
               ("M-," . org-mark-ring-goto))
   :bind  (("C-c n l" . org-roam-buffer-toggle)
-          ("C-c n f" . org-roam-node-find)
           ("C-c n g" . org-roam-graph)
           ("C-c n c" . org-roam-capture)
           ("C-c n i" . org-roam-node-insert)
@@ -862,14 +874,11 @@ Saves to a temp file and puts the filename in the kill ring."
                                :after
                                'my/org-roam-capture-set-file-name)
 
-                   ;; (advice-add 'org-roam-node-find
+                   ;; (advice-add 'org-roam-node-visit
                    ;;             :after
                    ;;             'my/note-taking-init)
-
-                   ;; (advice-add 'org-roam-node-insert
-                   ;;             :after
-                   ;;             'my/note-taking-init)
-                   )))
+                   ))
+   org-roam-capture-new-node-hook . (lambda () (my/note-taking-init)))
 
   :init
   (setq org-roam-directory org-roam-notes-path)
@@ -889,6 +898,54 @@ Saves to a temp file and puts the filename in the kill ring."
                '(org-roam-node-find . helm-completing-read-sync-default-handler))
   ;; Include tags in note search results
   (setq org-roam-node-display-template "${title}      ${tags}")
+
+  ;; Custom helm source for searching notes based on
+  ;; https://ag91.github.io/blog/2022/02/05/an-helm-source-for-org-roam-v2/
+  (defun helm-org-roam (&optional input candidates)
+    (interactive)
+    (require 'org-roam)
+    (helm
+     :input input
+     :sources (list
+               (helm-build-sync-source "Find note: "
+                 :must-match nil
+                 :fuzzy-match t
+                 :candidates (or candidates (org-roam-node-read--completions))
+                 :persistent-action (lambda (x)
+                                      (--> x
+                                           (view-file (org-roam-node-file it))))
+                 :action
+                 '(("Find File" . (lambda (x)
+                                    (--> x
+                                         (org-roam-node-visit it t))))
+                   ("Preview" . (lambda (x)
+                                  (--> x
+                                       (view-file (org-roam-node-file it)))))
+                   ("Insert link" . (lambda (x)
+                                      (--> x
+                                           (insert
+                                            (format
+                                             "[[id:%s][%s]]"
+                                             (org-roam-node-id it)
+                                             (org-roam-node-title it))))))
+                   ("Follow backlinks" . (lambda (x)
+                                           (let ((candidates
+                                                  (--> x
+                                                       org-roam-backlinks-get
+                                                       (--map
+                                                        (org-roam-node-title
+                                                         (org-roam-backlink-source-node it))
+                                                        it))))
+                                             (helm-org-roam nil (or candidates (list x))))))))
+               (helm-build-dummy-source
+                   "Create note"
+                 :action '(("Capture note" . (lambda (candidate)
+                                               (org-roam-capture-
+                                                :node (org-roam-node-create :title candidate)
+                                                :props '(:finalize find-file)))))))))
+
+  (global-set-key (kbd "C-c n f") 'helm-org-roam)
+
   ;; Customize the org-roam buffer
   (add-to-list 'display-buffer-alist
                '("\\*org-roam\\*"
@@ -1193,32 +1250,40 @@ Saves to a temp file and puts the filename in the kill ring."
             (lambda ()
               (highlight-changes-remove-highlight (point-min) (point-max)))))
 
-;; Center text
-(defun center-text ()
-  "Center the text in the middle of the buffer. Works best in full screen"
-  (interactive)
-  (set-window-margins (car (get-buffer-window-list (current-buffer) nil t))
-                      (/ (window-width) 5)
-                      (/ (window-width) 5)))
+;; Center text mode
 
-(defun center-text-clear ()
+(define-minor-mode center-buffer-mode
+  "Minor mode for centering buffer to 80 characters"
+  :init-value nil
+  :global nil
+  :lighter " CB"
+  (if center-buffer-mode
+      (progn (setq-local center-margins (/ (- (window-width) 80) 2))
+             (set-window-margins (car (get-buffer-window-list (current-buffer) nil t))
+                                 center-margins
+                                 center-margins)
+             (add-hook 'window-configuration-change-hook 'center-buffer-mode-resize nil t))
+    (progn (set-window-margins (car (get-buffer-window-list (current-buffer) nil t))
+                               nil
+                               nil)
+           (remove-hook 'window-configuration-change-hook 'center-buffer-mode-resize t))))
+
+(defun center-buffer-mode-resize ()
+  "Called when the window size changes, to recalculate buffer centering."
+  (interactive)
+  (center-buffer-mode-clear)
+  (set-window-margins (car (get-buffer-window-list (current-buffer) nil t))
+                      (/ (- (window-width) 80) 2)
+                      (/ (- (window-width) 80) 2)))
+
+(defun center-buffer-mode-clear ()
+  "Clear buffer centering."
   (interactive)
   (set-window-margins (car (get-buffer-window-list (current-buffer) nil t))
                       nil
                       nil))
 
-(setq centered nil)
-
-(defun center-text-mode ()
-  (interactive)
-  (make-local-variable 'centered)
-  (if (eq centered t)
-      (progn (center-text-clear)
-             (setq centered nil))
-    (progn (center-text)
-           (setq centered t))))
-
-(define-key global-map (kbd "C-c M-t") 'center-text-mode)
+(define-key global-map (kbd "C-c M-t") 'center-buffer-mode)
 
 ;; Enable system clipboard
 (setq x-select-enable-clipboard t)
@@ -1482,7 +1547,7 @@ Saves to a temp file and puts the filename in the kill ring."
         doom-themes-enable-italic t)
   (doom-themes-org-config)
   (doom-themes-visual-bell-config)
-  (load-theme 'doom-dracula t))
+  (load-theme 'doom-moonlight t))
 
 (use-package doom-modeline
   :hook (after-init . doom-modeline-mode)
@@ -1571,6 +1636,19 @@ Saves to a temp file and puts the filename in the kill ring."
   (setq mastodon-instance-url "https://mastodon.social")
   (setq mastodon-active-user "alexkehayias"))
 
+(use-package ox-json)
+
+(use-package org-super-agenda
+  :config
+  (org-super-agenda-mode t))
+
+(use-package org-ql)
+
+(use-package chatgpt-shell
+  :straight (:host github :repo "xenodium/chatgpt-shell")
+  :config
+  (setq chatgpt-shell-openai-key (or (getenv "OPENAI_API_KEY") "")))
+
 ;; Display macros inline in buffers
 (add-to-list 'font-lock-extra-managed-props 'display)
 
@@ -1594,3 +1672,4 @@ Saves to a temp file and puts the filename in the kill ring."
 (load custom-file t)
 
 (provide 'init)
+(put 'narrow-to-region 'disabled nil)
