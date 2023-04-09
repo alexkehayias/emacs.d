@@ -1664,6 +1664,10 @@ Saves to a temp file and puts the filename in the kill ring."
                           text
                         input-str)))))))
 
+;; Experimental ox-notion backend
+(add-to-list 'load-path "~/.emacs.d/ox-notion/")
+(require 'ox-notion)
+
 ;; Store customizations in a separate file
 (setq custom-file "~/.emacs.d/.customizations.el")
 (load custom-file t)
