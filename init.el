@@ -120,8 +120,11 @@
                            (org-agenda-deadline-leaders '("Deadline:  ""In %d days: " "%d days ago: "))
                            (org-agenda-time-grid (quote ((today require-timed remove-match) () "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))))
                (todo "NEXT"
-                     ((org-agenda-overriding-header "NEXT\n")
-                      (org-agenda-remove-tags t)))
+                     ((org-agenda-overriding-header "NEXT")
+                      (org-agenda-remove-tags t)
+                      (org-super-agenda-groups '((:auto-priority t)))
+                      (org-agenda-sorting-strategy
+                       '(priority-down category-keep))))
                (todo "WAITING"
                      ((org-agenda-overriding-header "WAITING\n")
                       (org-agenda-remove-tags t)))
@@ -260,9 +263,9 @@
 		("n" "Note" entry (file org-refile-path)
 		 "* %? :note:\n%U\n%a\n")
 		("m" "Meeting" entry (file org-refile-path)
-		 "* Meeting w/%? %T :meeting:\n%U")
+		 "* Meeting w/%? %<%Y-%m-%d> :meeting:\n%U")
 		("i" "Interview" entry (file org-refile-path)
-		 "* Interview w/%? %T :interview:\n%U"))))
+		 "* Interview w/%? %<%Y-%m-%d> :interview:\n%U"))))
 
   ;; Auto mark parent todos as done if childrend are done
   (defun org-summary-todo (n-done n-not-done)
@@ -1186,12 +1189,6 @@ Saves to a temp file and puts the filename in the kill ring."
   (defun my/note-taking-init (&rest r)
     (with-current-buffer (current-buffer)
       (writeroom-mode)))
-
-  ;; Also open note links and set up writeroom
-  (defun my/org-roam-open-note ()
-    (interactive)
-    (org-open-at-point)
-    (my/note-taking-init))
 
   (org-roam-db-autosync-mode))
 
