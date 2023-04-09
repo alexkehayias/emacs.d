@@ -1639,7 +1639,9 @@ Saves to a temp file and puts the filename in the kill ring."
   :config
   (org-super-agenda-mode t))
 
-(use-package org-ql)
+;; This causes a CI failure currently
+;; https://github.com/alphapapa/org-ql/issues/345
+;; (use-package org-ql)
 
 (use-package chatgpt-shell
   :straight (:host github :repo "xenodium/chatgpt-shell")
