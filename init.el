@@ -25,24 +25,8 @@
 
 ;; Org-mode
 
-;; Copied from https://github.com/glasserc/etc/commit/3af96f2c780a35d35bdf1b9ac19d80fe2e6ebbf8
-;; Work around built-in org-mode so we can load from ELPA.
-;; First, remove the built-in org directory from the load-path.
-;; Thanks to
-;; http://stackoverflow.com/questions/20603578/emacs-does-not-see-new-installation-of-org-mode/20616703#20616703.
-;; Without this, use-package will try to require org and succeed.
 (eval-when-compile
   (require 'cl))
-
-;; (setq load-path
-;;       (remove-if (lambda (x) (string-match-p "org$" x)) load-path))
-;; ;; ;; Second, trick emacs into forgetting about the fact that org is
-;; ;; ;; a "built-in" package by removing it from package--builtins.
-;; ;; ;; Without this, package will refuse to install org, since it's
-;; ;; ;; "already installed".
-;; ;; ;; package--builtins is only initialized when a query needs it.
-;; (package-built-in-p 'org)   ;; prime package--builtins
-;; (setq package--builtins (assq-delete-all 'org package--builtins))
 
 (setq org-refile-path (or (getenv "ORG_REFILE_PATH") "~/Org/refile.org"))
 
@@ -67,31 +51,11 @@
 
   ;; Don't show full size images otherwise it's too large when
   ;; displaying inline
-  (setq org-image-actual-width "100%")
+  (setq org-image-actual-width nil)
 
   ;; Define global workflows
   (setq org-todo-keywords
         '((sequence "TODO(t!)" "NEXT(n!)" "WAITING(w@/!)" "SOMEDAY(s!)" "|" "DONE(d!)" "CANCELED(c@/!)")))
-
-  ;; (defadvice org-agenda-list (around split-vertically activate)
-  ;;   (let ((split-width-threshold 80))
-  ;;     ad-do-it))
-
-  ;; (defun org-agenda-and-todos ()
-  ;;   (interactive)
-  ;;   (org-agenda nil "n"))
-
-  ;; (defun org-agenda-and-todos-two-weeks ()
-  ;;   (interactive)
-  ;;   (let ((current-prefix-arg 14))
-  ;;     (call-interactively 'org-agenda-and-todos)))
-
-  ;; (defun org-agenda-and-todos-last-week ()
-  ;;   (interactive)
-  ;;   (let ((current-prefix-arg -7))
-  ;;     (call-interactively 'org-agenda-and-todos)))
-
-  ;; (setq org-agenda-prefix-format '((agenda . "  %-11:c %?-2 t%s")))
 
   ;; Set up custom agenda commands
 
