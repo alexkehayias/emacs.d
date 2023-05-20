@@ -62,6 +62,7 @@
  ("project" . "5347dfc5f32b0408bf4ff7bbace7b2356cf59a8f")
  ("projectile" . "4e6f66c329e57d66269b4bd3fc02518eb0c677bc")
  ("python-mode" . "dcb376044d020dfe30f8e4273e61863b7d9615ce")
+ ("pyvenv" . "31ea715f2164dd611e7fc77b26390ef3ca93509b")
  ("queue" . "130c2d656cd5d7376552272fab9e50a7c37d0c4a")
  ("rainbow-delimiters" . "a32b39bdfe6c61c322c37226d66e1b6d4f107ed0")
  ("ripgrep.el" . "40e871dcc4519a70981e9f28acea304692a60978")

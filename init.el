@@ -96,16 +96,6 @@
                           ((org-agenda-overriding-header "DELEGATED\n")
                            (org-agenda-prefix-format "  %-11:c %?b")
                            (org-agenda-todo-keyword-format "")))))
-           ("b" "Today's Agenda (Alt)"
-            ((tags "CATEGORY=\"goals\""
-                   ((org-agenda-overriding-header "GOALS")
-                    (org-agenda-remove-tags t)
-                    (org-agenda-prefix-format "")
-                    (org-agenda-todo-keyword-format "")))
-             (todo "NEXT"
-                   ((org-agenda-overriding-header "Next")
-                    (org-agenda-remove-tags t)))))
-
            ("r" "Daily Review"
             (
              (agenda "" (
@@ -195,9 +185,6 @@
   (setq org-startup-indented t)
 
   ;; Agenda
-  (setq org-agenda-text-search-extra-files
-	'(agenda-archives
-	  "~/Org/notes.org_archive"))
   (define-key global-map (kbd "C-c a") 'org-agenda)
   (define-key global-map (kbd "C-c C-a") 'org-agenda)
 
@@ -344,8 +331,6 @@
 (global-set-key (kbd "M-n") 'flymake-goto-next-error)
 (global-set-key (kbd "M-p") 'flymake-goto-prev-error)
 
-(setq completion-styles '(flex basic partial-completion emacs22))
-
 ;; Copy file name to clipboard
 (defun copy-file-name ()
   "Put the current file name on the clipboard"
@@ -421,6 +406,16 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-to-list 'display-buffer-alist
 	       '(".*COMMIT_EDITMSG". ((display-buffer-pop-up-window) .
 				      ((inhibit-same-window . t))))))
+
+;; Completion
+
+;; TAB cycle if there are only few candidates
+(setq completion-cycle-threshold 3)
+;; Enable indentation+completion using the TAB key.
+;; `completion-at-point' is often bound to M-TAB.
+(setq tab-always-indent 'complete)
+;; Use fuzzy matching
+(setq completion-styles '(flex basic partial-completion emacs22))
 
 ;; Web mode
 (use-package web-mode
@@ -559,6 +554,19 @@ Saves to a temp file and puts the filename in the kill ring."
    '((python . t)))
   (add-hook 'python-mode-hook #'eglot-ensure)
   (setq-default py-shell-name "python3"))
+
+(use-package pyvenv
+  :ensure t
+  :config
+  (pyvenv-mode t)
+
+  ;; Set correct Python interpreter
+  (setq pyvenv-post-activate-hooks
+        (list (lambda ()
+                (setq python-shell-interpreter (concat pyvenv-virtual-env "bin/ipython")))))
+  (setq pyvenv-post-deactivate-hooks
+        (list (lambda ()
+                (setq python-shell-interpreter "ipython")))))
 
 ;; Format line numbers nicely
 (setq linum-format (quote " %3d "))
@@ -1389,6 +1397,7 @@ Saves to a temp file and puts the filename in the kill ring."
   :config
   ;; Use helm with M-x
   (global-set-key (kbd "M-x") 'helm-M-x)
+  (setq helm-completion-style 'emacs)
   ;; Enables helm everywhere, not compatible with ido-everywhere!
   (helm-mode))
 
