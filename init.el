@@ -53,6 +53,11 @@
   ;; displaying inline
   (setq org-image-actual-width nil)
 
+  ;; Save notes into the logbook
+  (setq org-log-into-drawer t)
+  ;; Add logs for done to the logbook
+  (setq org-log-done t)
+
   ;; Define global workflows
   (setq org-todo-keywords
         '((sequence "TODO(t!)" "NEXT(n!)" "WAITING(w@/!)" "SOMEDAY(s!)" "|" "DONE(d!)" "CANCELED(c@/!)")))
@@ -181,7 +186,8 @@
   (setq org-src-preserve-indentation t)
 
   ;; Timestamp new todos
-  (setq org-log-done 'time)
+  ;; (setq org-log-done 'time)
+
   (setq org-startup-indented t)
 
   ;; Agenda
@@ -482,6 +488,8 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; https://github.com/joaotavora/eglot/commit/d0a657e81c5b02529c4f32c2e51e00bdf4729a9e
   (defun eglot--major-mode (server) (car (eglot--major-modes server)))
 
+  (add-to-list 'eglot-stay-out-of 'flyspell)
+
   ;; Better support for rust projects with multiple sub projects
   (defun my-project-try-cargo-toml (dir)
     (when-let* ((output
@@ -700,7 +708,9 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-hook 'python-mode-hook (lambda () (flyspell-prog-mode)))
   (add-hook 'coffee-mode-hook (lambda () (flyspell-prog-mode)))
   (add-hook 'hbs-mode-hook (lambda () (flyspell-prog-mode)))
-  (add-hook 'org-mode-hook (lambda () (flyspell-prog-mode))))
+  ;; Disable in org-mode because it is too slow
+  ;; (add-hook 'org-mode-hook (lambda () (flyspell-mode -1)))
+  )
 
 ;; Use spaces instead of tabs when indenting
 (setq-default indent-tabs-mode nil)
@@ -1517,7 +1527,7 @@ Saves to a temp file and puts the filename in the kill ring."
         doom-themes-enable-italic t)
   (doom-themes-org-config)
   (doom-themes-visual-bell-config)
-  (load-theme 'doom-moonlight t))
+  (load-theme 'doom-monokai-octagon t))
 
 (use-package doom-modeline
   :hook (after-init . doom-modeline-mode)
@@ -1617,7 +1627,6 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; (use-package org-ql)
 
 (use-package chatgpt-shell
-  :straight (:host github :repo "xenodium/chatgpt-shell")
   :config
   (setq chatgpt-shell-openai-key (or (getenv "OPENAI_API_KEY") "")))
 
