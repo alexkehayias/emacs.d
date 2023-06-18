@@ -1603,7 +1603,9 @@ Saves to a temp file and puts the filename in the kill ring."
 
 (add-hook 'find-file-hook 'my/vc-off-if-remote)
 
-(use-package org-remark)
+(use-package org-remark
+  :config
+  (org-remark-global-tracking-mode +1))
 
 (use-package org-download
   :config
@@ -1612,7 +1614,6 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package mastodon
   :ensure t
   :config
-  ;; I am @cpbotha@emacs.ch on Mastodon which translates to:
   (setq mastodon-instance-url "https://mastodon.social")
   (setq mastodon-active-user "alexkehayias"))
 

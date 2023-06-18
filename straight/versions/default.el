@@ -7,7 +7,7 @@
  ("compat" . "81378ce2549e6c6df5141d459036438cb98b9ad3")
  ("dash.el" . "f9e6602ac9966b74a5ba6e3d332535543c84f4d5")
  ("docker-tramp.el" . "930d7b46c180d8a13240a028c1b40af84f2a3219")
- ("doom-modeline" . "c705089c8dd689e7d19edd3c148571cee2fb2864")
+ ("doom-modeline" . "a41f31283942fe8e3853240a486dbcda31734d32")
  ("eglot" . "d1159172c9d436d7e649207565c606e9e572a8db")
  ("el-get" . "c11d12a1763c1183118a92a60dd048380b41f48d")
  ("eldoc" . "88f5e70a8868bef0d685a57a623e51a233a33380")
