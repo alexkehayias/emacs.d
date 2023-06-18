@@ -12,3 +12,12 @@ straight/
 amx-items
 org-roam.db
 recentf
+.DS_Store
+.cache/
+eln-cache/
+emojis/
+eshell/
+mastodon.plstore
+persist/
+request/
+marginalia.org
