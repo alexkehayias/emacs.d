@@ -1529,6 +1529,8 @@ Saves to a temp file and puts the filename in the kill ring."
   (doom-themes-visual-bell-config)
   (load-theme 'doom-monokai-octagon t))
 
+(use-package nerd-icons)
+
 (use-package doom-modeline
   :hook (after-init . doom-modeline-mode)
   :config
@@ -1605,6 +1607,11 @@ Saves to a temp file and puts the filename in the kill ring."
 
 (use-package org-remark
   :config
+  (define-key global-map (kbd "C-c m m") #'org-remark-mark)
+  (define-key org-remark-mode-map (kbd "C-c m o") #'org-remark-open)
+  (define-key org-remark-mode-map (kbd "C-c m n") #'org-remark-view-next)
+  (define-key org-remark-mode-map (kbd "C-c m p") #'org-remark-view-prev)
+  (define-key org-remark-mode-map (kbd "C-c m r") #'org-remark-remove)
   (org-remark-global-tracking-mode +1))
 
 (use-package org-download
