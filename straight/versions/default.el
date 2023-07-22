@@ -26,7 +26,7 @@
  ("expand-region.el" . "7e5bbe2763c12bae3e77fe0c49bcad05ff91dbfe")
  ("f.el" . "50af874cd19042f17c8686813d52569b1025c76a")
  ("flx" . "e3b3f0533e44c5250ce73d728b59a7e96c692b5d")
- ("flymake" . "cf0eb2a47125be42973822e5f91b33d5681bfd4c")
+ ("flymake" . "831d55146d6b743d9e89307780ed9c30dfb02982")
  ("glsl-mode" . "9b2e5f28e489a1f73c4aed734105618ac0dc0c43")
  ("gnu-elpa-mirror" . "52eecca7b2812cb652d29952f594b450f81988cb")
  ("gnuplot" . "d1a6a606dcb389a7c91a6b0d9fb995434df561be")

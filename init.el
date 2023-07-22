@@ -221,6 +221,8 @@
 		 "* %? :note:\n%U\n%a\n")
 		("m" "Meeting" entry (file org-refile-path)
 		 "* Meeting w/%? %<%Y-%m-%d> :meeting:\n%U")
+		("s" "Meeting" entry (file org-refile-path)
+		 "* Meeting w/%? %<%Y-%m-%d> :meeting:sales:\n%U")
 		("i" "Interview" entry (file org-refile-path)
 		 "* Interview w/%? %<%Y-%m-%d> :interview:\n%U"))))
 
@@ -482,7 +484,10 @@ Saves to a temp file and puts the filename in the kill ring."
 
 (setq grammarly-client-id (or (getenv "GRAMMARLY_CLIENT_ID") "client_testing"))
 
+(use-package project :ensure t)
+
 (use-package eglot
+  :after (project projectile)
   :config
   ;; Fix breaking change introduced in
   ;; https://github.com/joaotavora/eglot/commit/d0a657e81c5b02529c4f32c2e51e00bdf4729a9e
