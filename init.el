@@ -347,7 +347,10 @@
                       (file-name-directory default-directory)
                     (buffer-file-name))))
     (when filename
-      (x-select-text filename))))
+      ;; Save to clipboard
+      (x-select-text filename)
+      ;; Save to kill ring
+      (kill-append filename 0))))
 
 ;; Screenshot as SVG using cairo (if emacs was built with --with-cairo)
 (defun screenshot-svg ()
