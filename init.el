@@ -255,7 +255,31 @@
   (setq org-duration-format (quote h:mm))
 
   ;; Don't prompt for confirmation when exporting babel blocks
-  (setq org-confirm-babel-evaluate nil))
+  (setq org-confirm-babel-evaluate nil)
+
+  (defun org-headline-completions ()
+    "Return a list of all headlines in the current Org mode buffer."
+    (let ((headlines '()))
+      (dolist (file (org-agenda-files))
+        (with-current-buffer (find-file-noselect file)
+          (org-element-map (org-element-parse-buffer) 'headline
+            (lambda (headline)
+              (push (org-element-property :raw-value headline) headlines)))))
+      headlines))
+
+  (defun my/org-agenda-completions-at-point ()
+    "Function to be used as `completion-at-point' in Org mode."
+    (when (looking-back "@\\(\\(?:\\sw\\|\\s_\\)+\\)")
+      (let* ((start (match-beginning 1))
+             (end (point))
+             (completions (org-headline-completions)))
+        (list start end completions))))
+
+  (defun my/org-agenda-completion-hook ()
+    "Configure org-mode for completion at point for org-agenda headlines."
+    (add-to-list 'completion-at-point-functions 'my/org-agenda-completions-at-point))
+
+  (add-hook 'org-mode-hook 'my/org-agenda-completion-hook))
 
 
 ;; macOS settings
@@ -386,8 +410,7 @@ Saves to a temp file and puts the filename in the kill ring."
                           (agenda . 5)))
   (setq dashboard-set-heading-icons t)
   (setq dashboard-set-file-icons t)
-  (setq show-week-agenda-p t)
-  )
+  (setq show-week-agenda-p t))
 
 ;; Emdash
 (defun insert-em-dash ()
@@ -1638,9 +1661,26 @@ Saves to a temp file and puts the filename in the kill ring."
   :config
   (org-super-agenda-mode t))
 
-;; This causes a CI failure currently
+;; This fixes a CI failure currently with org-ql
 ;; https://github.com/alphapapa/org-ql/issues/345
-;; (use-package org-ql)
+(defalias 'byte-run--set-speed
+  #'(lambda (f _args val)
+      (list 'function-put (list 'quote f)
+            ''speed (list 'quote val))))
+
+(use-package org-ql
+  :straight (org-ql :type git
+                    :host github
+                    :repo "alphapapa/org-ql"))
+
+;; Fix an issue where the build did not contain helm-org-ql.el
+(use-package helm-org-ql
+  :straight (helm-org-ql :type git
+                    :host github
+                    :repo "alphapapa/org-ql"
+                    :files ("helm-org-ql.el"))
+  :config
+  (define-key global-map (kbd "C-c s") #'helm-org-ql-agenda-files))
 
 (use-package chatgpt-shell
   :config
