@@ -6,7 +6,7 @@
   "Variable to store the org-ai process.")
 
 (defvar org-ai-cli-file-path "~/Projects/org-ai/src/chat.py"
-  "Path to the program used by `org-ai'")
+  "Path to the program used by `org-ai-shell'")
 
 (defvar org-ai-cli-arguments '()
   "Commandline arguments to pass to `org-ai'.")
@@ -16,16 +16,16 @@
     ;; example definition
     (define-key map "\t" 'completion-at-point)
     map)
-  "Basic mode map for `org-ai'.")
+  "Basic mode map for `org-ai-shell'.")
 
 (defvar org-ai-prompt-regexp "^\\(?:\\[[^@]+@[^@]+\\]\\)"
-  "Prompt for `org-ai'.")
+  "Prompt for `org-ai-shell'.")
 
 (defvar org-ai-buffer-name "*Org AI*"
   "Name of the buffer to use for the `org-ai' comint instance.")
 
-(defun org-ai ()
-  "Run an inferior instance of `org-ai-cli' inside Emacs."
+(defun org-ai-shell ()
+  "Run an inferior instance of `org-ai' inside Emacs."
   (interactive)
   (let* ((org-ai-program org-ai-cli-file-path)
          (buffer (get-buffer-create org-ai-buffer-name))
@@ -35,7 +35,7 @@
     ;; mode.
     (unless proc-alive
       (with-current-buffer buffer
-        (apply 'make-comint-in-buffer "Org-Ai" buffer
+        (apply 'make-comint-in-buffer "Org AI" buffer
                org-ai-program nil org-ai-cli-arguments)
         (org-ai-mode)))
     ;; Regardless, provided we have a valid buffer, we pop to it.
@@ -48,7 +48,7 @@
   )
 
 (define-derived-mode org-ai-mode comint-mode "Org AI"
-  "Major mode for `org-ai'.
+  "Major mode for `org-ai-shell'.
 
 \\<org-ai-mode-map>"
   (setq comint-prompt-read-only t)
@@ -56,3 +56,5 @@
   (set (make-local-variable 'paragraph-separate) "\\'"))
 
 (add-hook 'org-ai-mode-hook 'org-ai--initialize)
+
+(provide 'org-ai-shell)

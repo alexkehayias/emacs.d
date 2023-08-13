@@ -23,6 +23,20 @@
 (straight-use-package 'use-package)
 (setq straight-use-package-by-default t)
 
+(use-package emacs
+  :init
+  ;; TAB cycle if there are only few candidates
+  (setq completion-cycle-threshold 3)
+
+  ;; Emacs 28: Hide commands in M-x which do not apply to the current mode.
+  ;; Corfu commands are hidden, since they are not supposed to be used via M-x.
+  ;; (setq read-extended-command-predicate
+  ;;       #'command-completion-default-include-p)
+
+  ;; Enable indentation+completion using the TAB key.
+  ;; `completion-at-point' is often bound to M-TAB.
+  (setq tab-always-indent 'complete))
+
 ;; Org-mode
 
 (eval-when-compile
@@ -88,19 +102,21 @@
                            (org-agenda-scheduled-leaders '("Scheduled: ""Sched.%2dx: "))
                            (org-agenda-deadline-leaders '("Deadline:  ""In %d days: " "%d days ago: "))
                            (org-agenda-time-grid (quote ((today require-timed remove-match) () "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))))
+               (todo "WAITING"
+                     ((org-agenda-overriding-header "WAITING\n")
+                      (org-agenda-remove-tags t)))
                (todo "NEXT"
                      ((org-agenda-overriding-header "NEXT")
                       (org-agenda-remove-tags t)
                       (org-super-agenda-groups '((:auto-priority t)))
                       (org-agenda-sorting-strategy
                        '(priority-down category-keep))))
-               (todo "WAITING"
-                     ((org-agenda-overriding-header "WAITING\n")
-                      (org-agenda-remove-tags t)))
                (tags-todo "delegate"
                           ((org-agenda-overriding-header "DELEGATED\n")
                            (org-agenda-prefix-format "  %-11:c %?b")
-                           (org-agenda-todo-keyword-format "")))))
+                           (org-agenda-todo-keyword-format "")
+                           (org-super-agenda-groups '((:auto-tags t)))
+                           ))))
            ("r" "Daily Review"
             (
              (agenda "" (
@@ -190,6 +206,18 @@
 
   (setq org-startup-indented t)
 
+  (defun count-headings-in-region (start end)
+    "Count the number of level 1 headings in the region."
+    (interactive "r")
+    (save-excursion
+      (save-restriction
+        (narrow-to-region start end)
+        (goto-char (point-min))
+        (let ((count 0))
+          (while (re-search-forward "^\\* " nil t)
+            (setq count (1+ count)))
+          (message "Number of level 1 headings: %d" count)))))
+
   ;; Agenda
   (define-key global-map (kbd "C-c a") 'org-agenda)
   (define-key global-map (kbd "C-c C-a") 'org-agenda)
@@ -224,7 +252,7 @@
 		("s" "Meeting" entry (file org-refile-path)
 		 "* Meeting w/%? %<%Y-%m-%d> :meeting:sales:\n%U")
 		("i" "Interview" entry (file org-refile-path)
-		 "* Interview w/%? %<%Y-%m-%d> :interview:\n%U"))))
+		 "* Interview w/%? %<%Y-%m-%d> :interview:recruiting:\n%U"))))
 
   ;; Auto mark parent todos as done if childrend are done
   (defun org-summary-todo (n-done n-not-done)
@@ -254,8 +282,12 @@
   ;; Time format for clock table durations as h:mm
   (setq org-duration-format (quote h:mm))
 
-  ;; Don't prompt for confirmation when exporting babel blocks
-  (setq org-confirm-babel-evaluate nil)
+  ;; Prompt for confirmation when exporting babel blocks
+  (setq org-confirm-babel-evaluate t)
+
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((shell . t)))
 
   (defun org-headline-completions ()
     "Return a list of all headlines in the current Org mode buffer."
@@ -1682,9 +1714,50 @@ Saves to a temp file and puts the filename in the kill ring."
   :config
   (define-key global-map (kbd "C-c s") #'helm-org-ql-agenda-files))
 
+
+(use-package shell-maker
+  :straight (:host github :repo "xenodium/chatgpt-shell" :files ("shell-maker.el")))
+
+(use-package chatgpt-shell
+  :requires shell-maker
+  :straight (:host github :repo "xenodium/chatgpt-shell" :files ("chatgpt-shell.el"))
+  :config (setq chatgpt-shell-openai-key (or (getenv "OPENAI_API_KEY") "")))
+
 (use-package chatgpt-shell
   :config
   (setq chatgpt-shell-openai-key (or (getenv "OPENAI_API_KEY") "")))
+
+(use-package corfu
+  ;; Optional customizations
+  :custom
+  (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
+  (corfu-auto t)                 ;; Enable auto completion
+  (corfu-separator ?\s)          ;; Orderless field separator
+  ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
+  ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
+  ;; (corfu-preview-current nil)    ;; Disable current candidate preview
+  ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
+  ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
+  ;; (corfu-scroll-margin 5)        ;; Use scroll margin
+
+  ;; Enable Corfu only for certain modes.
+  ;; :hook ((prog-mode . corfu-mode)
+  ;;        (shell-mode . corfu-mode)
+  ;;        (eshell-mode . corfu-mode))
+
+  ;; Enable Corfu globally.
+  ;; See also `corfu-exclude-modes'.
+  :init
+  (global-corfu-mode))
+
+(use-package orderless
+  :init
+  ;; Configure a custom style dispatcher (see the Consult wiki)
+  ;; (setq orderless-style-dispatchers '(+orderless-dispatch)
+  ;;       orderless-component-separator #'orderless-escapable-split-on-space)
+  (setq completion-styles '(orderless basic)
+        completion-category-defaults nil
+        completion-category-overrides '((file (styles . (partial-completion))))))
 
 ;; Display macros inline in buffers
 (add-to-list 'font-lock-extra-managed-props 'display)
@@ -1704,13 +1777,19 @@ Saves to a temp file and puts the filename in the kill ring."
                           text
                         input-str)))))))
 
-;; Experimental ox-notion backend
-(add-to-list 'load-path "~/.emacs.d/ox-notion/")
-(require 'ox-notion)
+;; Experimental ox-notion export backend
+(add-to-list 'load-path (expand-file-name "ox-notion" user-emacs-directory))
+(use-package ox-notion :ensure nil :straight nil)
+
+;; Experimental org-ai shell
+(add-to-list 'load-path (expand-file-name "org-ai-shell" user-emacs-directory))
+(use-package org-ai-shell
+  :requires shell-maker
+  :ensure nil
+  :straight nil)
 
 ;; Store customizations in a separate file
 (setq custom-file "~/.emacs.d/.customizations.el")
 (load custom-file t)
 
 (provide 'init)
-(put 'narrow-to-region 'disabled nil)
