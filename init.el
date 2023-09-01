@@ -67,6 +67,13 @@
   ;; displaying inline
   (setq org-image-actual-width nil)
 
+  (defun org-image-resize (frame)
+    (when (derived-mode-p 'org-mode)
+      (setq org-image-actual-width (/ (window-pixel-width) 2))
+      (org-redisplay-inline-images)))
+
+  (add-hook 'window-size-change-functions 'org-image-resize)
+
   ;; Save notes into the logbook
   (setq org-log-into-drawer t)
   ;; Add logs for done to the logbook
