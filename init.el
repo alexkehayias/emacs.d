@@ -1,3 +1,5 @@
+;; This is needed or emacs 29 won't load
+(defvar native-comp-deferred-compilation-deny-list nil)
 ;; Initialize straight.el and use-package.el
 ;; Assumes every use-package uses straight
 (setq package-enable-at-startup nil)
@@ -90,6 +92,11 @@
              ("a" "Today's Agenda"
               ((tags "CATEGORY=\"goals\""
                      ((org-agenda-overriding-header "GOALS\n")
+                      (org-agenda-remove-tags t)
+                      (org-agenda-prefix-format "")
+                      (org-agenda-todo-keyword-format "")))
+               (tags "CATEGORY=\"weekly_goals\""
+                     ((org-agenda-overriding-header "WEEKLY GOALS\n")
                       (org-agenda-remove-tags t)
                       (org-agenda-prefix-format "")
                       (org-agenda-todo-keyword-format "")))
@@ -915,10 +922,6 @@ Saves to a temp file and puts the filename in the kill ring."
   ((after-init . (lambda ()
                    (advice-add 'org-roam-capture
                                :after
-                               'my/note-taking-init)
-
-                   (advice-add 'org-roam-capture
-                               :after
                                'my/org-roam-capture-set-file-name)
 
                    (advice-add 'org-roam-dailies-capture-today
@@ -927,12 +930,7 @@ Saves to a temp file and puts the filename in the kill ring."
 
                    (advice-add 'org-roam-dailies-capture-today
                                :after
-                               'my/org-roam-capture-set-file-name)
-
-                   ;; (advice-add 'org-roam-node-visit
-                   ;;             :after
-                   ;;             'my/note-taking-init)
-                   ))
+                               'my/org-roam-capture-set-file-name)))
    org-roam-capture-new-node-hook . (lambda () (my/note-taking-init)))
 
   :init
@@ -1200,24 +1198,28 @@ Saves to a temp file and puts the filename in the kill ring."
                           "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--${slug}.org\" (current-time) t)"
                           "#+TITLE: ${title}\n#+DATE: %<%Y-%m-%d>\n\n")
                  :unnarrowed t)
+                ;; Private notes are not exported
+                ("p" "Private" plain
+                 "%?"
+                 :if-new (file+head
+                          "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--${slug}.org\" (current-time) t)"
+                          "#+TITLE: ${title}\n#+DATE: %<%Y-%m-%d>\n#+FILETAGS: private\n\n")
+                 :unnarrowed t)
+                ;; Sections notes are exported as their own page
                 ("s" "Section" plain
                   "%?"
                   :if-new (file+head
                            "${slug}.org"
                            "#+TITLE: ${title}\n#+FILETAGS: section\n\n")
                   :unnarrowed t)
+                ;; Projects track long running work of related tasks
                 ("P" "Project" plain
                  "%?"
                  :if-new (file+head
                           "%(format-time-string \"%Y-%m-%d--project-${slug}.org\" (current-time) t)"
                           "#+TITLE: ${title}\n#+DATE: %<%Y-%m-%d>\n#+CATEGORY: ${slug}\n#+FILETAGS: private project\n\n")
                  :unnarrowed t)
-                ("p" "Project Note" plain
-                 "%?"
-                 :if-new (file+head
-                          "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--project-${slug}.org\" (current-time) t)"
-                          "#+TITLE: ${title}\n#+DATE: %<%Y-%m-%d>\n#+FILETAGS: private project_note\n\n")
-                 :unnarrowed t)
+                ;; An entity is a person or place used for backlinks as a pseudo CRM
                 ("e" "Entity" plain
                  "%?"
                  :if-new (file+head
@@ -1791,7 +1793,6 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; Experimental org-ai shell
 (add-to-list 'load-path (expand-file-name "org-ai-shell" user-emacs-directory))
 (use-package org-ai-shell
-  :requires shell-maker
   :ensure nil
   :straight nil)
 
