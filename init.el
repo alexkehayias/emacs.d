@@ -29,7 +29,6 @@
   :init
   ;; TAB cycle if there are only few candidates
   (setq completion-cycle-threshold 3)
-
   ;; Emacs 28: Hide commands in M-x which do not apply to the current mode.
   ;; Corfu commands are hidden, since they are not supposed to be used via M-x.
   ;; (setq read-extended-command-predicate
@@ -303,23 +302,51 @@
    'org-babel-load-languages
    '((shell . t)))
 
-  (defun org-headline-completions ()
-    "Return a list of all headlines in the current Org mode buffer."
-    (let ((headlines '()))
-      (dolist (file (org-agenda-files))
-        (with-current-buffer (find-file-noselect file)
-          (org-element-map (org-element-parse-buffer) 'headline
-            (lambda (headline)
-              (push (org-element-property :raw-value headline) headlines)))))
-      headlines))
-
+  ;; [at] completion for org headlines
   (defun my/org-agenda-completions-at-point ()
     "Function to be used as `completion-at-point' in Org mode."
-    (when (looking-back "@\\(\\(?:\\sw\\|\\s_\\)+\\)")
+    (when (looking-back "@\\(\\(?:\\sw\\|\\s_\\|\\s-\\|\\s-:\\)+\\)")
+      (defvar heading-to-id (make-hash-table :test 'equal))
       (let* ((start (match-beginning 1))
              (end (point))
-             (completions (org-headline-completions)))
-        (list start end completions))))
+             (input (match-string-no-properties 1))
+             (candidates (org-ql-select
+                           (org-agenda-files)
+                           (org-ql--query-string-to-sexp input)
+                           ;; Avoid having to look up the ID again
+                           ;; since we are visiting all the locations
+                           ;; with org-ql anyway
+                           :action (lambda ()
+                                     (let* ((buf (buffer-name))
+                                            (heading (org-get-heading t))
+                                            (outline-path (org-get-outline-path t t))
+                                            (key
+                                             (org-format-outline-path outline-path nil buf))
+                                            (candidate-metadata `(,(org-id-get (point))
+                                                                  ,heading
+                                                                  ,outline-path
+                                                                  ,buf)))
+                                       (puthash heading candidate-metadata heading-to-id)
+                                       heading))))
+             (exit-function (lambda (heading status)
+                              (when (eq status 'finished)
+                                ;; The +1 removes the @ symbol
+                                (delete-char (- (+ (length heading) 1)))
+                                (let* ((dest (gethash heading heading-to-id))
+                                       (heading-id (car dest))
+                                       (heading-no-path (nth 1 dest))
+                                       (heading-outline-path (nth 2 dest))
+                                       (buf (nth 3 dest)))
+                                  (insert
+                                   (format "[[id:%s][%s]]"
+                                           (or heading-id
+                                               ;; If heading has no ID, create one
+                                               (with-current-buffer buf
+                                                 (goto-char (marker-position
+                                                             (org-find-olp heading-outline-path t)))
+                                                 (org-id-get-create)))
+                                           heading-no-path)))))))
+             (list start end candidates :exit-function exit-function))))
 
   (defun my/org-agenda-completion-hook ()
     "Configure org-mode for completion at point for org-agenda headlines."
@@ -1257,11 +1284,7 @@ Saves to a temp file and puts the filename in the kill ring."
         org-roam-ui-update-on-save t
         org-roam-ui-open-on-start t))
 
-;; (use-package which-key
-;;   :config
-;;   (which-key-mode))
-
-;; Macro for running a function repeatedly in the back ground
+;; Macro for running a function repeatedly in the background
 ;; https://github.com/punchagan/dot-emacs/blob/master/punchagan.org
 (defmacro run-with-timer-when-idle (secs idle-time repeat-time function &rest args)
   "Run a function on timer, but only when idle."
@@ -1616,8 +1639,8 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; revert to 13px for font size
 (add-to-list 'default-frame-alist '(font . "Cascadia Code"))
 ;; Make the default face the same font
-(set-face-attribute 'default t :font "Cascadia Code")
-(set-face-attribute 'default nil :height 140)
+(set-face-attribute 'default t :font "Cascadia Code" :weight 'medium)
+(set-face-attribute 'default t :height 140)
 
 ;; Keyboard shortcut for using a big screen
 (setq big-screen nil)
@@ -1742,8 +1765,8 @@ Saves to a temp file and puts the filename in the kill ring."
   (corfu-cycle t)                ;; Enable cycling for `corfu-next/previous'
   (corfu-auto t)                 ;; Enable auto completion
   (corfu-separator ?\s)          ;; Orderless field separator
-  ;; (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
-  ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
+  (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
+  (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
   ;; (corfu-preview-current nil)    ;; Disable current candidate preview
   ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
   ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
@@ -1756,6 +1779,9 @@ Saves to a temp file and puts the filename in the kill ring."
 
   ;; Enable Corfu globally.
   ;; See also `corfu-exclude-modes'.
+  :bind
+  ;; Configure SPC for separator insertion
+  (:map corfu-map ("SPC" . corfu-insert-separator))
   :init
   (global-corfu-mode))
 
