@@ -89,18 +89,9 @@
   (setq org-agenda-custom-commands
            '(
              ("a" "Today's Agenda"
-              ((tags "CATEGORY=\"goals\""
-                     ((org-agenda-overriding-header "GOALS\n")
-                      (org-agenda-remove-tags t)
-                      (org-agenda-prefix-format "")
-                      (org-agenda-todo-keyword-format "")))
-               (tags "CATEGORY=\"weekly_goals\""
-                     ((org-agenda-overriding-header "WEEKLY GOALS\n")
-                      (org-agenda-remove-tags t)
-                      (org-agenda-prefix-format "")
-                      (org-agenda-todo-keyword-format "")))
-               (agenda "" (
-                           (org-agenda-skip-function
+              ((org-ql-block '(and (category "weekly_goals"))
+                        ((org-ql-block-header "WEEKLY GOALS\n")))
+               (agenda "" ((org-agenda-skip-function
                             '(org-agenda-skip-entry-if 'regexp ":delegate:"))
                            (org-agenda-overriding-header "TODAY\n")
                            (org-agenda-span 1)
@@ -115,17 +106,23 @@
                            (org-agenda-scheduled-leaders '("Scheduled: ""Sched.%2dx: "))
                            (org-agenda-deadline-leaders '("Deadline:  ""In %d days: " "%d days ago: "))
                            (org-agenda-time-grid (quote ((today require-timed remove-match) () "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))))
-               (todo "WAITING"
-                     ((org-agenda-overriding-header "WAITING\n")
-                      (org-agenda-remove-tags t)))
-               (todo "NEXT"
-                     ((org-agenda-overriding-header "NEXT")
-                      (org-agenda-remove-tags t)
-                      (org-super-agenda-groups '((:auto-priority t)))
-                      (org-agenda-sorting-strategy
-                       '(priority-down category-keep))))
-               (tags-todo "delegate"
-                          ((org-agenda-overriding-header "DELEGATED\n")
+               (org-ql-block '(and (todo "WAITING\n"))
+                             ((org-ql-block-header "WEEKLY GOALS")
+                              (org-agenda-remove-tags t)))
+               (org-ql-block '(and (todo "NEXT"))
+                             ((org-ql-block-header "NEXT")
+                              (org-agenda-remove-tags t)
+                              (org-super-agenda-groups '((:auto-priority t)))
+                              (org-agenda-sorting-strategy
+                               '(priority-down category-keep))))
+               (org-ql-block '(and (tags "delegate") (or (todo "NEXT") (todo "TODO")))
+                             ((org-ql-block-header "TO DELEGATE\n")
+                              (org-agenda-prefix-format "  %-11:c %?b")
+                              (org-agenda-skip-function
+                               '(org-agenda-skip-entry-if 'nottag "delegate"))
+                              (org-agenda-todo-keyword-format "")))
+               (org-ql-block '(and (tags "delegate") (todo "WAITING"))
+                          ((org-ql-block-header "DELEGATED\n")
                            (org-agenda-prefix-format "  %-11:c %?b")
                            (org-agenda-todo-keyword-format "")
                            (org-super-agenda-groups '((:auto-tags t)))
@@ -150,22 +147,20 @@
                          (org-agenda-scheduled-leaders '("Scheduled: ""Sched.%2dx: "))
                          (org-agenda-deadline-leaders '("Deadline:  ""In %d days: " "%d days ago: "))
                          (org-agenda-time-grid (quote ((today require-timed remove-match) () "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))))
-             (todo ""
-                   ((org-agenda-overriding-header "")
+             (org-ql-block '(todo "TODO")
+                   ((org-ql-block-header "TODO\n")
                     (org-agenda-skip-function '(org-agenda-skip-entry-if 'nottodo '("NEXT" "WAITING")))
                     (org-super-agenda-groups '((:auto-category t)))))))
 
            ("u" "Unscheduled"
             (
-             (todo "TODO"
-                   ((org-agenda-overriding-header "")
+             (org-ql-block '(todo "TODO")
+                   ((org-ql-block-header "")
                     (org-agenda-sorting-strategy '(tsia-down))
                     ;; TODO only show work items
                     ;; TODO update this to show the inactive timestamps
                     (org-agenda-prefix-format '((todo . "  %-11:c %?-2 t%s")))
-                    ))))
-           )
-           )
+                    ))))))
 
   ;; Fix agenda lines wrapping
   (add-hook 'org-agenda-mode-hook
@@ -322,11 +317,11 @@
                                             (outline-path (org-get-outline-path t t))
                                             (key
                                              (org-format-outline-path outline-path nil buf))
-                                            (candidate-metadata `(,(org-id-get (point))
-                                                                  ,heading
-                                                                  ,outline-path
-                                                                  ,buf)))
-                                       (puthash heading candidate-metadata heading-to-id)
+                                            (destination `(,(org-id-get (point))
+                                                           ,heading
+                                                           ,outline-path
+                                                           ,buf)))
+                                       (puthash heading destination heading-to-id)
                                        heading))))
              (exit-function (lambda (heading status)
                               (when (eq status 'finished)
