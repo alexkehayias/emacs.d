@@ -36,7 +36,10 @@
 
   ;; Enable indentation+completion using the TAB key.
   ;; `completion-at-point' is often bound to M-TAB.
-  (setq tab-always-indent 'complete))
+  (setq tab-always-indent 'complete)
+
+  ;; Always turn on winner-mode
+  (winner-mode))
 
 ;; Org-mode
 
@@ -661,7 +664,10 @@ Saves to a temp file and puts the filename in the kill ring."
    'org-babel-load-languages
    '((python . t)))
   (add-hook 'python-mode-hook #'eglot-ensure)
-  (setq-default py-shell-name "python3"))
+  (setq-default py-shell-name "python"
+                python-indent-offset 4
+                ;; Assumes the python source directory is in {PROJECT_ROOT}/src
+                py-python-command-args `("-i" "-c" "import os;import sys;sys.path.append(os.getcwd()+'src')")))
 
 (use-package pyvenv
   :ensure t
@@ -669,12 +675,13 @@ Saves to a temp file and puts the filename in the kill ring."
   (pyvenv-mode t)
 
   ;; Set correct Python interpreter
-  (setq pyvenv-post-activate-hooks
-        (list (lambda ()
-                (setq python-shell-interpreter (concat pyvenv-virtual-env "bin/ipython")))))
-  (setq pyvenv-post-deactivate-hooks
-        (list (lambda ()
-                (setq python-shell-interpreter "ipython")))))
+  ;; (setq pyvenv-post-activate-hooks
+  ;;       (list (lambda ()
+  ;;               (setq python-shell-interpreter (concat pyvenv-virtual-env "bin/ipython")))))
+  ;; (setq pyvenv-post-deactivate-hooks
+  ;;       (list (lambda ()
+  ;;               (setq python-shell-interpreter "ipython"))))
+  )
 
 ;; Format line numbers nicely
 (setq linum-format (quote " %3d "))
@@ -1659,8 +1666,6 @@ Saves to a temp file and puts the filename in the kill ring."
       (set-face-attribute 'default nil :height 150)
       (setq big-screen 1))))
 (global-set-key (kbd "C-x M-b") 'toggle-big-screen)
-
-(use-package docker-tramp)
 
 ;; Add gh codespaces ssh method support for tramp editing
 ;; e.g. C-x C-f /ghcs:codespace-name:/path/to/file :)
