@@ -109,10 +109,10 @@
                (org-ql-block '(and (todo "WAITING\n"))
                              ((org-ql-block-header "WEEKLY GOALS")
                               (org-agenda-remove-tags t)))
-               (org-ql-block '(and (todo "NEXT"))
+               (org-ql-block '(and (todo "NEXT") (not (tags "project_done")))
                              ((org-ql-block-header "NEXT")
                               (org-agenda-remove-tags t)
-                              (org-super-agenda-groups '((:auto-priority t)))
+                              (org-super-agenda-groups '((:auto-priority t) (:auto-category t)))
                               (org-agenda-sorting-strategy
                                '(priority-down category-keep))))
                (org-ql-block '(and (tags "delegate") (or (todo "NEXT") (todo "TODO")))
@@ -133,7 +133,8 @@
                          (org-agenda-skip-function
                           '(org-agenda-skip-entry-if 'regexp ":delegate:"))
                          (org-agenda-overriding-header "Daily Review\n")
-                         (org-agenda-start-with-log-mode '(closed))
+                         ;; (org-agenda-start-with-log-mode '(closed))
+                         (org-agenda-include-inactive-timestamps t)
                          (org-agenda-show-log 'only)
                          (org-agenda-span 1)
                          (org-agenda-skip-scheduled-if-done t)
@@ -147,8 +148,8 @@
                          (org-agenda-scheduled-leaders '("Scheduled: ""Sched.%2dx: "))
                          (org-agenda-deadline-leaders '("Deadline:  ""In %d days: " "%d days ago: "))
                          (org-agenda-time-grid (quote ((today require-timed remove-match) () "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))))
-             (org-ql-block '(todo "TODO")
-                   ((org-ql-block-header "TODO\n")
+             (org-ql-block '(and (todo "TODO") (ts-inactive :on today))
+                   ((org-ql-block-header "CREATED TODAY\n")
                     (org-agenda-skip-function '(org-agenda-skip-entry-if 'nottodo '("NEXT" "WAITING")))
                     (org-super-agenda-groups '((:auto-category t)))))))
 
@@ -720,7 +721,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-to-list 'auto-mode-alist '("\\.shader$" . glsl-mode)))
 
 ;; Linum mode shortcut
-(global-set-key (kbd "C-x l") 'linum-mode)
+(global-set-key (kbd "C-x l") 'display-line-numbers-mode)
 
 ;; iEdit mode
 (global-set-key (kbd "C-x ;") 'iedit-mode)
@@ -1266,6 +1267,14 @@ Saves to a temp file and puts the filename in the kill ring."
     (with-current-buffer (current-buffer)
       (writeroom-mode)))
 
+  ;; When jumping to the note and jumping back, close the other buffer.
+  ;; TODO: This doesn't work for multiple jumps
+  (defun close-buffer-after-mark-goto (around f)
+    (winner-undo))
+
+  (advice-add 'org-mark-ring-goto :around #'close-buffer-after-mark-goto)
+
+  ;; Run org-roam sync on load
   (org-roam-db-autosync-mode))
 
 (use-package org-roam-ui
@@ -1634,8 +1643,8 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; revert to 13px for font size
 (add-to-list 'default-frame-alist '(font . "Cascadia Code"))
 ;; Make the default face the same font
-(set-face-attribute 'default t :font "Cascadia Code" :weight 'medium)
-(set-face-attribute 'default t :height 140)
+(set-face-attribute 'default nil :font "Cascadia Code" :weight 'normal)
+(set-face-attribute 'default nil :height 140)
 
 ;; Keyboard shortcut for using a big screen
 (setq big-screen nil)
@@ -1645,7 +1654,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (if big-screen
       (progn
 	(setq big-screen nil)
-	(set-face-attribute 'default nil :height 120))
+	(set-face-attribute 'default nil :height 140))
     (progn
       (set-face-attribute 'default nil :height 150)
       (setq big-screen 1))))
@@ -1761,7 +1770,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (corfu-auto t)                 ;; Enable auto completion
   (corfu-separator ?\s)          ;; Orderless field separator
   (corfu-quit-at-boundary nil)   ;; Never quit at completion boundary
-  (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
+  ;; (corfu-quit-no-match nil)      ;; Never quit, even if there is no match
   ;; (corfu-preview-current nil)    ;; Disable current candidate preview
   ;; (corfu-preselect 'prompt)      ;; Preselect the prompt
   ;; (corfu-on-exact-match nil)     ;; Configure handling of exact matches
