@@ -256,9 +256,9 @@
 
   (setq org-capture-templates
 	(quote (("t" "To Do" entry (file org-refile-path)
-		 "* TODO %?\n%U")
+		 "* TODO %?\n")
 		("n" "Note" entry (file org-refile-path)
-		 "* %? :note:\n%U\n%a\n")
+		 "* %? :note:\n%a\n")
 		("m" "Meeting" entry (file org-refile-path)
 		 "* Meeting w/%? %<%Y-%m-%d> :meeting:\n%U")
 		("s" "Meeting" entry (file org-refile-path)
