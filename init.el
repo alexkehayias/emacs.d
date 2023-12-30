@@ -258,7 +258,7 @@
 	(quote (("t" "To Do" entry (file org-refile-path)
 		 "* TODO %?\n")
 		("n" "Note" entry (file org-refile-path)
-		 "* %? :note:\n%a\n")
+		 "* %? :note:\n")
 		("m" "Meeting" entry (file org-refile-path)
 		 "* Meeting w/%? %<%Y-%m-%d> :meeting:\n%U")
 		("s" "Meeting" entry (file org-refile-path)
@@ -273,7 +273,7 @@
       (org-todo (if (= n-not-done 0) "DONE" "TODO"))))
 
   ;; Refile
-  (setq org-default-notes-file "~/Org/refile.org")
+  (setq org-default-notes-file org-refile-path)
   ;; Allow refile to the root of a file
   (setq org-refile-use-outline-path 'file)
   ;; Targets include this file and any file contributing to the agenda
@@ -580,8 +580,6 @@ Saves to a temp file and puts the filename in the kill ring."
   (define-key rust-mode-map (kbd "TAB") #'company-indent-or-complete-common)
   (add-hook 'rust-mode-hook #'eglot-ensure))
 
-(setq grammarly-client-id (or (getenv "GRAMMARLY_CLIENT_ID") "client_testing"))
-
 (use-package project :ensure t)
 
 (use-package eglot
@@ -617,13 +615,6 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-to-list 'eglot-server-programs
                '((typescript-mode) "typescript-language-server" "--stdio"))
 
-  (defclass eglot-grammarlylsp (eglot-lsp-server) ()
-    :documentation "Grammarly Language Server.")
-
-  (cl-defmethod eglot-initialization-options ((server eglot-grammarlylsp))
-    "Passes the initializationOptions required to run the server."
-    `(:clientId ,grammarly-client-id))
-
   (setq-default eglot-workspace-configuration
                 '((:pylsp . ((:plugins .
                                        ((:pycodestyle . ((:enabled . :json-false)))
@@ -636,13 +627,7 @@ Saves to a temp file and puts the filename in the kill ring."
 
   (add-hook 'project-find-functions 'my-project-try-pyproject-toml nil nil)
 
-  (add-to-list 'eglot-server-programs '(python-mode . ("pylsp")))
-
-  (add-to-list 'eglot-server-programs
-               `(markdown-mode . (eglot-grammarlylsp ,(executable-find "grammarlylsp"))))
-
-  (add-to-list 'eglot-server-programs
-               `(org-mode . (eglot-grammarlylsp ,(executable-find "grammarlylsp")))))
+  (add-to-list 'eglot-server-programs '(python-mode . ("pylsp"))))
 
 ;; Elisp
 (use-package paredit
@@ -1650,7 +1635,7 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; revert to 13px for font size
 (add-to-list 'default-frame-alist '(font . "Cascadia Code"))
 ;; Make the default face the same font
-(set-face-attribute 'default nil :font "Cascadia Code" :weight 'normal)
+(set-face-attribute 'default nil :font "Cascadia Code" :weight 'medium)
 (set-face-attribute 'default nil :height 140)
 
 ;; Keyboard shortcut for using a big screen
@@ -1663,7 +1648,7 @@ Saves to a temp file and puts the filename in the kill ring."
 	(setq big-screen nil)
 	(set-face-attribute 'default nil :height 140))
     (progn
-      (set-face-attribute 'default nil :height 150)
+      (set-face-attribute 'default nil :height 160)
       (setq big-screen 1))))
 (global-set-key (kbd "C-x M-b") 'toggle-big-screen)
 
@@ -1802,6 +1787,10 @@ Saves to a temp file and puts the filename in the kill ring."
   (setq completion-styles '(orderless basic)
         completion-category-defaults nil
         completion-category-overrides '((file (styles . (partial-completion))))))
+
+(use-package git-auto-commit-mode
+  :config
+  (setq-default gac-debounce-interval 1))
 
 ;; Display macros inline in buffers
 (add-to-list 'font-lock-extra-managed-props 'display)
