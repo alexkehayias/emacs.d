@@ -627,7 +627,9 @@ Saves to a temp file and puts the filename in the kill ring."
 
   (add-hook 'project-find-functions 'my-project-try-pyproject-toml nil nil)
 
-  (add-to-list 'eglot-server-programs '(python-mode . ("pylsp"))))
+  (add-to-list 'eglot-server-programs '(python-mode . ("pylsp")))
+
+  )
 
 ;; Elisp
 (use-package paredit
@@ -918,7 +920,6 @@ Saves to a temp file and puts the filename in the kill ring."
   :bind  (("C-c n l" . org-roam-buffer-toggle)
           ("C-c n g" . org-roam-graph)
           ("C-c n c" . org-roam-capture)
-          ("C-c n i" . org-roam-node-insert)
           ("C-c n j" . org-roam-dailies-capture-today)
           ("C-c n r" . org-roam-random-note)
           ("C-c n u" . org-roam-unlinked-references)
@@ -996,6 +997,13 @@ Saves to a temp file and puts the filename in the kill ring."
                                              "[[id:%s][%s]]"
                                              (org-roam-node-id it)
                                              (org-roam-node-title it))))))
+                   ("Insert web link (markdown)" . (lambda (x)
+                                          (--> x
+                                               (insert
+                                                (format
+                                                 "[%s](https://notes.alexkehayias.com/%s)"
+                                                 (org-roam-node-title it)
+                                                 (file-path-to-slug (org-roam-node-file it)))))))
                    ("Follow backlinks" . (lambda (x)
                                            (let ((candidates
                                                   (--> x
@@ -1013,6 +1021,8 @@ Saves to a temp file and puts the filename in the kill ring."
                                                 :props '(:finalize find-file)))))))))
 
   (global-set-key (kbd "C-c n f") 'helm-org-roam)
+  ;; Alias this for muscle memory even though it uses the same helm function
+  (global-set-key (kbd "C-c n i") 'helm-org-roam)
 
   ;; Customize the org-roam buffer
   (add-to-list 'display-buffer-alist
