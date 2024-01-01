@@ -1024,6 +1024,15 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; Alias this for muscle memory even though it uses the same helm function
   (global-set-key (kbd "C-c n i") 'helm-org-roam)
 
+  ;; Shortcut for running the third action (insert link)
+  ;; This is very hacky but there is no other way to override
+  ;; selecting a helm action with the function keys
+  (defun helm-insert-link ()
+    (interactive)
+    (helm-select-nth-action 2))
+
+  (define-key helm-map (kbd "C-l") #'helm-insert-link)
+
   ;; Customize the org-roam buffer
   (add-to-list 'display-buffer-alist
                '("\\*org-roam\\*"
