@@ -924,6 +924,7 @@ Saves to a temp file and puts the filename in the kill ring."
           ("C-c n r" . org-roam-random-note)
           ("C-c n u" . org-roam-unlinked-references)
           ("C-c n e" . org-roam-to-hugo-md)
+          ("C-c n i" . org-roam-node-insert)
           ;; Full text search notes with an action to insert
           ;; org-mode link
           ("C-c n s" . helm-rg))
@@ -946,8 +947,7 @@ Saves to a temp file and puts the filename in the kill ring."
 
                    (advice-add 'org-roam-dailies-capture-today
                                :after
-                               'my/org-roam-capture-set-file-name)))
-   org-roam-capture-new-node-hook . (lambda () (my/note-taking-init)))
+                               'my/org-roam-capture-set-file-name))))
 
   :init
   (setq org-roam-directory org-roam-notes-path)
@@ -1021,8 +1021,6 @@ Saves to a temp file and puts the filename in the kill ring."
                                                 :props '(:finalize find-file)))))))))
 
   (global-set-key (kbd "C-c n f") 'helm-org-roam)
-  ;; Alias this for muscle memory even though it uses the same helm function
-  (global-set-key (kbd "C-c n i") 'helm-org-roam)
 
   ;; Shortcut for running the third action (insert link)
   ;; This is very hacky but there is no other way to override
@@ -1667,7 +1665,7 @@ Saves to a temp file and puts the filename in the kill ring."
 	(setq big-screen nil)
 	(set-face-attribute 'default nil :height 140))
     (progn
-      (set-face-attribute 'default nil :height 160)
+      (set-face-attribute 'default nil :height 260)
       (setq big-screen 1))))
 (global-set-key (kbd "C-x M-b") 'toggle-big-screen)
 
@@ -1810,6 +1808,19 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package git-auto-commit-mode
   :config
   (setq-default gac-debounce-interval 1))
+
+(use-package org-modern
+  :after org
+  :config
+
+  (global-org-modern-mode)
+
+  (defun my/org-modern-style ()
+    (interactive)
+    (setq-local line-spacing 0.125))
+
+  (add-hook 'org-mode-hook 'my/org-modern-style)
+  (add-hook 'org-agenda-mode-hook 'my/org-modern-style))
 
 ;; Display macros inline in buffers
 (add-to-list 'font-lock-extra-managed-props 'display)
