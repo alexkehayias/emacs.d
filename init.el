@@ -918,7 +918,7 @@ Saves to a temp file and puts the filename in the kill ring."
                         (string-replace "CAPTURE-" "" (buffer-name))))))
 
 (use-package org-roam
-  :after (org helm)
+  :after (org)
   :bind (:map org-mode-map
               ("M-." . org-open-at-point)
               ("M-," . org-mark-ring-goto))
@@ -967,74 +967,74 @@ Saves to a temp file and puts the filename in the kill ring."
   (setq org-roam-dailies-directory org-roam-notes-path)
   ;; Fix helm results wrapping when there are tags
   ;; https://github.com/org-roam/org-roam/issues/1640
-  (require 'helm-mode)
-  (add-to-list 'helm-completing-read-handlers-alist
-               '(org-roam-node-find . helm-completing-read-sync-default-handler))
+  ;; (require 'helm-mode)
+  ;; (add-to-list 'helm-completing-read-handlers-alist
+  ;;              '(org-roam-node-find . helm-completing-read-sync-default-handler))
   ;; Include tags in note search results
   (setq org-roam-node-display-template "${title}      ${tags}")
 
   ;; Custom helm source for searching notes based on
   ;; https://ag91.github.io/blog/2022/02/05/an-helm-source-for-org-roam-v2/
-  (defun helm-org-roam (&optional input candidates)
-    (interactive)
-    (require 'org-roam)
-    (helm
-     :input input
-     :sources (list
-               (helm-build-sync-source "Find note: "
-                 :must-match nil
-                 :fuzzy-match t
-                 :candidates (or candidates (org-roam-node-read--completions))
-                 :persistent-action (lambda (x)
-                                      (--> x
-                                           (view-file (org-roam-node-file it))))
-                 :action
-                 '(("Find File" . (lambda (x)
-                                    (--> x
-                                         (org-roam-node-visit it t))))
-                   ("Preview" . (lambda (x)
-                                  (--> x
-                                       (view-file (org-roam-node-file it)))))
-                   ("Insert link" . (lambda (x)
-                                      (--> x
-                                           (insert
-                                            (format
-                                             "[[id:%s][%s]]"
-                                             (org-roam-node-id it)
-                                             (org-roam-node-title it))))))
-                   ("Insert web link (markdown)" . (lambda (x)
-                                          (--> x
-                                               (insert
-                                                (format
-                                                 "[%s](https://notes.alexkehayias.com/%s)"
-                                                 (org-roam-node-title it)
-                                                 (file-path-to-slug (org-roam-node-file it)))))))
-                   ("Follow backlinks" . (lambda (x)
-                                           (let ((candidates
-                                                  (--> x
-                                                       org-roam-backlinks-get
-                                                       (--map
-                                                        (org-roam-node-title
-                                                         (org-roam-backlink-source-node it))
-                                                        it))))
-                                             (helm-org-roam nil (or candidates (list x))))))))
-               (helm-build-dummy-source
-                   "Create note"
-                 :action '(("Capture note" . (lambda (candidate)
-                                               (org-roam-capture-
-                                                :node (org-roam-node-create :title candidate)
-                                                :props '(:finalize find-file)))))))))
-
-  (global-set-key (kbd "C-c n f") 'helm-org-roam)
+  ;; (defun helm-org-roam (&optional input candidates)
+  ;;   (interactive)
+  ;;   (require 'org-roam)
+  ;;   (helm
+  ;;    :input input
+  ;;    :sources (list
+  ;;              (helm-build-sync-source "Find note: "
+  ;;                :must-match nil
+  ;;                :fuzzy-match t
+  ;;                :candidates (or candidates (org-roam-node-read--completions))
+  ;;                :persistent-action (lambda (x)
+  ;;                                     (--> x
+  ;;                                          (view-file (org-roam-node-file it))))
+  ;;                :action
+  ;;                '(("Find File" . (lambda (x)
+  ;;                                   (--> x
+  ;;                                        (org-roam-node-visit it t))))
+  ;;                  ("Preview" . (lambda (x)
+  ;;                                 (--> x
+  ;;                                      (view-file (org-roam-node-file it)))))
+  ;;                  ("Insert link" . (lambda (x)
+  ;;                                     (--> x
+  ;;                                          (insert
+  ;;                                           (format
+  ;;                                            "[[id:%s][%s]]"
+  ;;                                            (org-roam-node-id it)
+  ;;                                            (org-roam-node-title it))))))
+  ;;                  ("Insert web link (markdown)" . (lambda (x)
+  ;;                                         (--> x
+  ;;                                              (insert
+  ;;                                               (format
+  ;;                                                "[%s](https://notes.alexkehayias.com/%s)"
+  ;;                                                (org-roam-node-title it)
+  ;;                                                (file-path-to-slug (org-roam-node-file it)))))))
+  ;;                  ("Follow backlinks" . (lambda (x)
+  ;;                                          (let ((candidates
+  ;;                                                 (--> x
+  ;;                                                      org-roam-backlinks-get
+  ;;                                                      (--map
+  ;;                                                       (org-roam-node-title
+  ;;                                                        (org-roam-backlink-source-node it))
+  ;;                                                       it))))
+  ;;                                            (helm-org-roam nil (or candidates (list x))))))))
+  ;;              (helm-build-dummy-source
+  ;;                  "Create note"
+  ;;                :action '(("Capture note" . (lambda (candidate)
+  ;;                                              (org-roam-capture-
+  ;;                                               :node (org-roam-node-create :title candidate)
+  ;;                                               :props '(:finalize find-file)))))))))
+  ;;
+  ;; (global-set-key (kbd "C-c n f") 'helm-org-roam)
 
   ;; Shortcut for running the third action (insert link)
   ;; This is very hacky but there is no other way to override
   ;; selecting a helm action with the function keys
-  (defun helm-insert-link ()
-    (interactive)
-    (helm-select-nth-action 2))
+  ;; (defun helm-insert-link ()
+  ;;   (interactive)
+  ;;   (helm-select-nth-action 2))
 
-  (define-key helm-map (kbd "C-l") #'helm-insert-link)
+  ;; (define-key helm-map (kbd "C-l") #'helm-insert-link)
 
   ;; Customize the org-roam buffer
   (add-to-list 'display-buffer-alist
@@ -1516,13 +1516,13 @@ Saves to a temp file and puts the filename in the kill ring."
   (switch-to-buffer nil))               ; return to the initial buffer
 
 ;; Helm
-(use-package helm
-  :config
-  ;; Use helm with M-x
-  (global-set-key (kbd "M-x") 'helm-M-x)
-  (setq helm-completion-style 'emacs)
-  ;; Enables helm everywhere, not compatible with ido-everywhere!
-  (helm-mode))
+;; (use-package helm
+;;   :config
+;;   ;; Use helm with M-x
+;;   (global-set-key (kbd "M-x") 'helm-M-x)
+;;   (setq helm-completion-style 'emacs)
+;;   ;; Enables helm everywhere, not compatible with ido-everywhere!
+;;   (helm-mode))
 
 ;; Projectile
 (use-package projectile
@@ -1579,46 +1579,46 @@ Saves to a temp file and puts the filename in the kill ring."
   (global-set-key (kbd "C-c p s r") 'projectile-ripgrep))
 
 ;; Use helm projectile
-(use-package helm-projectile
-  :config
-  (helm-projectile-on)
+;; (use-package helm-projectile
+;;   :config
+;;   (helm-projectile-on)
 
-  ;; Use ripgrep with helm
-  (setq helm-ag-base-command "rg --vimgrep --no-heading")
-  ;; Fix helm projectile when using rg...
-  ;; https://github.com/syohex/emacs-helm-ag/issues/283
-  (defun helm-projectile-ag (&optional options)
-    "Helm version of projectile-ag."
-    (interactive (if current-prefix-arg (list (read-string "option: " "" 'helm-ag--extra-options-history))))
-    (if (require 'helm-ag nil  'noerror)
-	(if (projectile-project-p)
-	    (let ((helm-ag-command-option options)
-                  (current-prefix-arg nil))
-	      (helm-do-ag (projectile-project-root) (car (projectile-parse-dirconfig-file))))
-	  (error "You're not in a project"))
-      (error "helm-ag not available"))))
+;;   ;; Use ripgrep with helm
+;;   (setq helm-ag-base-command "rg --vimgrep --no-heading")
+;;   ;; Fix helm projectile when using rg...
+;;   ;; https://github.com/syohex/emacs-helm-ag/issues/283
+;;   (defun helm-projectile-ag (&optional options)
+;;     "Helm version of projectile-ag."
+;;     (interactive (if current-prefix-arg (list (read-string "option: " "" 'helm-ag--extra-options-history))))
+;;     (if (require 'helm-ag nil  'noerror)
+;; 	(if (projectile-project-p)
+;; 	    (let ((helm-ag-command-option options)
+;;                   (current-prefix-arg nil))
+;; 	      (helm-do-ag (projectile-project-root) (car (projectile-parse-dirconfig-file))))
+;; 	  (error "You're not in a project"))
+;;       (error "helm-ag not available"))))
 
-(use-package helm-rg
-  :config
-  ;; Add actions for inserting org file link from selected match
-  (defun insert-org-mode-link-from-helm-result (candidate)
-    (interactive)
-    (with-helm-current-buffer
-      (insert (format "[[file:%s][%s]]"
-                      (plist-get candidate :file)
-                      ;; Extract the title from the file name
-                      (subst-char-in-string
-                       ?_ ?\s
-                       (first
-                        (split-string
-                         (first
-                          (last
-                           (split-string (plist-get candidate :file) "\\-")))
-                         "\\.")))))))
+;; (use-package helm-rg
+;;   :config
+;;   ;; Add actions for inserting org file link from selected match
+;;   (defun insert-org-mode-link-from-helm-result (candidate)
+;;     (interactive)
+;;     (with-helm-current-buffer
+;;       (insert (format "[[file:%s][%s]]"
+;;                       (plist-get candidate :file)
+;;                       ;; Extract the title from the file name
+;;                       (subst-char-in-string
+;;                        ?_ ?\s
+;;                        (first
+;;                         (split-string
+;;                          (first
+;;                           (last
+;;                            (split-string (plist-get candidate :file) "\\-")))
+;;                          "\\.")))))))
 
-  (helm-add-action-to-source "Insert org-mode link"
-                             'insert-org-mode-link-from-helm-result
-                             helm-rg-process-source))
+;;   (helm-add-action-to-source "Insert org-mode link"
+;;                              'insert-org-mode-link-from-helm-result
+;;                              helm-rg-process-source))
 
 ;; browse-kill-ring with M-y
 (use-package browse-kill-ring
@@ -1754,13 +1754,13 @@ Saves to a temp file and puts the filename in the kill ring."
                     :repo "alphapapa/org-ql"))
 
 ;; Fix an issue where the build did not contain helm-org-ql.el
-(use-package helm-org-ql
-  :straight (helm-org-ql :type git
-                    :host github
-                    :repo "alphapapa/org-ql"
-                    :files ("helm-org-ql.el"))
-  :config
-  (define-key global-map (kbd "C-c s") #'helm-org-ql-agenda-files))
+;; (use-package helm-org-ql
+;;   :straight (helm-org-ql :type git
+;;                     :host github
+;;                     :repo "alphapapa/org-ql"
+;;                     :files ("helm-org-ql.el"))
+;;   :config
+;;   (define-key global-map (kbd "C-c s") #'helm-org-ql-agenda-files))
 
 
 (use-package shell-maker
@@ -1829,6 +1829,40 @@ Saves to a temp file and puts the filename in the kill ring."
 
 (use-package gptel
   :config (setq gptel-api-key (or (getenv "OPENAI_API_KEY") "")))
+
+(use-package marginalia
+  :ensure t
+  :config
+  (marginalia-mode))
+
+(use-package embark
+  :ensure t
+
+  :bind
+  (("C-." . embark-act)
+   ("M-." . embark-dwim)
+   ("C-h B" . embark-bindings))
+
+  :init
+
+  ;; Optionally replace the key help with a completing-read interface
+  (setq prefix-help-command #'embark-prefix-help-command)
+
+  ;; Show the Embark target at point via Eldoc. You may adjust the
+  ;; Eldoc strategy, if you want to see the documentation from
+  ;; multiple providers. Beware that using this can be a little
+  ;; jarring since the message shown in the minibuffer can be more
+  ;; than one line, causing the modeline to move up and down:
+
+  ;; (add-hook 'eldoc-documentation-functions #'embark-eldoc-first-target)
+  ;; (setq eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
+
+  :config
+  ;; Hide the mode line of the Embark live/completions buffers
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none)))))
 
 ;; Display macros inline in buffers
 (add-to-list 'font-lock-extra-managed-props 'display)
