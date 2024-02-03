@@ -297,6 +297,11 @@
   ;; Prompt for confirmation when exporting babel blocks
   (setq org-confirm-babel-evaluate t)
 
+  ;; Don't run babel code during export This is important because I
+  ;; often write down the code I used in code blocks but I don't want
+  ;; to accidentally run it again
+  (setq org-export-babel-evaluate nil)
+
   (org-babel-do-load-languages
    'org-babel-load-languages
    '((shell . t)))
@@ -1821,6 +1826,9 @@ Saves to a temp file and puts the filename in the kill ring."
 
   (add-hook 'org-mode-hook 'my/org-modern-style)
   (add-hook 'org-agenda-mode-hook 'my/org-modern-style))
+
+(use-package gptel
+  :config (setq gptel-api-key (or (getenv "OPENAI_API_KEY") "")))
 
 ;; Display macros inline in buffers
 (add-to-list 'font-lock-extra-managed-props 'display)
