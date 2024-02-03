@@ -285,7 +285,7 @@
   ;; Allow refile to create parent tasks with confirmation
   (setq org-refile-allow-creating-parent-nodes (quote confirm))
   ;; Use IDO for both buffer and file completion and ido-everywhere to t
-  (setq org-completion-use-ido t)
+  ;; (setq org-completion-use-ido t)
   ;; Use the current window for indirect buffer display
   (setq org-indirect-buffer-display 'current-window)
 
@@ -1401,45 +1401,45 @@ Saves to a temp file and puts the filename in the kill ring."
           (set-buffer-modified-p nil))))))
 
 ;; Make sure we are using ido mode
-(use-package ido
-  :config
-  ;; (setq ido-everywhere t)    ; Not compatible with helm
-  (ido-mode (quote both))
-  (setq ido-use-faces t)
-  ;; Don't magically search for a file that doesn't exist
-  (setq ido-auto-merge-work-directories-length -1)
-  ;; Allow spaces in searches
-  (add-hook 'ido-make-file-list-hook
-            (lambda ()
-              (define-key ido-file-dir-completion-map (kbd "SPC") 'self-insert-command)))
-  )
+;; (use-package ido
+;;   :config
+;;   ;; (setq ido-everywhere t)    ; Not compatible with helm
+;;   (ido-mode (quote both))
+;;   (setq ido-use-faces t)
+;;   ;; Don't magically search for a file that doesn't exist
+;;   (setq ido-auto-merge-work-directories-length -1)
+;;   ;; Allow spaces in searches
+;;   (add-hook 'ido-make-file-list-hook
+;;             (lambda ()
+;;               (define-key ido-file-dir-completion-map (kbd "SPC") 'self-insert-command)))
+;;   )
 
 ;; Use ido inside ido buffer too
-(use-package flx-ido
-  :config
-  (flx-ido-mode 1)
-  (setq ido-enable-flex-matching t)
+;; (use-package flx-ido
+;;   :config
+;;   (flx-ido-mode 1)
+;;   (setq ido-enable-flex-matching t)
 
-  (setq ido-max-directory-size 100000)
+;;   (setq ido-max-directory-size 100000)
 
-  ;; Use the current window when visiting files and buffers with ido
-  (setq ido-default-file-method 'selected-window)
-  (setq ido-default-buffer-method 'selected-window)
+;;   ;; Use the current window when visiting files and buffers with ido
+;;   (setq ido-default-file-method 'selected-window)
+;;   (setq ido-default-buffer-method 'selected-window)
 
-  ;; Disable minibuffer exit for ido
-  (put 'ido-exit-minibuffer 'disabled nil)
+;;   ;; Disable minibuffer exit for ido
+;;   (put 'ido-exit-minibuffer 'disabled nil)
 
-  ;; Display ido results vertically, rather than horizontally
-  (setq ido-decorations (quote ("\n=> " "" "\n   " "\n   ..." "[" "]" " [No match]" " [Matched]" " [Not readable]" " [Too big]" " [Confirm]")))
-  (defun ido-disable-line-truncation ()
-    (set (make-local-variable 'truncate-lines) nil))
-  (add-hook 'ido-minibuffer-setup-hook 'ido-disable-line-truncation)
+;;   ;; Display ido results vertically, rather than horizontally
+;;   (setq ido-decorations (quote ("\n=> " "" "\n   " "\n   ..." "[" "]" " [No match]" " [Matched]" " [Not readable]" " [Too big]" " [Confirm]")))
+;;   (defun ido-disable-line-truncation ()
+;;     (set (make-local-variable 'truncate-lines) nil))
+;;   (add-hook 'ido-minibuffer-setup-hook 'ido-disable-line-truncation)
 
-  ;; Use normal up/down keyboard shortcuts
-  (defun ido-define-keys ()
-    (define-key ido-completion-map (kbd "C-n") 'ido-next-match)
-    (define-key ido-completion-map (kbd "C-p") 'ido-prev-match))
-  (add-hook 'ido-setup-hook 'ido-define-keys))
+;;   ;; Use normal up/down keyboard shortcuts
+;;   (defun ido-define-keys ()
+;;     (define-key ido-completion-map (kbd "C-n") 'ido-next-match)
+;;     (define-key ido-completion-map (kbd "C-p") 'ido-prev-match))
+;;   (add-hook 'ido-setup-hook 'ido-define-keys))
 
 ;; Shells should have color
 (add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
