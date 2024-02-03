@@ -923,6 +923,7 @@ Saves to a temp file and puts the filename in the kill ring."
               ("M-." . org-open-at-point)
               ("M-," . org-mark-ring-goto))
   :bind  (("C-c n l" . org-roam-buffer-toggle)
+          ("C-c n f" . org-roam-node-find)
           ("C-c n g" . org-roam-graph)
           ("C-c n c" . org-roam-capture)
           ("C-c n j" . org-roam-dailies-capture-today)
