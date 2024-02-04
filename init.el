@@ -919,9 +919,9 @@ Saves to a temp file and puts the filename in the kill ring."
 
 (use-package org-roam
   :after (org)
-  :bind (:map org-mode-map
-              ("M-." . org-open-at-point)
-              ("M-," . org-mark-ring-goto))
+  ;; :bind (:map org-mode-map
+  ;;             ("M-." . org-open-at-point)
+  ;;             ("M-," . org-mark-ring-goto))
   :bind  (("C-c n l" . org-roam-buffer-toggle)
           ("C-c n f" . org-roam-node-find)
           ("C-c n g" . org-roam-graph)
@@ -1752,7 +1752,59 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package org-ql
   :straight (org-ql :type git
                     :host github
-                    :repo "alphapapa/org-ql"))
+                    :repo "alphapapa/org-ql")
+  :config
+  ;; Copied from https://sachachua.com/blog/2024/01/using-consult-and-org-ql-to-search-my-org-mode-agenda-files-and-sort-the-results-to-prioritize-heading-matches/
+  (require 'org-ql-view)
+  (defun my-consult-org-ql-agenda-jump ()
+    "Search agenda files with preview."
+    (interactive)
+    (let* ((marker (consult--read
+                    (consult--dynamic-collection
+                     #'my-consult-org-ql-agenda-match)
+                    :state (consult--jump-state)
+                    :category 'consult-org-heading
+                    :prompt "Org QL: "
+                    :sort nil
+                    :lookup #'consult--lookup-candidate))
+           (buffer (marker-buffer marker))
+           (pos (marker-position marker)))
+      ;; based on org-agenda-switch-to
+      (unless buffer (user-error "Trying to switch to non-existent buffer"))
+      (pop-to-buffer-same-window buffer)
+      (goto-char pos)
+      (when (derived-mode-p 'org-mode)
+        (org-fold-show-context 'agenda)
+        (run-hooks 'org-agenda-after-show-hook))))
+
+  (defun my-consult-org-ql-agenda-format (o)
+    (propertize
+     (org-ql-view--format-element o)
+     'consult--candidate (org-element-property :org-hd-marker o)))
+
+  (defun my-consult-org-ql-agenda-match (string)
+    "Return candidates that match STRING.
+     Sort heading matches first, followed by other matches.
+     Within those groups, sort by date and priority."
+    (let* ((query (org-ql--query-string-to-sexp string))
+           (sort '(date reverse priority))
+           (heading-query (-tree-map (lambda (x) (if (eq x 'rifle) 'heading x)) query))
+           (matched-heading
+            (mapcar #'my-consult-org-ql-agenda-format
+                    (org-ql-select 'org-agenda-files heading-query
+                      :action 'element-with-markers
+                      :sort sort)))
+           (all-matches
+            (mapcar #'my-consult-org-ql-agenda-format
+                    (org-ql-select 'org-agenda-files query
+                      :action 'element-with-markers
+                      :sort sort))))
+      (append
+       matched-heading
+       (seq-difference all-matches matched-heading))))
+
+  (define-key global-map (kbd "C-c s") #'my-consult-org-ql-agenda-jump)
+  )
 
 ;; Fix an issue where the build did not contain helm-org-ql.el
 ;; (use-package helm-org-ql
@@ -1949,6 +2001,15 @@ Saves to a temp file and puts the filename in the kill ring."
   ;;;; 5. No project support
   ;; (setq consult-project-function nil)
   )
+
+(use-package embark-consult
+  :ensure t
+  :after (embark consult)
+  :demand t ; only necessary if you have the hook below
+  ;; if you want to have consult previews as you move around an
+  ;; auto-updating embark collect buffer
+  :hook
+  (embark-collect-mode . consult-preview-at-point-mode))
 
 (use-package vertico
   :init
