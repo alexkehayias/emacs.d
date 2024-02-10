@@ -280,12 +280,10 @@
   ;; up to 9 levels deep
   (setq org-refile-targets (quote ((nil :maxlevel . 9)
         			   (org-agenda-files :maxlevel . 9))))
-  ;; Targets complete directly with IDO
+  ;; Targets complete directly
   (setq org-outline-path-complete-in-steps nil)
   ;; Allow refile to create parent tasks with confirmation
   (setq org-refile-allow-creating-parent-nodes (quote confirm))
-  ;; Use IDO for both buffer and file completion and ido-everywhere to t
-  (setq org-completion-use-ido t)
   ;; Use the current window for indirect buffer display
   (setq org-indirect-buffer-display 'current-window)
 
@@ -296,6 +294,11 @@
 
   ;; Prompt for confirmation when exporting babel blocks
   (setq org-confirm-babel-evaluate t)
+
+  ;; Don't run babel code during export This is important because I
+  ;; often write down the code I used in code blocks but I don't want
+  ;; to accidentally run it again
+  (setq org-export-babel-evaluate nil)
 
   (org-babel-do-load-languages
    'org-babel-load-languages
@@ -577,7 +580,6 @@ Saves to a temp file and puts the filename in the kill ring."
 
 (use-package rust-mode
   :config
-  (define-key rust-mode-map (kbd "TAB") #'company-indent-or-complete-common)
   (add-hook 'rust-mode-hook #'eglot-ensure))
 
 (use-package project :ensure t)
@@ -913,20 +915,19 @@ Saves to a temp file and puts the filename in the kill ring."
                         (string-replace "CAPTURE-" "" (buffer-name))))))
 
 (use-package org-roam
-  :after (org helm)
-  :bind (:map org-mode-map
-              ("M-." . org-open-at-point)
-              ("M-," . org-mark-ring-goto))
+  :after (org)
+  ;; :bind (:map org-mode-map
+  ;;             ("M-." . org-open-at-point)
+  ;;             ("M-," . org-mark-ring-goto))
   :bind  (("C-c n l" . org-roam-buffer-toggle)
+          ("C-c n f" . org-roam-node-find)
           ("C-c n g" . org-roam-graph)
           ("C-c n c" . org-roam-capture)
           ("C-c n j" . org-roam-dailies-capture-today)
           ("C-c n r" . org-roam-random-note)
           ("C-c n u" . org-roam-unlinked-references)
           ("C-c n e" . org-roam-to-hugo-md)
-          ;; Full text search notes with an action to insert
-          ;; org-mode link
-          ("C-c n s" . helm-rg))
+          ("C-c n i" . org-roam-node-insert))
 
   :custom
   (org-roam-mode-section-functions
@@ -946,8 +947,7 @@ Saves to a temp file and puts the filename in the kill ring."
 
                    (advice-add 'org-roam-dailies-capture-today
                                :after
-                               'my/org-roam-capture-set-file-name)))
-   org-roam-capture-new-node-hook . (lambda () (my/note-taking-init)))
+                               'my/org-roam-capture-set-file-name))))
 
   :init
   (setq org-roam-directory org-roam-notes-path)
@@ -960,78 +960,8 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-hook 'org-roam-capture-new-node-hook #'eglot-ensure)
 
   (setq org-roam-dailies-directory org-roam-notes-path)
-  ;; Fix helm results wrapping when there are tags
-  ;; https://github.com/org-roam/org-roam/issues/1640
-  (require 'helm-mode)
-  (add-to-list 'helm-completing-read-handlers-alist
-               '(org-roam-node-find . helm-completing-read-sync-default-handler))
   ;; Include tags in note search results
   (setq org-roam-node-display-template "${title}      ${tags}")
-
-  ;; Custom helm source for searching notes based on
-  ;; https://ag91.github.io/blog/2022/02/05/an-helm-source-for-org-roam-v2/
-  (defun helm-org-roam (&optional input candidates)
-    (interactive)
-    (require 'org-roam)
-    (helm
-     :input input
-     :sources (list
-               (helm-build-sync-source "Find note: "
-                 :must-match nil
-                 :fuzzy-match t
-                 :candidates (or candidates (org-roam-node-read--completions))
-                 :persistent-action (lambda (x)
-                                      (--> x
-                                           (view-file (org-roam-node-file it))))
-                 :action
-                 '(("Find File" . (lambda (x)
-                                    (--> x
-                                         (org-roam-node-visit it t))))
-                   ("Preview" . (lambda (x)
-                                  (--> x
-                                       (view-file (org-roam-node-file it)))))
-                   ("Insert link" . (lambda (x)
-                                      (--> x
-                                           (insert
-                                            (format
-                                             "[[id:%s][%s]]"
-                                             (org-roam-node-id it)
-                                             (org-roam-node-title it))))))
-                   ("Insert web link (markdown)" . (lambda (x)
-                                          (--> x
-                                               (insert
-                                                (format
-                                                 "[%s](https://notes.alexkehayias.com/%s)"
-                                                 (org-roam-node-title it)
-                                                 (file-path-to-slug (org-roam-node-file it)))))))
-                   ("Follow backlinks" . (lambda (x)
-                                           (let ((candidates
-                                                  (--> x
-                                                       org-roam-backlinks-get
-                                                       (--map
-                                                        (org-roam-node-title
-                                                         (org-roam-backlink-source-node it))
-                                                        it))))
-                                             (helm-org-roam nil (or candidates (list x))))))))
-               (helm-build-dummy-source
-                   "Create note"
-                 :action '(("Capture note" . (lambda (candidate)
-                                               (org-roam-capture-
-                                                :node (org-roam-node-create :title candidate)
-                                                :props '(:finalize find-file)))))))))
-
-  (global-set-key (kbd "C-c n f") 'helm-org-roam)
-  ;; Alias this for muscle memory even though it uses the same helm function
-  (global-set-key (kbd "C-c n i") 'helm-org-roam)
-
-  ;; Shortcut for running the third action (insert link)
-  ;; This is very hacky but there is no other way to override
-  ;; selecting a helm action with the function keys
-  (defun helm-insert-link ()
-    (interactive)
-    (helm-select-nth-action 2))
-
-  (define-key helm-map (kbd "C-l") #'helm-insert-link)
 
   ;; Customize the org-roam buffer
   (add-to-list 'display-buffer-alist
@@ -1397,47 +1327,6 @@ Saves to a temp file and puts the filename in the kill ring."
           (set-visited-file-name new-name)
           (set-buffer-modified-p nil))))))
 
-;; Make sure we are using ido mode
-(use-package ido
-  :config
-  ;; (setq ido-everywhere t)    ; Not compatible with helm
-  (ido-mode (quote both))
-  (setq ido-use-faces t)
-  ;; Don't magically search for a file that doesn't exist
-  (setq ido-auto-merge-work-directories-length -1)
-  ;; Allow spaces in searches
-  (add-hook 'ido-make-file-list-hook
-            (lambda ()
-              (define-key ido-file-dir-completion-map (kbd "SPC") 'self-insert-command)))
-  )
-
-;; Use ido inside ido buffer too
-(use-package flx-ido
-  :config
-  (flx-ido-mode 1)
-  (setq ido-enable-flex-matching t)
-
-  (setq ido-max-directory-size 100000)
-
-  ;; Use the current window when visiting files and buffers with ido
-  (setq ido-default-file-method 'selected-window)
-  (setq ido-default-buffer-method 'selected-window)
-
-  ;; Disable minibuffer exit for ido
-  (put 'ido-exit-minibuffer 'disabled nil)
-
-  ;; Display ido results vertically, rather than horizontally
-  (setq ido-decorations (quote ("\n=> " "" "\n   " "\n   ..." "[" "]" " [No match]" " [Matched]" " [Not readable]" " [Too big]" " [Confirm]")))
-  (defun ido-disable-line-truncation ()
-    (set (make-local-variable 'truncate-lines) nil))
-  (add-hook 'ido-minibuffer-setup-hook 'ido-disable-line-truncation)
-
-  ;; Use normal up/down keyboard shortcuts
-  (defun ido-define-keys ()
-    (define-key ido-completion-map (kbd "C-n") 'ido-next-match)
-    (define-key ido-completion-map (kbd "C-p") 'ido-prev-match))
-  (add-hook 'ido-setup-hook 'ido-define-keys))
-
 ;; Shells should have color
 (add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
 
@@ -1512,15 +1401,6 @@ Saves to a temp file and puts the filename in the kill ring."
   (newline)                             ; insert a newline
   (switch-to-buffer nil))               ; return to the initial buffer
 
-;; Helm
-(use-package helm
-  :config
-  ;; Use helm with M-x
-  (global-set-key (kbd "M-x") 'helm-M-x)
-  (setq helm-completion-style 'emacs)
-  ;; Enables helm everywhere, not compatible with ido-everywhere!
-  (helm-mode))
-
 ;; Projectile
 (use-package projectile
   :config
@@ -1575,48 +1455,6 @@ Saves to a temp file and puts the filename in the kill ring."
   :config
   (global-set-key (kbd "C-c p s r") 'projectile-ripgrep))
 
-;; Use helm projectile
-(use-package helm-projectile
-  :config
-  (helm-projectile-on)
-
-  ;; Use ripgrep with helm
-  (setq helm-ag-base-command "rg --vimgrep --no-heading")
-  ;; Fix helm projectile when using rg...
-  ;; https://github.com/syohex/emacs-helm-ag/issues/283
-  (defun helm-projectile-ag (&optional options)
-    "Helm version of projectile-ag."
-    (interactive (if current-prefix-arg (list (read-string "option: " "" 'helm-ag--extra-options-history))))
-    (if (require 'helm-ag nil  'noerror)
-	(if (projectile-project-p)
-	    (let ((helm-ag-command-option options)
-                  (current-prefix-arg nil))
-	      (helm-do-ag (projectile-project-root) (car (projectile-parse-dirconfig-file))))
-	  (error "You're not in a project"))
-      (error "helm-ag not available"))))
-
-(use-package helm-rg
-  :config
-  ;; Add actions for inserting org file link from selected match
-  (defun insert-org-mode-link-from-helm-result (candidate)
-    (interactive)
-    (with-helm-current-buffer
-      (insert (format "[[file:%s][%s]]"
-                      (plist-get candidate :file)
-                      ;; Extract the title from the file name
-                      (subst-char-in-string
-                       ?_ ?\s
-                       (first
-                        (split-string
-                         (first
-                          (last
-                           (split-string (plist-get candidate :file) "\\-")))
-                         "\\.")))))))
-
-  (helm-add-action-to-source "Insert org-mode link"
-                             'insert-org-mode-link-from-helm-result
-                             helm-rg-process-source))
-
 ;; browse-kill-ring with M-y
 (use-package browse-kill-ring
   :config
@@ -1667,7 +1505,7 @@ Saves to a temp file and puts the filename in the kill ring."
 	(setq big-screen nil)
 	(set-face-attribute 'default nil :height 140))
     (progn
-      (set-face-attribute 'default nil :height 160)
+      (set-face-attribute 'default nil :height 260)
       (setq big-screen 1))))
 (global-set-key (kbd "C-x M-b") 'toggle-big-screen)
 
@@ -1748,17 +1586,9 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package org-ql
   :straight (org-ql :type git
                     :host github
-                    :repo "alphapapa/org-ql"))
-
-;; Fix an issue where the build did not contain helm-org-ql.el
-(use-package helm-org-ql
-  :straight (helm-org-ql :type git
-                    :host github
-                    :repo "alphapapa/org-ql"
-                    :files ("helm-org-ql.el"))
+                    :repo "alphapapa/org-ql")
   :config
-  (define-key global-map (kbd "C-c s") #'helm-org-ql-agenda-files))
-
+  (define-key global-map (kbd "C-c s") #'org-ql-find-in-agenda))
 
 (use-package shell-maker
   :straight (:host github :repo "xenodium/chatgpt-shell" :files ("shell-maker.el")))
@@ -1771,6 +1601,160 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package chatgpt-shell
   :config
   (setq chatgpt-shell-openai-key (or (getenv "OPENAI_API_KEY") "")))
+
+(use-package git-auto-commit-mode
+  :config
+  (setq-default gac-debounce-interval 1))
+
+(use-package org-modern
+  :after org
+  :config
+
+  (global-org-modern-mode)
+
+  (defun my/org-modern-style ()
+    (interactive)
+    (setq-local line-spacing 0.125))
+
+  (add-hook 'org-mode-hook 'my/org-modern-style)
+  (add-hook 'org-agenda-mode-hook 'my/org-modern-style))
+
+(use-package gptel
+  :config (setq gptel-api-key (or (getenv "OPENAI_API_KEY") "")))
+
+(use-package marginalia
+  :ensure t
+  :config
+  (marginalia-mode))
+
+(use-package embark
+  :ensure t
+
+  :bind
+  (("C-." . embark-act)
+   ("M-." . embark-dwim)
+   ("C-h B" . embark-bindings))
+
+  :init
+  ;; Optionally replace the key help with a completing-read interface
+  (setq prefix-help-command #'embark-prefix-help-command)
+
+  :config
+  ;; Hide the mode line of the Embark live/completions buffers
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none)))))
+
+(use-package consult
+  :after (embark)
+  :bind (;; C-c bindings in `mode-specific-map'
+         ("C-c M-x" . consult-mode-command)
+         ("C-c h" . consult-history)
+         ("C-c k" . consult-kmacro)
+         ("C-c m" . consult-man)
+         ("C-c i" . consult-info)
+         ([remap Info-search] . consult-info)
+         ;; C-x bindings in `ctl-x-map'
+         ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
+         ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
+         ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
+         ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
+         ("C-x t b" . consult-buffer-other-tab)    ;; orig. switch-to-buffer-other-tab
+         ("C-x r b" . consult-bookmark)            ;; orig. bookmark-jump
+         ;; ("C-x p b" . consult-project-buffer)      ;; orig. project-switch-to-buffer
+         ;; Custom M-# bindings for fast register access
+         ("M-#" . consult-register-load)
+         ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
+         ("C-M-#" . consult-register)
+         ;; Other custom bindings
+         ("M-y" . consult-yank-pop)                ;; orig. yank-pop
+         ;; M-g bindings in `goto-map'
+         ("M-g e" . consult-compile-error)
+         ("M-g f" . consult-flymake)               ;; Alternative: consult-flycheck
+         ("M-g g" . consult-goto-line)             ;; orig. goto-line
+         ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
+         ("M-g o" . consult-outline)               ;; Alternative: consult-org-heading
+         ("M-g m" . consult-mark)
+         ("M-g k" . consult-global-mark)
+         ("M-g i" . consult-imenu)
+         ("M-g I" . consult-imenu-multi)
+         ;; M-s bindings in `search-map'
+         ("M-s d" . consult-find)                  ;; Alternative: consult-fd
+         ("M-s c" . consult-locate)
+         ("M-s g" . consult-grep)
+         ("M-s G" . consult-git-grep)
+         ("M-s r" . consult-ripgrep)
+         ("M-s l" . consult-line)
+         ("M-s L" . consult-line-multi)
+         ("M-s k" . consult-keep-lines)
+         ("M-s u" . consult-focus-lines)
+         ;; Isearch integration
+         ("M-s e" . consult-isearch-history)
+         :map isearch-mode-map
+         ("M-e" . consult-isearch-history)         ;; orig. isearch-edit-string
+         ("M-s e" . consult-isearch-history)       ;; orig. isearch-edit-string
+         ("M-s l" . consult-line)                  ;; needed by consult-line to detect isearch
+         ("M-s L" . consult-line-multi)            ;; needed by consult-line to detect isearch
+         ;; Minibuffer history
+         :map minibuffer-local-map
+         ("M-s" . consult-history)                 ;; orig. next-matching-history-element
+         ("M-r" . consult-history))                ;; orig. previous-matching-history-element
+
+  ;; Enable automatic preview at point in the *Completions* buffer. This is
+  ;; relevant when you use the default completion UI.
+  :hook (completion-list-mode . consult-preview-at-point-mode)
+
+  :init
+  ;; Optionally configure the register formatting. This improves the register
+  ;; preview for `consult-register', `consult-register-load',
+  ;; `consult-register-store' and the Emacs built-ins.
+  (setq register-preview-delay 0.5
+        register-preview-function #'consult-register-format)
+
+  ;; Optionally tweak the register preview window.
+  ;; This adds thin lines, sorting and hides the mode line of the window.
+  (advice-add #'register-preview :override #'consult-register-window)
+
+  ;; Use Consult to select xref locations with preview
+  (setq xref-show-xrefs-function #'consult-xref
+        xref-show-definitions-function #'consult-xref)
+
+  ;; Configure other variables and modes in the :config section,
+  ;; after lazily loading the package.
+  :config
+
+  ;; Don't show a preview unless I want to
+  (setq consult-preview-key "C-,")
+
+  ;; Not sure what narrowing does
+  (setq consult-narrow-key "<"))
+
+(use-package embark-consult
+  :ensure t
+  :after (embark consult)
+  :demand t ; only necessary if you have the hook below
+  ;; if you want to have consult previews as you move around an
+  ;; auto-updating embark collect buffer
+  :hook
+  (embark-collect-mode . consult-preview-at-point-mode))
+
+(use-package vertico
+  :init
+  (vertico-mode)
+
+  ;; Different scroll margin
+  ;; (setq vertico-scroll-margin 0)
+
+  ;; Show more candidates
+  ;; (setq vertico-count 20)
+
+  ;; Grow and shrink the Vertico minibuffer
+  ;; (setq vertico-resize t)
+
+  ;; Optionally enable cycling for `vertico-next' and `vertico-previous'.
+  ;; (setq vertico-cycle t)
+  )
 
 (use-package corfu
   ;; Optional customizations
@@ -1806,10 +1790,6 @@ Saves to a temp file and puts the filename in the kill ring."
   (setq completion-styles '(orderless basic)
         completion-category-defaults nil
         completion-category-overrides '((file (styles . (partial-completion))))))
-
-(use-package git-auto-commit-mode
-  :config
-  (setq-default gac-debounce-interval 1))
 
 ;; Display macros inline in buffers
 (add-to-list 'font-lock-extra-managed-props 'display)
