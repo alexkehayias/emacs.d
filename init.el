@@ -1754,56 +1754,59 @@ Saves to a temp file and puts the filename in the kill ring."
                     :host github
                     :repo "alphapapa/org-ql")
   :config
+  ;; This doesn't work with org-ql's built-in support for embark, but
+  ;; maybe I can adapt it later
   ;; Copied from https://sachachua.com/blog/2024/01/using-consult-and-org-ql-to-search-my-org-mode-agenda-files-and-sort-the-results-to-prioritize-heading-matches/
-  (require 'org-ql-view)
-  (defun my-consult-org-ql-agenda-jump ()
-    "Search agenda files with preview."
-    (interactive)
-    (let* ((marker (consult--read
-                    (consult--dynamic-collection
-                     #'my-consult-org-ql-agenda-match)
-                    :state (consult--jump-state)
-                    :category 'consult-org-heading
-                    :prompt "Org QL: "
-                    :sort nil
-                    :lookup #'consult--lookup-candidate))
-           (buffer (marker-buffer marker))
-           (pos (marker-position marker)))
-      ;; based on org-agenda-switch-to
-      (unless buffer (user-error "Trying to switch to non-existent buffer"))
-      (pop-to-buffer-same-window buffer)
-      (goto-char pos)
-      (when (derived-mode-p 'org-mode)
-        (org-fold-show-context 'agenda)
-        (run-hooks 'org-agenda-after-show-hook))))
+  ;; (require 'org-ql-view)
+  ;; (defun my-consult-org-ql-agenda-jump ()
+  ;;   "Search agenda files with preview."
+  ;;   (interactive)
+  ;;   (let* ((marker (consult--read
+  ;;                   (consult--dynamic-collection
+  ;;                    #'my-consult-org-ql-agenda-match)
+  ;;                   :state (consult--jump-state)
+  ;;                   :category 'consult-org-heading
+  ;;                   :prompt "Org QL: "
+  ;;                   :sort nil
+  ;;                   :lookup #'consult--lookup-candidate))
+  ;;          (buffer (marker-buffer marker))
+  ;;          (pos (marker-position marker)))
+  ;;     ;; based on org-agenda-switch-to
+  ;;     (unless buffer (user-error "Trying to switch to non-existent buffer"))
+  ;;     (pop-to-buffer-same-window buffer)
+  ;;     (goto-char pos)
+  ;;     (when (derived-mode-p 'org-mode)
+  ;;       (org-fold-show-context 'agenda)
+  ;;       (run-hooks 'org-agenda-after-show-hook))))
 
-  (defun my-consult-org-ql-agenda-format (o)
-    (propertize
-     (org-ql-view--format-element o)
-     'consult--candidate (org-element-property :org-hd-marker o)))
+  ;; (defun my-consult-org-ql-agenda-format (o)
+  ;;   (propertize
+  ;;    (org-ql-view--format-element o)
+  ;;    'consult--candidate (org-element-property :org-hd-marker o)))
 
-  (defun my-consult-org-ql-agenda-match (string)
-    "Return candidates that match STRING.
-     Sort heading matches first, followed by other matches.
-     Within those groups, sort by date and priority."
-    (let* ((query (org-ql--query-string-to-sexp string))
-           (sort '(date reverse priority))
-           (heading-query (-tree-map (lambda (x) (if (eq x 'rifle) 'heading x)) query))
-           (matched-heading
-            (mapcar #'my-consult-org-ql-agenda-format
-                    (org-ql-select 'org-agenda-files heading-query
-                      :action 'element-with-markers
-                      :sort sort)))
-           (all-matches
-            (mapcar #'my-consult-org-ql-agenda-format
-                    (org-ql-select 'org-agenda-files query
-                      :action 'element-with-markers
-                      :sort sort))))
-      (append
-       matched-heading
-       (seq-difference all-matches matched-heading))))
+  ;; (defun my-consult-org-ql-agenda-match (string)
+  ;;   "Return candidates that match STRING.
+  ;;    Sort heading matches first, followed by other matches.
+  ;;    Within those groups, sort by date and priority."
+  ;;   (let* ((query (org-ql--query-string-to-sexp string))
+  ;;          (sort '(date reverse priority))
+  ;;          (heading-query (-tree-map (lambda (x) (if (eq x 'rifle) 'heading x)) query))
+  ;;          (matched-heading
+  ;;           (mapcar #'my-consult-org-ql-agenda-format
+  ;;                   (org-ql-select 'org-agenda-files heading-query
+  ;;                     :action 'element-with-markers
+  ;;                     :sort sort)))
+  ;;          (all-matches
+  ;;           (mapcar #'my-consult-org-ql-agenda-format
+  ;;                   (org-ql-select 'org-agenda-files query
+  ;;                     :action 'element-with-markers
+  ;;                     :sort sort))))
+  ;;     (append
+  ;;      matched-heading
+  ;;      (seq-difference all-matches matched-heading))))
 
-  (define-key global-map (kbd "C-c s") #'my-consult-org-ql-agenda-jump)
+  ;; (define-key global-map (kbd "C-c s") #'my-consult-org-ql-agenda-jump)
+  (define-key global-map (kbd "C-c s") #'org-ql-find-in-agenda)
   )
 
 ;; Fix an issue where the build did not contain helm-org-ql.el
@@ -1882,7 +1885,6 @@ Saves to a temp file and puts the filename in the kill ring."
                  nil
                  (window-parameters (mode-line-format . none)))))
 
-;; Example configuration for Consult
 (use-package consult
   :after (embark)
   :bind (;; C-c bindings in `mode-specific-map'
@@ -1965,19 +1967,19 @@ Saves to a temp file and puts the filename in the kill ring."
 
   ;; Optionally configure preview. The default value
   ;; is 'any, such that any key triggers the preview.
-  ;; (setq consult-preview-key 'any)
-  ;; (setq consult-preview-key "M-.")
+  ;; Don't show a preview unless I want to
+  (setq consult-preview-key "C-,")
   ;; (setq consult-preview-key '("S-<down>" "S-<up>"))
   ;; For some commands and buffer sources it is useful to configure the
   ;; :preview-key on a per-command basis using the `consult-customize' macro.
-  (consult-customize
-   consult-theme :preview-key '(:debounce 0.2 any)
-   consult-ripgrep consult-git-grep consult-grep
-   consult-bookmark consult-recent-file consult-xref
-   consult--source-bookmark consult--source-file-register
-   consult--source-recent-file consult--source-project-recent-file
-   ;; :preview-key "M-."
-   :preview-key '(:debounce 0.4 any))
+  ;; (consult-customize
+  ;;  consult-theme :preview-key '(:debounce 0.2 any)
+  ;;  consult-ripgrep consult-git-grep consult-grep
+  ;;  consult-bookmark consult-recent-file consult-xref
+  ;;  consult--source-bookmark consult--source-file-register
+  ;;  consult--source-recent-file consult--source-project-recent-file
+  ;;  :preview-key "M-."
+  ;;  :preview-key '(:debounce 0.4 any))
 
   ;; Optionally configure the narrowing key.
   ;; Both < and C-+ work reasonably well.
