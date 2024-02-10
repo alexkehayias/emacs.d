@@ -280,12 +280,10 @@
   ;; up to 9 levels deep
   (setq org-refile-targets (quote ((nil :maxlevel . 9)
         			   (org-agenda-files :maxlevel . 9))))
-  ;; Targets complete directly with IDO
+  ;; Targets complete directly
   (setq org-outline-path-complete-in-steps nil)
   ;; Allow refile to create parent tasks with confirmation
   (setq org-refile-allow-creating-parent-nodes (quote confirm))
-  ;; Use IDO for both buffer and file completion and ido-everywhere to t
-  ;; (setq org-completion-use-ido t)
   ;; Use the current window for indirect buffer display
   (setq org-indirect-buffer-display 'current-window)
 
@@ -582,7 +580,6 @@ Saves to a temp file and puts the filename in the kill ring."
 
 (use-package rust-mode
   :config
-  (define-key rust-mode-map (kbd "TAB") #'company-indent-or-complete-common)
   (add-hook 'rust-mode-hook #'eglot-ensure))
 
 (use-package project :ensure t)
@@ -930,10 +927,7 @@ Saves to a temp file and puts the filename in the kill ring."
           ("C-c n r" . org-roam-random-note)
           ("C-c n u" . org-roam-unlinked-references)
           ("C-c n e" . org-roam-to-hugo-md)
-          ("C-c n i" . org-roam-node-insert)
-          ;; Full text search notes with an action to insert
-          ;; org-mode link
-          ("C-c n s" . helm-rg))
+          ("C-c n i" . org-roam-node-insert))
 
   :custom
   (org-roam-mode-section-functions
@@ -966,76 +960,8 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-hook 'org-roam-capture-new-node-hook #'eglot-ensure)
 
   (setq org-roam-dailies-directory org-roam-notes-path)
-  ;; Fix helm results wrapping when there are tags
-  ;; https://github.com/org-roam/org-roam/issues/1640
-  ;; (require 'helm-mode)
-  ;; (add-to-list 'helm-completing-read-handlers-alist
-  ;;              '(org-roam-node-find . helm-completing-read-sync-default-handler))
   ;; Include tags in note search results
   (setq org-roam-node-display-template "${title}      ${tags}")
-
-  ;; Custom helm source for searching notes based on
-  ;; https://ag91.github.io/blog/2022/02/05/an-helm-source-for-org-roam-v2/
-  ;; (defun helm-org-roam (&optional input candidates)
-  ;;   (interactive)
-  ;;   (require 'org-roam)
-  ;;   (helm
-  ;;    :input input
-  ;;    :sources (list
-  ;;              (helm-build-sync-source "Find note: "
-  ;;                :must-match nil
-  ;;                :fuzzy-match t
-  ;;                :candidates (or candidates (org-roam-node-read--completions))
-  ;;                :persistent-action (lambda (x)
-  ;;                                     (--> x
-  ;;                                          (view-file (org-roam-node-file it))))
-  ;;                :action
-  ;;                '(("Find File" . (lambda (x)
-  ;;                                   (--> x
-  ;;                                        (org-roam-node-visit it t))))
-  ;;                  ("Preview" . (lambda (x)
-  ;;                                 (--> x
-  ;;                                      (view-file (org-roam-node-file it)))))
-  ;;                  ("Insert link" . (lambda (x)
-  ;;                                     (--> x
-  ;;                                          (insert
-  ;;                                           (format
-  ;;                                            "[[id:%s][%s]]"
-  ;;                                            (org-roam-node-id it)
-  ;;                                            (org-roam-node-title it))))))
-  ;;                  ("Insert web link (markdown)" . (lambda (x)
-  ;;                                         (--> x
-  ;;                                              (insert
-  ;;                                               (format
-  ;;                                                "[%s](https://notes.alexkehayias.com/%s)"
-  ;;                                                (org-roam-node-title it)
-  ;;                                                (file-path-to-slug (org-roam-node-file it)))))))
-  ;;                  ("Follow backlinks" . (lambda (x)
-  ;;                                          (let ((candidates
-  ;;                                                 (--> x
-  ;;                                                      org-roam-backlinks-get
-  ;;                                                      (--map
-  ;;                                                       (org-roam-node-title
-  ;;                                                        (org-roam-backlink-source-node it))
-  ;;                                                       it))))
-  ;;                                            (helm-org-roam nil (or candidates (list x))))))))
-  ;;              (helm-build-dummy-source
-  ;;                  "Create note"
-  ;;                :action '(("Capture note" . (lambda (candidate)
-  ;;                                              (org-roam-capture-
-  ;;                                               :node (org-roam-node-create :title candidate)
-  ;;                                               :props '(:finalize find-file)))))))))
-  ;;
-  ;; (global-set-key (kbd "C-c n f") 'helm-org-roam)
-
-  ;; Shortcut for running the third action (insert link)
-  ;; This is very hacky but there is no other way to override
-  ;; selecting a helm action with the function keys
-  ;; (defun helm-insert-link ()
-  ;;   (interactive)
-  ;;   (helm-select-nth-action 2))
-
-  ;; (define-key helm-map (kbd "C-l") #'helm-insert-link)
 
   ;; Customize the org-roam buffer
   (add-to-list 'display-buffer-alist
@@ -1401,47 +1327,6 @@ Saves to a temp file and puts the filename in the kill ring."
           (set-visited-file-name new-name)
           (set-buffer-modified-p nil))))))
 
-;; Make sure we are using ido mode
-;; (use-package ido
-;;   :config
-;;   ;; (setq ido-everywhere t)    ; Not compatible with helm
-;;   (ido-mode (quote both))
-;;   (setq ido-use-faces t)
-;;   ;; Don't magically search for a file that doesn't exist
-;;   (setq ido-auto-merge-work-directories-length -1)
-;;   ;; Allow spaces in searches
-;;   (add-hook 'ido-make-file-list-hook
-;;             (lambda ()
-;;               (define-key ido-file-dir-completion-map (kbd "SPC") 'self-insert-command)))
-;;   )
-
-;; Use ido inside ido buffer too
-;; (use-package flx-ido
-;;   :config
-;;   (flx-ido-mode 1)
-;;   (setq ido-enable-flex-matching t)
-
-;;   (setq ido-max-directory-size 100000)
-
-;;   ;; Use the current window when visiting files and buffers with ido
-;;   (setq ido-default-file-method 'selected-window)
-;;   (setq ido-default-buffer-method 'selected-window)
-
-;;   ;; Disable minibuffer exit for ido
-;;   (put 'ido-exit-minibuffer 'disabled nil)
-
-;;   ;; Display ido results vertically, rather than horizontally
-;;   (setq ido-decorations (quote ("\n=> " "" "\n   " "\n   ..." "[" "]" " [No match]" " [Matched]" " [Not readable]" " [Too big]" " [Confirm]")))
-;;   (defun ido-disable-line-truncation ()
-;;     (set (make-local-variable 'truncate-lines) nil))
-;;   (add-hook 'ido-minibuffer-setup-hook 'ido-disable-line-truncation)
-
-;;   ;; Use normal up/down keyboard shortcuts
-;;   (defun ido-define-keys ()
-;;     (define-key ido-completion-map (kbd "C-n") 'ido-next-match)
-;;     (define-key ido-completion-map (kbd "C-p") 'ido-prev-match))
-;;   (add-hook 'ido-setup-hook 'ido-define-keys))
-
 ;; Shells should have color
 (add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
 
@@ -1516,15 +1401,6 @@ Saves to a temp file and puts the filename in the kill ring."
   (newline)                             ; insert a newline
   (switch-to-buffer nil))               ; return to the initial buffer
 
-;; Helm
-;; (use-package helm
-;;   :config
-;;   ;; Use helm with M-x
-;;   (global-set-key (kbd "M-x") 'helm-M-x)
-;;   (setq helm-completion-style 'emacs)
-;;   ;; Enables helm everywhere, not compatible with ido-everywhere!
-;;   (helm-mode))
-
 ;; Projectile
 (use-package projectile
   :config
@@ -1578,48 +1454,6 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package projectile-ripgrep
   :config
   (global-set-key (kbd "C-c p s r") 'projectile-ripgrep))
-
-;; Use helm projectile
-;; (use-package helm-projectile
-;;   :config
-;;   (helm-projectile-on)
-
-;;   ;; Use ripgrep with helm
-;;   (setq helm-ag-base-command "rg --vimgrep --no-heading")
-;;   ;; Fix helm projectile when using rg...
-;;   ;; https://github.com/syohex/emacs-helm-ag/issues/283
-;;   (defun helm-projectile-ag (&optional options)
-;;     "Helm version of projectile-ag."
-;;     (interactive (if current-prefix-arg (list (read-string "option: " "" 'helm-ag--extra-options-history))))
-;;     (if (require 'helm-ag nil  'noerror)
-;; 	(if (projectile-project-p)
-;; 	    (let ((helm-ag-command-option options)
-;;                   (current-prefix-arg nil))
-;; 	      (helm-do-ag (projectile-project-root) (car (projectile-parse-dirconfig-file))))
-;; 	  (error "You're not in a project"))
-;;       (error "helm-ag not available"))))
-
-;; (use-package helm-rg
-;;   :config
-;;   ;; Add actions for inserting org file link from selected match
-;;   (defun insert-org-mode-link-from-helm-result (candidate)
-;;     (interactive)
-;;     (with-helm-current-buffer
-;;       (insert (format "[[file:%s][%s]]"
-;;                       (plist-get candidate :file)
-;;                       ;; Extract the title from the file name
-;;                       (subst-char-in-string
-;;                        ?_ ?\s
-;;                        (first
-;;                         (split-string
-;;                          (first
-;;                           (last
-;;                            (split-string (plist-get candidate :file) "\\-")))
-;;                          "\\.")))))))
-
-;;   (helm-add-action-to-source "Insert org-mode link"
-;;                              'insert-org-mode-link-from-helm-result
-;;                              helm-rg-process-source))
 
 ;; browse-kill-ring with M-y
 (use-package browse-kill-ring
@@ -1754,70 +1588,7 @@ Saves to a temp file and puts the filename in the kill ring."
                     :host github
                     :repo "alphapapa/org-ql")
   :config
-  ;; This doesn't work with org-ql's built-in support for embark, but
-  ;; maybe I can adapt it later
-  ;; Copied from https://sachachua.com/blog/2024/01/using-consult-and-org-ql-to-search-my-org-mode-agenda-files-and-sort-the-results-to-prioritize-heading-matches/
-  ;; (require 'org-ql-view)
-  ;; (defun my-consult-org-ql-agenda-jump ()
-  ;;   "Search agenda files with preview."
-  ;;   (interactive)
-  ;;   (let* ((marker (consult--read
-  ;;                   (consult--dynamic-collection
-  ;;                    #'my-consult-org-ql-agenda-match)
-  ;;                   :state (consult--jump-state)
-  ;;                   :category 'consult-org-heading
-  ;;                   :prompt "Org QL: "
-  ;;                   :sort nil
-  ;;                   :lookup #'consult--lookup-candidate))
-  ;;          (buffer (marker-buffer marker))
-  ;;          (pos (marker-position marker)))
-  ;;     ;; based on org-agenda-switch-to
-  ;;     (unless buffer (user-error "Trying to switch to non-existent buffer"))
-  ;;     (pop-to-buffer-same-window buffer)
-  ;;     (goto-char pos)
-  ;;     (when (derived-mode-p 'org-mode)
-  ;;       (org-fold-show-context 'agenda)
-  ;;       (run-hooks 'org-agenda-after-show-hook))))
-
-  ;; (defun my-consult-org-ql-agenda-format (o)
-  ;;   (propertize
-  ;;    (org-ql-view--format-element o)
-  ;;    'consult--candidate (org-element-property :org-hd-marker o)))
-
-  ;; (defun my-consult-org-ql-agenda-match (string)
-  ;;   "Return candidates that match STRING.
-  ;;    Sort heading matches first, followed by other matches.
-  ;;    Within those groups, sort by date and priority."
-  ;;   (let* ((query (org-ql--query-string-to-sexp string))
-  ;;          (sort '(date reverse priority))
-  ;;          (heading-query (-tree-map (lambda (x) (if (eq x 'rifle) 'heading x)) query))
-  ;;          (matched-heading
-  ;;           (mapcar #'my-consult-org-ql-agenda-format
-  ;;                   (org-ql-select 'org-agenda-files heading-query
-  ;;                     :action 'element-with-markers
-  ;;                     :sort sort)))
-  ;;          (all-matches
-  ;;           (mapcar #'my-consult-org-ql-agenda-format
-  ;;                   (org-ql-select 'org-agenda-files query
-  ;;                     :action 'element-with-markers
-  ;;                     :sort sort))))
-  ;;     (append
-  ;;      matched-heading
-  ;;      (seq-difference all-matches matched-heading))))
-
-  ;; (define-key global-map (kbd "C-c s") #'my-consult-org-ql-agenda-jump)
-  (define-key global-map (kbd "C-c s") #'org-ql-find-in-agenda)
-  )
-
-;; Fix an issue where the build did not contain helm-org-ql.el
-;; (use-package helm-org-ql
-;;   :straight (helm-org-ql :type git
-;;                     :host github
-;;                     :repo "alphapapa/org-ql"
-;;                     :files ("helm-org-ql.el"))
-;;   :config
-;;   (define-key global-map (kbd "C-c s") #'helm-org-ql-agenda-files))
-
+  (define-key global-map (kbd "C-c s") #'org-ql-find-in-agenda))
 
 (use-package shell-maker
   :straight (:host github :repo "xenodium/chatgpt-shell" :files ("shell-maker.el")))
@@ -1865,18 +1636,8 @@ Saves to a temp file and puts the filename in the kill ring."
    ("C-h B" . embark-bindings))
 
   :init
-
   ;; Optionally replace the key help with a completing-read interface
   (setq prefix-help-command #'embark-prefix-help-command)
-
-  ;; Show the Embark target at point via Eldoc. You may adjust the
-  ;; Eldoc strategy, if you want to see the documentation from
-  ;; multiple providers. Beware that using this can be a little
-  ;; jarring since the message shown in the minibuffer can be more
-  ;; than one line, causing the modeline to move up and down:
-
-  ;; (add-hook 'eldoc-documentation-functions #'embark-eldoc-first-target)
-  ;; (setq eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
 
   :config
   ;; Hide the mode line of the Embark live/completions buffers
@@ -1944,9 +1705,7 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; relevant when you use the default completion UI.
   :hook (completion-list-mode . consult-preview-at-point-mode)
 
-  ;; The :init configuration is always executed (Not lazy)
   :init
-
   ;; Optionally configure the register formatting. This improves the register
   ;; preview for `consult-register', `consult-register-load',
   ;; `consult-register-store' and the Emacs built-ins.
@@ -1965,44 +1724,11 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; after lazily loading the package.
   :config
 
-  ;; Optionally configure preview. The default value
-  ;; is 'any, such that any key triggers the preview.
   ;; Don't show a preview unless I want to
   (setq consult-preview-key "C-,")
-  ;; (setq consult-preview-key '("S-<down>" "S-<up>"))
-  ;; For some commands and buffer sources it is useful to configure the
-  ;; :preview-key on a per-command basis using the `consult-customize' macro.
-  ;; (consult-customize
-  ;;  consult-theme :preview-key '(:debounce 0.2 any)
-  ;;  consult-ripgrep consult-git-grep consult-grep
-  ;;  consult-bookmark consult-recent-file consult-xref
-  ;;  consult--source-bookmark consult--source-file-register
-  ;;  consult--source-recent-file consult--source-project-recent-file
-  ;;  :preview-key "M-."
-  ;;  :preview-key '(:debounce 0.4 any))
 
-  ;; Optionally configure the narrowing key.
-  ;; Both < and C-+ work reasonably well.
-  (setq consult-narrow-key "<") ;; "C-+"
-
-  ;; Optionally make narrowing help available in the minibuffer.
-  ;; You may want to use `embark-prefix-help-command' or which-key instead.
-  ;; (define-key consult-narrow-map (vconcat consult-narrow-key "?") #'consult-narrow-help)
-
-  ;; By default `consult-project-function' uses `project-root' from project.el.
-  ;; Optionally configure a different project root function.
-  ;;;; 1. project.el (the default)
-  ;; (setq consult-project-function #'consult--default-project--function)
-  ;;;; 2. vc.el (vc-root-dir)
-  ;; (setq consult-project-function (lambda (_) (vc-root-dir)))
-  ;;;; 3. locate-dominating-file
-  ;; (setq consult-project-function (lambda (_) (locate-dominating-file "." ".git")))
-  ;;;; 4. projectile.el (projectile-project-root)
-  ;; (autoload 'projectile-project-root "projectile")
-  ;; (setq consult-project-function (lambda (_) (projectile-project-root)))
-  ;;;; 5. No project support
-  ;; (setq consult-project-function nil)
-  )
+  ;; Not sure what narrowing does
+  (setq consult-narrow-key "<"))
 
 (use-package embark-consult
   :ensure t
