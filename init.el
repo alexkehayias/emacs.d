@@ -1450,11 +1450,6 @@ Saves to a temp file and puts the filename in the kill ring."
             (error "Notes file not found in this project"))))))
   (global-set-key (kbd "C-x M-n") 'projectile-notes))
 
-;; Use ripgrep with projectile
-(use-package projectile-ripgrep
-  :config
-  (global-set-key (kbd "C-c p s r") 'projectile-ripgrep))
-
 ;; browse-kill-ring with M-y
 (use-package browse-kill-ring
   :config
@@ -1684,7 +1679,7 @@ Saves to a temp file and puts the filename in the kill ring."
          ("M-s c" . consult-locate)
          ("M-s g" . consult-grep)
          ("M-s G" . consult-git-grep)
-         ("M-s r" . consult-ripgrep)
+         ("C-c p s r" . consult-ripgrep)
          ("M-s l" . consult-line)
          ("M-s L" . consult-line-multi)
          ("M-s k" . consult-keep-lines)
@@ -1703,7 +1698,7 @@ Saves to a temp file and puts the filename in the kill ring."
 
   ;; Enable automatic preview at point in the *Completions* buffer. This is
   ;; relevant when you use the default completion UI.
-  :hook (completion-list-mode . consult-preview-at-point-mode)
+  ;; :hook (completion-list-mode . consult-preview-at-point-mode)
 
   :init
   ;; Optionally configure the register formatting. This improves the register
@@ -1733,11 +1728,12 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package embark-consult
   :ensure t
   :after (embark consult)
-  :demand t ; only necessary if you have the hook below
+  ;; :demand t ; only necessary if you have the hook below
   ;; if you want to have consult previews as you move around an
   ;; auto-updating embark collect buffer
-  :hook
-  (embark-collect-mode . consult-preview-at-point-mode))
+  ;; :hook
+  ;; (embark-collect-mode . consult-preview-at-point-mode)
+  )
 
 (use-package vertico
   :init
