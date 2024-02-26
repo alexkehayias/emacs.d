@@ -6,7 +6,6 @@ mkdir -p ~/Org/notes
 # part of init-export
 ${EMACS:=emacs} -nw --batch \
                 --eval '(let ((debug-on-error t)
-                              (url-show-status nil)
                               (user-emacs-directory default-directory)
                               (user-init-file (expand-file-name "init-export.el"))
                               (load-path (delq default-directory load-path)))
