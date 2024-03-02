@@ -302,7 +302,8 @@
 
   (org-babel-do-load-languages
    'org-babel-load-languages
-   '((shell . t)))
+   '((shell . t)
+     (dot . t)))
 
   ;; [at] completion for org headlines
   (defun my/org-agenda-completions-at-point ()
@@ -541,7 +542,7 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; Typescript
   (add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
   ;; Turn off auto saving because js build tools hate temp files
-  (add-hook 'web-mode-hook '(lambda () (setq auto-save-default nil)))
+  (add-hook 'web-mode-hook (lambda () (setq auto-save-default nil)))
   ;; HTML
   (add-to-list 'auto-mode-alist '("\\.html$" . web-mode))
   ;; CSS
@@ -839,8 +840,6 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; defaults to /ox-hugo/mypicture.png which is ugly
   (setq org-hugo-default-static-subdirectory-for-externals "img"))
 
-(use-package emacsql-sqlite3)
-
 ;; Heavily modified based on https://github.com/novoid/title-capitalization.el/blob/master/title-capitalization.el
 (defun title-capitalization (str)
   "Convert str to title case"
@@ -914,13 +913,15 @@ Saves to a temp file and puts the filename in the kill ring."
                         (file-truename org-roam-notes-path)
                         (string-replace "CAPTURE-" "" (buffer-name))))))
 
+(use-package emacsql-sqlite-builtin)
+
 (use-package org-roam
   :after (org)
   ;; :bind (:map org-mode-map
   ;;             ("M-." . org-open-at-point)
   ;;             ("M-," . org-mark-ring-goto))
-  :bind  (("C-c n l" . org-roam-buffer-toggle)
-          ("C-c n f" . org-roam-node-find)
+  :bind  (;; ("C-c n l" . org-roam-buffer-toggle)
+          ;; ("C-c n f" . org-roam-node-find)
           ("C-c n g" . org-roam-graph)
           ("C-c n c" . org-roam-capture)
           ("C-c n j" . org-roam-dailies-capture-today)
@@ -1649,6 +1650,7 @@ Saves to a temp file and puts the filename in the kill ring."
          ("C-c k" . consult-kmacro)
          ("C-c m" . consult-man)
          ("C-c i" . consult-info)
+         ("C-c p s r" . consult-ripgrep)
          ([remap Info-search] . consult-info)
          ;; C-x bindings in `ctl-x-map'
          ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
@@ -1734,6 +1736,31 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; :hook
   ;; (embark-collect-mode . consult-preview-at-point-mode)
   )
+
+(use-package consult-org-roam
+   :ensure t
+   :after org-roam
+   :init
+   (require 'consult-org-roam)
+   ;; Activate the minor mode
+   (consult-org-roam-mode 1)
+   :custom
+   ;; Use `ripgrep' for searching with `consult-org-roam-search'
+   (consult-org-roam-grep-func #'consult-ripgrep)
+   ;; Configure a custom narrow key for `consult-buffer'
+   ;; (consult-org-roam-buffer-narrow-key ?r)
+   ;; Display org-roam buffers right after non-org-roam buffers
+   ;; in consult-buffer (and not down at the bottom)
+   (consult-org-roam-buffer-after-buffers t)
+   :config
+   ;; Eventually suppress previewing for certain functions
+   (consult-customize consult-org-roam-forward-links :preview-key "C-,")
+   :bind
+   ;; Define some convenient keybindings as an addition
+   ("C-c n f" . consult-org-roam-file-find)
+   ("C-c n l" . consult-org-roam-backlinks)
+   ("C-c n L" . consult-org-roam-backlinks-recursive)
+   ("C-c n s" . consult-org-roam-search))
 
 (use-package vertico
   :init

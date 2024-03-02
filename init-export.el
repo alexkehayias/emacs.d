@@ -50,7 +50,7 @@
   (add-to-list 'auto-mode-alist '("\\.js$" . web-mode))
   (add-to-list 'auto-mode-alist '("\\.jsx$" . web-mode))
   ;; Turn off auto saving because js build tools hate temp files
-  (add-hook 'web-mode-hook '(lambda () (setq auto-save-default nil)))
+  (add-hook 'web-mode-hook (lambda () (setq auto-save-default nil)))
   ;; HTML
   (add-to-list 'auto-mode-alist '("\\.html$" . web-mode))
   ;; CSS
