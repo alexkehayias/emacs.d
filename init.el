@@ -87,6 +87,8 @@
   (setq org-todo-keywords
         '((sequence "TODO(t!)" "NEXT(n!)" "WAITING(w@/!)" "SOMEDAY(s!)" "|" "DONE(d!)" "CANCELED(c@/!)")))
 
+  (setq org-tags-exclude-from-inheritance '("private"))
+
   ;; Set up custom agenda commands
 
   (setq org-agenda-custom-commands
@@ -619,10 +621,11 @@ Saves to a temp file and puts the filename in the kill ring."
                '((typescript-mode) "typescript-language-server" "--stdio"))
 
   (setq-default eglot-workspace-configuration
-                '((:pylsp . ((:plugins .
-                                       ((:pycodestyle . ((:enabled . :json-false)))
-                                        (:pyflakes . ((:enabled . t)))
-                                        (:black . ((:enabled . t)))))))))
+                '(:pylsp (:plugins (:pycodestyle (:enabled :json-false)
+                                    :pyflakes (:enabled t)
+                                    :isort (:enabled t)
+                                    :rope (:enabled t)
+                                    :black (:enabled t)))))
 
   (defun my-project-try-pyproject-toml (dir)
     (when-let* ((found (locate-dominating-file dir "pyproject.toml")))
@@ -649,12 +652,13 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; Python
 (use-package python-mode
   :config
+  (setq python-shell-interpreter "python3.10")
   (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
   (org-babel-do-load-languages
    'org-babel-load-languages
    '((python . t)))
   (add-hook 'python-mode-hook #'eglot-ensure)
-  (setq-default py-shell-name "python"
+  (setq-default py-shell-name "python3.10"
                 python-indent-offset 4
                 ;; Assumes the python source directory is in {PROJECT_ROOT}/src
                 py-python-command-args `("-i" "-c" "import os;import sys;sys.path.append(os.getcwd()+'src')")))
@@ -663,7 +667,6 @@ Saves to a temp file and puts the filename in the kill ring."
   :ensure t
   :config
   (pyvenv-mode t)
-
   ;; Set correct Python interpreter
   ;; (setq pyvenv-post-activate-hooks
   ;;       (list (lambda ()
@@ -913,8 +916,6 @@ Saves to a temp file and puts the filename in the kill ring."
                         (file-truename org-roam-notes-path)
                         (string-replace "CAPTURE-" "" (buffer-name))))))
 
-(use-package emacsql-sqlite-builtin)
-
 (use-package org-roam
   :after (org)
   ;; :bind (:map org-mode-map
@@ -955,10 +956,10 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; Needed to supress update warning
   (setq org-roam-v2-ack t)
   ;; Fix Emacs 28.2 can't find `sqlite`
-  (setq org-roam-database-connector 'sqlite3)
+  (setq org-roam-database-connector 'sqlite-builtin)
   ;; Use efm-langserver for prose linting
-  (add-hook 'org-roam-mode #'eglot-ensure)
-  (add-hook 'org-roam-capture-new-node-hook #'eglot-ensure)
+  ;; (add-hook 'org-roam-mode #'eglot-ensure)
+  ;; (add-hook 'org-roam-capture-new-node-hook #'eglot-ensure)
 
   (setq org-roam-dailies-directory org-roam-notes-path)
   ;; Include tags in note search results
@@ -1616,7 +1617,15 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-hook 'org-agenda-mode-hook 'my/org-modern-style))
 
 (use-package gptel
-  :config (setq gptel-api-key (or (getenv "OPENAI_API_KEY") "")))
+  :config
+  (setq gptel-api-key (or (getenv "OPENAI_API_KEY") ""))
+  (setq gptel-default-mode 'org-mode)
+  ;; Ollama setup
+  (gptel-make-ollama "Ollama"
+    :stream t
+    :host "localhost:11434"
+    :models '("llama3:8b"))
+  )
 
 (use-package marginalia
   :ensure t
@@ -1717,6 +1726,41 @@ Saves to a temp file and puts the filename in the kill ring."
   (setq xref-show-xrefs-function #'consult-xref
         xref-show-definitions-function #'consult-xref)
 
+  ;; TODO: Add a source for org capture buffers used by org-mode and
+  ;; org-roam which are buffers with a prefix of CAPTURE
+  ;; (consult--buffer-query :mode 'org-mode)
+  ;; (defvar last-buffer-source
+  ;;   (list :name     "Last Buffer"
+  ;;         :category 'buffer
+  ;;         :narrow   ?o
+  ;;         :face     'consult-buffer
+  ;;         :history  'buffer-name-history
+  ;;         :state    #'consult--buffer-state
+  ;;         :items
+  ;;         (lambda ()
+  ;;           (consult--buffer-query :as #'buffer-name))))
+
+  ;; Alternatively always show previous buffer first in the list of
+  ;; buffers
+  ;; (defvar org-source
+  ;;   (list :name     "Org Buffer"
+  ;;         :category 'buffer
+  ;;         :narrow   ?o
+  ;;         :face     'consult-buffer
+  ;;         :history  'buffer-name-history
+  ;;         :state    #'consult--buffer-state
+  ;;         :new
+  ;;         (lambda (name)
+  ;;           (with-current-buffer (get-buffer-create name)
+  ;;             (insert "#+title: " name "\n\n")
+  ;;             (org-mode)
+  ;;             (consult--buffer-action (current-buffer))))
+  ;;         :items
+  ;;         (lambda ()
+  ;;           (consult--buffer-query :mode 'org-mode :as #'buffer-name))))
+
+  ;; (add-to-list 'consult-buffer-sources 'org-source 'append)
+
   ;; Configure other variables and modes in the :config section,
   ;; after lazily loading the package.
   :config
@@ -1724,8 +1768,8 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; Don't show a preview unless I want to
   (setq consult-preview-key "C-,")
 
-  ;; Not sure what narrowing does
-  (setq consult-narrow-key "<"))
+  ;; Narrow search
+  (setq consult-narrow-key ">"))
 
 (use-package embark-consult
   :ensure t
