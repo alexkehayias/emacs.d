@@ -1858,6 +1858,13 @@ Saves to a temp file and puts the filename in the kill ring."
         completion-category-defaults nil
         completion-category-overrides '((file (styles . (partial-completion))))))
 
+(use-package copilot
+  :straight (:host github :repo "copilot-emacs/copilot.el" :files ("*.el"))
+  :ensure t
+  :config
+  (define-key copilot-completion-map (kbd "TAB") 'copilot-accept-completion)
+  )
+
 ;; Display macros inline in buffers
 (add-to-list 'font-lock-extra-managed-props 'display)
 
