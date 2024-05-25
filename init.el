@@ -1108,6 +1108,12 @@ Saves to a temp file and puts the filename in the kill ring."
 
            (insert-file-contents file)
 
+           ;; Change relative links that work within emacs to view an image to
+           ;; absolute paths for use with exported markdown to html.
+           (goto-char (point-min))
+           (while (re-search-forward "\\[\\[\\.\\/img\\([^]]*\\)\\]\\]" nil t)
+             (replace-match "[[/img\\1]]" nil nil))
+
            ;; Adding these tags must go after file content because it
            ;; will include a :PROPERTIES: drawer as of org-roam v2
            ;; which must be the first item on the page
