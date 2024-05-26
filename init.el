@@ -1556,7 +1556,7 @@ Saves to a temp file and puts the filename in the kill ring."
 
 (use-package org-remark
   :config
-  (define-key global-map (kbd "C-c m m") #'org-remark-mark)
+  (define-key org-remark-mode-map (kbd "C-c m m") #'org-remark-mark)
   (define-key org-remark-mode-map (kbd "C-c m o") #'org-remark-open)
   (define-key org-remark-mode-map (kbd "C-c m n") #'org-remark-view-next)
   (define-key org-remark-mode-map (kbd "C-c m p") #'org-remark-view-prev)
@@ -1565,7 +1565,37 @@ Saves to a temp file and puts the filename in the kill ring."
 
 (use-package org-download
   :config
-  (setq-default org-download-image-dir (format "%s/img" org-roam-directory)))
+
+  (defun my/org-file-is-private ()
+    (let ((tags (car (cdr (car (org-collect-keywords '("FILETAGS")))))))
+      (if (stringp tags)
+          (member "private" (split-string tags))
+        nil)))
+
+  (defun my/org-download-set-dir ()
+    "Set `org-download-image-dir` to the directory of the current
+        buffer's file."
+    (interactive)
+    (when (buffer-file-name)
+      (if (my/org-file-is-private)
+          ;; Save downloaded images to a directory that indicates it is
+          ;; private. This will not be exported as part of the notes
+          ;; publishing pipeline.
+          (setq-local org-download-image-dir
+                      (concat (file-name-directory
+                               (buffer-file-name))
+                              "img/private"))
+        ;; Save downloaded images to the normal img directory. These
+        ;; will be published as part of the notes publishing pipeline
+        (setq-local org-download-image-dir
+                    (concat (file-name-directory
+                             (buffer-file-name))
+                            "img")))))
+
+  :hook
+  ((org-mode . my/org-download-set-dir)))
+
+
 
 (use-package mastodon
   :ensure t
