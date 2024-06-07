@@ -431,9 +431,6 @@
 ;; Shortcut for occur
 (global-set-key (kbd "C-x C-o") 'occur)
 
-;; Shortcut for rgrep using ripgrep because it's faster
-(global-set-key (kbd "C-x C-r") 'ripgrep-regexp)
-
 ;; Shortcut for rectangle edits
 (global-set-key (kbd "C-x r i") 'string-insert-rectangle)
 
@@ -1695,7 +1692,7 @@ Saves to a temp file and puts the filename in the kill ring."
          ("C-c k" . consult-kmacro)
          ("C-c m" . consult-man)
          ("C-c i" . consult-info)
-         ("C-c p s r" . consult-ripgrep)
+         ("C-x C-r" . consult-ripgrep)
          ([remap Info-search] . consult-info)
          ;; C-x bindings in `ctl-x-map'
          ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
@@ -1726,7 +1723,6 @@ Saves to a temp file and puts the filename in the kill ring."
          ("M-s c" . consult-locate)
          ("M-s g" . consult-grep)
          ("M-s G" . consult-git-grep)
-         ("C-c p s r" . consult-ripgrep)
          ("M-s l" . consult-line)
          ("M-s L" . consult-line-multi)
          ("M-s k" . consult-keep-lines)
