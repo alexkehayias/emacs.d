@@ -1484,6 +1484,10 @@ Saves to a temp file and puts the filename in the kill ring."
   :config
   (setq doom-modeline-height 40))
 
+(use-package solaire-mode
+  :config
+  (solaire-global-mode +1))
+
 (use-package terraform-mode)
 
 ;; Set default font
