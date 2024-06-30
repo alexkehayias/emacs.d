@@ -1095,7 +1095,7 @@ Saves to a temp file and puts the filename in the kill ring."
     ;; draft. The way we filter tags doesn't work nicely
     ;; with emacsql's DSL so just use a raw SQL query
     ;; for clarity
-    (let ((notes (org-roam-db-query "SELECT id, file FROM (SELECT nodes.id, nodes.file, group_concat(tags.tag) AS alltags FROM nodes LEFT OUTER JOIN tags ON nodes.id = tags.node_id GROUP BY nodes.file) WHERE alltags is null or (','||alltags||',' not like '%%,\"private\",%%' and ','||alltags||',' not like '%%,\"draft\",%%')")))
+    (let ((notes (org-roam-db-query "SELECT id, file FROM (SELECT nodes.id, nodes.file, nodes.level, group_concat(tags.tag) AS alltags FROM nodes LEFT OUTER JOIN tags ON nodes.id = tags.node_id GROUP BY nodes.file) WHERE level = 0 and (alltags is null or (','||alltags||',' not like '%%,\"private\",%%' and ','||alltags||',' not like '%%,\"draft\",%%'))")))
       (-map
        (-lambda ((id file))
          ;; Use temporary buffer to prevent a buffer being opened for
