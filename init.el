@@ -1929,6 +1929,14 @@ Saves to a temp file and puts the filename in the kill ring."
   :ensure nil
   :straight nil)
 
+;; Extended org-edit-special to support more block types based on edit-indirect
+;; - edit-indirect by Fanael https://github.com/Fanael/edit-indirect
+;; - org-edit-indirect by agzam https://github.com/agzam/.spacemacs.d
+(add-to-list 'load-path (expand-file-name "edit-indirect" user-emacs-directory))
+(use-package edit-indirect :ensure nil :straight nil)
+(add-to-list 'load-path (expand-file-name "org-edit-indirect" user-emacs-directory))
+(use-package org-edit-indirect :ensure nil :straight nil)
+
 ;; Store customizations in a separate file
 (setq custom-file "~/.emacs.d/.customizations.el")
 (load custom-file t)
