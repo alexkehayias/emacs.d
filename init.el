@@ -94,7 +94,9 @@
   (setq org-agenda-custom-commands
            '(
              ("a" "Today's Agenda"
-              ((org-ql-block '(and (category "weekly_goals"))
+              ((org-ql-block '(and (category "strategic_areas"))
+                        ((org-ql-block-header "STRATEGIC AREAS\n")))
+               (org-ql-block '(and (category "weekly_goals"))
                         ((org-ql-block-header "WEEKLY GOALS\n")))
                (agenda "" ((org-agenda-skip-function
                             '(org-agenda-skip-entry-if 'regexp ":delegate:"))
@@ -647,30 +649,32 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-to-list 'auto-mode-alist '("\\.yaml\\'" . yaml-mode)))
 
 ;; Python
-(use-package python-mode
-  :config
-  (setq python-shell-interpreter "python3.10")
-  (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
-  (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((python . t)))
-  (add-hook 'python-mode-hook #'eglot-ensure)
-  (setq-default py-shell-name "python3.10"
-                python-indent-offset 4
-                ;; Assumes the python source directory is in {PROJECT_ROOT}/src
-                py-python-command-args `("-i" "-c" "import os;import sys;sys.path.append(os.getcwd()+'src')")))
+;; (use-package python-mode
+;;   :config
+;;   (setq python-shell-interpreter "python3.10")
+;;   (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
+;;   (org-babel-do-load-languages
+;;    'org-babel-load-languages
+;;    '((python . t)))
+;;   (add-hook 'python-mode-hook #'eglot-ensure)
+;;   (setq-default py-shell-name "python3.10"
+;;                 python-indent-offset 4
+;;                 ;; Assumes the python source directory is in {PROJECT_ROOT}/src
+;;                 py-python-command-args `("-i" "-c" "import os;import sys;sys.path.append(os.getcwd()+'src')")))
 
 (use-package pyvenv
   :ensure t
   :config
   (pyvenv-mode t)
+  (setq pyvenv-mode-line-indicator
+        '(pyvenv-virtual-env-name ("[venv:" pyvenv-virtual-env-name "] ")))
   ;; Set correct Python interpreter
-  ;; (setq pyvenv-post-activate-hooks
-  ;;       (list (lambda ()
-  ;;               (setq python-shell-interpreter (concat pyvenv-virtual-env "bin/ipython")))))
-  ;; (setq pyvenv-post-deactivate-hooks
-  ;;       (list (lambda ()
-  ;;               (setq python-shell-interpreter "ipython"))))
+  (setq pyvenv-post-activate-hooks
+        (list (lambda ()
+                (setq python-shell-interpreter (concat pyvenv-virtual-env "bin/ipython")))))
+  (setq pyvenv-post-deactivate-hooks
+        (list (lambda ()
+                (setq python-shell-interpreter "ipython"))))
   )
 
 ;; Format line numbers nicely
@@ -742,7 +746,7 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; Avy
 (use-package avy
   :config
-  (global-set-key (kbd "C-c SPC") 'avy-goto-char))
+  (global-set-key (kbd "C-c SPC") 'avy-goto-char-timer))
 
 ;; Auto refresh all buffers when files change ie git branch switching
 (global-auto-revert-mode t)
@@ -802,7 +806,7 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package flyspell
   :config
   (setq ispell-program-name "/opt/homebrew/bin/aspell")
-  (add-hook 'python-mode-hook (lambda () (flyspell-prog-mode)))
+  ;; (add-hook 'python-mode-hook (lambda () (flyspell-prog-mode)))
   (add-hook 'coffee-mode-hook (lambda () (flyspell-prog-mode)))
   (add-hook 'hbs-mode-hook (lambda () (flyspell-prog-mode)))
   ;; Disable in org-mode because it is too slow
@@ -1483,10 +1487,6 @@ Saves to a temp file and puts the filename in the kill ring."
   :hook (after-init . doom-modeline-mode)
   :config
   (setq doom-modeline-height 40))
-
-(use-package solaire-mode
-  :config
-  (solaire-global-mode +1))
 
 (use-package terraform-mode)
 
