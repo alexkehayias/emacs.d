@@ -662,20 +662,32 @@ Saves to a temp file and puts the filename in the kill ring."
 ;;                 ;; Assumes the python source directory is in {PROJECT_ROOT}/src
 ;;                 py-python-command-args `("-i" "-c" "import os;import sys;sys.path.append(os.getcwd()+'src')")))
 
-(use-package pyvenv
-  :ensure t
-  :config
-  (pyvenv-mode t)
-  (setq pyvenv-mode-line-indicator
-        '(pyvenv-virtual-env-name ("[venv:" pyvenv-virtual-env-name "] ")))
-  ;; Set correct Python interpreter
-  (setq pyvenv-post-activate-hooks
-        (list (lambda ()
-                (setq python-shell-interpreter (concat pyvenv-virtual-env "bin/ipython")))))
-  (setq pyvenv-post-deactivate-hooks
-        (list (lambda ()
-                (setq python-shell-interpreter "ipython"))))
-  )
+;; (use-package pyvenv
+;;   :ensure t
+;;   :config
+;;   (pyvenv-mode t)
+;;   (setq pyvenv-mode-line-indicator
+;;         '(pyvenv-virtual-env-name ("[venv:" pyvenv-virtual-env-name "] ")))
+;;   ;; Set correct Python interpreter
+;;   (setq pyvenv-post-activate-hooks
+;;         (list (lambda ()
+;;                 (setq python-shell-interpreter (concat pyvenv-virtual-env "bin/ipython")))))
+;;   (setq pyvenv-post-deactivate-hooks
+;;         (list (lambda ()
+;;                 (setq python-shell-interpreter "ipython"))))
+;;   )
+
+;; (use-package pyenv-mode
+;;   :config
+;;   (pyenv-mode)
+;;   (defun projectile-pyenv-mode-set ()
+;;     "Set pyenv version matching project name."
+;;     (let ((project (projectile-project-name)))
+;;       (if (member project (pyenv-mode-versions))
+;;           (pyenv-mode-set project)
+;;         (pyenv-mode-unset))))
+
+;;   (add-hook 'projectile-after-switch-project-hook 'projectile-pyenv-mode-set))
 
 ;; Format line numbers nicely
 (setq linum-format (quote " %3d "))
