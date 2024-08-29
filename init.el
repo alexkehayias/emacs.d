@@ -506,6 +506,14 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package magit
   :config
   (global-set-key (kbd "C-c g") 'magit-status)
+  ;; Fetch and revert buffer
+  (defun rebase-and-revert ()
+    "Fetch and rebase from git repo using Magit, then revert the current buffer."
+    (interactive)
+    (magit-fetch-branch "origin" "main" nil)
+    (magit-rebase-branch "origin/main" nil)
+    (revert-buffer t t))
+  (global-set-key (kbd "C-c r") 'rebase-and-revert)
   ;; Disable built in VC mode for better performance
   (setq vc-handled-backends nil)
   ;; Disable refreshing status for better performance
