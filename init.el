@@ -398,7 +398,6 @@
   "Ignores any errors raised from server-ensure-safe-dir"
   (ignore-errors ad-do-it))
 
-
 ;; Max image size when using the builtin viewer
 (setq max-image-size 50.0)
 
@@ -510,8 +509,8 @@ Saves to a temp file and puts the filename in the kill ring."
   (defun rebase-and-revert ()
     "Fetch and rebase from git repo using Magit, then revert the current buffer."
     (interactive)
-    (magit-fetch-branch "origin" "main" nil)
-    (magit-rebase-branch "origin/main" nil)
+    (magit-run-git "fetch" "--all")
+    (magit-run-git "rebase" "origin/main")
     (revert-buffer t t))
   (global-set-key (kbd "C-c r") 'rebase-and-revert)
   ;; Disable built in VC mode for better performance
@@ -590,6 +589,7 @@ Saves to a temp file and puts the filename in the kill ring."
 
 (use-package rust-mode
   :config
+  (setq rust-mode-treesitter-derive t)
   (add-hook 'rust-mode-hook #'eglot-ensure))
 
 (use-package project :ensure t)
@@ -641,6 +641,10 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-hook 'project-find-functions 'my-project-try-pyproject-toml nil nil)
 
   (add-to-list 'eglot-server-programs '(python-mode . ("pylsp")))
+
+  (add-to-list 'eglot-server-programs
+             '((rust-ts-mode rust-mode) .
+               ("rust-analyzer" :initializationOptions (:check (:command "clippy")))))
 
   )
 
@@ -719,7 +723,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (interactive)
   ;; Use custom font face for this buffer only
   (defface tmp-buffer-local-face
-    '((t :family "Space Mono" :height 150))
+    '((t :family "Space Mono" :height 140))
     "Temporary buffer-local face")
   (buffer-face-set 'tmp-buffer-local-face)
   ;; Use a skinny cursor
@@ -1176,6 +1180,29 @@ Saves to a temp file and puts the filename in the kill ring."
 
            (org-hugo-export-to-md)))
        notes)))
+
+  ;; Cache node find completions
+  ;; FIX: This breaks backlinks because it doesn't handle different
+  ;; sources of completion requests
+  ;; Copied from https://github.com/Konubinix/Devel/blob/30d0184db0a61f46ca35e102302d707fef964a8c/elfiles/config/after-loads/KONIX_AL-org-roam.el#L770-L787
+  ;; (defvar my/org-roam-node-read--completions/cache nil "Memory cache of the list of nodes")
+  ;; (defvar my/org-roam-node-read--completions/cache-time nil "The time when the cache was last taken")
+  ;; (defun my/org-roam-node-read--completions/cache (orig-fun &rest args)
+  ;;   (when (or
+  ;;          (not my/org-roam-node-read--completions/cache)
+  ;;          (not my/org-roam-node-read--completions/cache-time)
+  ;;          (time-less-p
+  ;;           my/org-roam-node-read--completions/cache-time
+  ;;           (file-attribute-modification-time (file-attributes org-roam-db-location))
+  ;;           )
+  ;;          )
+  ;;     (message "Computing the org-roam-node-read--completions")
+  ;;     (setq my/org-roam-node-read--completions/cache-time (current-time))
+  ;;     (setq my/org-roam-node-read--completions/cache (apply orig-fun args))
+  ;;     )
+  ;;   my/org-roam-node-read--completions/cache
+  ;;   )
+  ;; (advice-add #'org-roam-node-read--completions :around #'my/org-roam-node-read--completions/cache)
 
   :config
   (defun my/org-id-update-org-roam-files ()
@@ -1919,6 +1946,11 @@ Saves to a temp file and puts the filename in the kill ring."
   :ensure t
   :config
   (define-key copilot-completion-map (kbd "TAB") 'copilot-accept-completion)
+  )
+
+(use-package popper
+  :init
+  (popper-mode +1)
   )
 
 ;; Display macros inline in buffers
