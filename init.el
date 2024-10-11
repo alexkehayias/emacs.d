@@ -1556,7 +1556,7 @@ Saves to a temp file and puts the filename in the kill ring."
 	(setq big-screen nil)
 	(set-face-attribute 'default nil :height 140))
     (progn
-      (set-face-attribute 'default nil :height 260)
+      (set-face-attribute 'default nil :height 180)
       (setq big-screen 1))))
 (global-set-key (kbd "C-x M-b") 'toggle-big-screen)
 
@@ -1945,13 +1945,15 @@ Saves to a temp file and puts the filename in the kill ring."
   :straight (:host github :repo "copilot-emacs/copilot.el" :files ("*.el"))
   :ensure t
   :config
-  (define-key copilot-completion-map (kbd "TAB") 'copilot-accept-completion)
-  )
+  (define-key copilot-completion-map (kbd "TAB") 'copilot-accept-completion))
 
 (use-package popper
   :init
-  (popper-mode +1)
-  )
+  (popper-mode +1))
+
+(use-package gcmh
+  :init
+  (gcmh-mode 1))
 
 ;; Display macros inline in buffers
 (add-to-list 'font-lock-extra-managed-props 'display)
