@@ -27,6 +27,8 @@
 
 (use-package emacs
   :init
+  ;; Set garbage collector to a larger number
+  (setq gc-cons-threshold 33554432)
   ;; TAB cycle if there are only few candidates
   (setq completion-cycle-threshold 3)
   ;; Emacs 28: Hide commands in M-x which do not apply to the current mode.
@@ -723,7 +725,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (interactive)
   ;; Use custom font face for this buffer only
   (defface tmp-buffer-local-face
-    '((t :family "Space Mono" :height 140))
+    '((t :family "iA Writer Duospace" :height 140))
     "Temporary buffer-local face")
   (buffer-face-set 'tmp-buffer-local-face)
   ;; Use a skinny cursor
@@ -1669,7 +1671,11 @@ Saves to a temp file and puts the filename in the kill ring."
                     :host github
                     :repo "alphapapa/org-ql")
   :config
-  (define-key global-map (kbd "C-c s") #'org-ql-find-in-agenda))
+  (defun my/org-ql-find (args)
+    (interactive "P")
+    (org-ql-find (org-agenda-files nil t)))
+
+  (define-key global-map (kbd "C-c s") 'my/org-ql-find))
 
 (use-package shell-maker
   :straight (:host github :repo "xenodium/chatgpt-shell" :files ("shell-maker.el")))
@@ -1946,14 +1952,6 @@ Saves to a temp file and puts the filename in the kill ring."
   :ensure t
   :config
   (define-key copilot-completion-map (kbd "TAB") 'copilot-accept-completion))
-
-(use-package popper
-  :init
-  (popper-mode +1))
-
-(use-package gcmh
-  :init
-  (gcmh-mode 1))
 
 ;; Display macros inline in buffers
 (add-to-list 'font-lock-extra-managed-props 'display)
