@@ -320,7 +320,7 @@
              (end (point))
              (input (match-string-no-properties 1))
              (candidates (org-ql-select
-                           (org-agenda-files)
+                           (org-agenda-files nil t)
                            (org-ql--query-string-to-sexp input)
                            ;; Avoid having to look up the ID again
                            ;; since we are visiting all the locations
@@ -761,8 +761,8 @@ Saves to a temp file and puts the filename in the kill ring."
 (remove-hook 'text-mode-hook #'turn-on-auto-fill)
 
 ;; Shortcuts for going forward and backwards cycling windows
-(global-set-key (kbd "C-x p") 'other-window)
-(global-set-key (kbd "C-x o") 'previous-multiframe-window)
+;; (global-set-key (kbd "C-x p") 'other-window)
+;; (global-set-key (kbd "C-x o") 'previous-multiframe-window)
 
 ;; Expand region
 (use-package expand-region
@@ -1980,6 +1980,15 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package org-ai-shell
   :ensure nil
   :straight nil)
+
+;; Experimental sticky buffer
+(add-to-list 'load-path (expand-file-name "sticky-buffer-mode" user-emacs-directory))
+(use-package sticky-buffer-mode
+  :ensure nil
+  :straight nil
+  :config
+  (sticky-buffer-mode 1))
+
 
 ;; Extended org-edit-special to support more block types based on edit-indirect
 ;; - edit-indirect by Fanael https://github.com/Fanael/edit-indirect
