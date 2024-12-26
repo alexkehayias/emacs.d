@@ -311,6 +311,46 @@
    '((shell . t)
      (dot . t)))
 
+  (defun my/org-agenda-check-duplicates ()
+    "Check org-agenda for duplicate headlines and display them in a new buffer."
+    (interactive)
+    (let ((duplicates (make-hash-table :test 'equal))
+          (agenda-files (org-agenda-files)))
+      (dolist (file agenda-files)
+        (with-temp-buffer
+          (insert-file-contents file)
+          (org-mode)
+          (org-map-entries
+           (lambda ()
+             (let ((headline (org-get-heading t t t t)))
+               (when (and headline (not (string-blank-p headline)))
+                 (let ((entry (gethash headline duplicates)))
+                   (puthash headline (cons file entry) duplicates))))))
+          ))
+      (let (duplicate-list)
+        (maphash (lambda (key locations)
+                   (when (> (length locations) 1)
+                     (push (cons key locations) duplicate-list)))
+                 duplicates)
+        (if duplicate-list
+            (let ((buf (get-buffer-create "*Org Duplicates*")))
+              (with-current-buffer buf
+                (erase-buffer)
+                (insert "* Duplicate Headlines:\n\n")
+                (dolist (entry duplicate-list)
+                  (let ((headline (car entry))
+                        (files (cdr entry)))
+                    (insert (format "** %s\n" headline))
+                    (dolist (file files)
+                      (insert (format "- [[file:%s::*%s][%s]]\n"
+                                      file
+                                      (org-link-escape headline)
+                                      headline)))))
+                (org-mode)
+                (goto-char (point-min))
+                (display-buffer buf)))
+          (message "No duplicates found.")))))
+
   ;; [at] completion for org headlines
   (defun my/org-agenda-completions-at-point ()
     "Function to be used as `completion-at-point' in Org mode."
@@ -725,14 +765,18 @@ Saves to a temp file and puts the filename in the kill ring."
   (interactive)
   ;; Use custom font face for this buffer only
   (defface tmp-buffer-local-face
-    '((t :family "iA Writer Duospace" :height 140))
+    '((t :family "Maple Mono" :height 160 :weight 'bold))
     "Temporary buffer-local face")
   (buffer-face-set 'tmp-buffer-local-face)
   ;; Use a skinny cursor
   (make-local-variable 'cursor-type)
   (setq cursor-type 'bar)
   ;; Add extra line spacing
-  (setq-local line-spacing 0.5))
+  (setq-local line-spacing 0.5)
+  ;; Disable hl-line-mode if it's on
+  (when (bound-and-true-p hl-line-mode)
+    (hl-line-mode -1))
+  )
 
 ;; ;; Nice writing layout
 (use-package writeroom-mode
@@ -1558,7 +1602,7 @@ Saves to a temp file and puts the filename in the kill ring."
 	(setq big-screen nil)
 	(set-face-attribute 'default nil :height 140))
     (progn
-      (set-face-attribute 'default nil :height 180)
+      (set-face-attribute 'default nil :height 160)
       (setq big-screen 1))))
 (global-set-key (kbd "C-x M-b") 'toggle-big-screen)
 
