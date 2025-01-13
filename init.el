@@ -309,7 +309,8 @@
   (org-babel-do-load-languages
    'org-babel-load-languages
    '((shell . t)
-     (dot . t)))
+     (dot . t)
+     (python . t)))
 
   (defun my/org-agenda-check-duplicates ()
     "Check org-agenda for duplicate headlines and display them in a new buffer."
@@ -635,6 +636,56 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-hook 'rust-mode-hook #'eglot-ensure))
 
 (use-package project :ensure t)
+
+;; Projectile
+(use-package projectile
+  :after (project)
+  :config
+  (projectile-mode)
+  ;; Set the base keybinding
+  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+  ;; Cache projectile projects
+  (setq projectile-enable-caching t)
+  ;; Defer to git if possible
+  (setq projectile-indexing-method 'alien)
+  ;; Limit projectile projects to these directories
+  (setq projectile-project-search-path '("~/Projects/"))
+
+  (defun projectile-term ()
+    "Create an vterm at the project root"
+    (interactive)
+    (let ((root (projectile-project-root))
+	  (buff-name (concat
+		      (nth 1 (reverse (split-string (projectile-project-root) "/")))
+		      " [term]")))
+      (if (get-buffer buff-name)
+	  (switch-to-buffer-other-window buff-name)
+	(progn
+	  (split-window-sensibly (selected-window))
+	  (other-window 1)
+	  (setq default-directory root)
+          (vterm)
+	  (rename-buffer buff-name t)))))
+  (global-set-key (kbd "C-x M-t") 'projectile-term)
+
+  (defun projectile-notes ()
+    "Open org notes file at project root"
+    (interactive)
+    (let ((root (projectile-project-root))
+	  (buff-name (concat
+		      (nth 1 (reverse (split-string (projectile-project-root) "/")))
+		      "notes.org")))
+      (if (get-buffer buff-name)
+	  (switch-to-buffer-other-window buff-name)
+	(progn
+          (if (file-exists-p (concat (projectile-project-root) "notes.org"))
+              (progn
+                (split-window-sensibly (selected-window))
+                (other-window 1)
+                (setq default-directory root)
+                (find-file (concat root "notes.org")))
+            (error "Notes file not found in this project"))))))
+  (global-set-key (kbd "C-x M-n") 'projectile-notes))
 
 (use-package eglot
   :after (project projectile)
@@ -1502,55 +1553,6 @@ Saves to a temp file and puts the filename in the kill ring."
   (insert-kbd-macro name)               ; copy the macro
   (newline)                             ; insert a newline
   (switch-to-buffer nil))               ; return to the initial buffer
-
-;; Projectile
-(use-package projectile
-  :config
-  (projectile-mode)
-  ;; Set the base keybinding
-  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
-  ;; Cache projectile projects
-  (setq projectile-enable-caching t)
-  ;; Defer to git if possible
-  (setq projectile-indexing-method 'alien)
-  ;; Limit projectile projects to these directories
-  (setq projectile-project-search-path '("~/Projects/"))
-
-  (defun projectile-term ()
-    "Create an vterm at the project root"
-    (interactive)
-    (let ((root (projectile-project-root))
-	  (buff-name (concat
-		      (nth 1 (reverse (split-string (projectile-project-root) "/")))
-		      " [term]")))
-      (if (get-buffer buff-name)
-	  (switch-to-buffer-other-window buff-name)
-	(progn
-	  (split-window-sensibly (selected-window))
-	  (other-window 1)
-	  (setq default-directory root)
-          (vterm)
-	  (rename-buffer buff-name t)))))
-  (global-set-key (kbd "C-x M-t") 'projectile-term)
-
-  (defun projectile-notes ()
-    "Open org notes file at project root"
-    (interactive)
-    (let ((root (projectile-project-root))
-	  (buff-name (concat
-		      (nth 1 (reverse (split-string (projectile-project-root) "/")))
-		      "notes.org")))
-      (if (get-buffer buff-name)
-	  (switch-to-buffer-other-window buff-name)
-	(progn
-          (if (file-exists-p (concat (projectile-project-root) "notes.org"))
-              (progn
-                (split-window-sensibly (selected-window))
-                (other-window 1)
-                (setq default-directory root)
-                (find-file (concat root "notes.org")))
-            (error "Notes file not found in this project"))))))
-  (global-set-key (kbd "C-x M-n") 'projectile-notes))
 
 ;; browse-kill-ring with M-y
 (use-package browse-kill-ring
