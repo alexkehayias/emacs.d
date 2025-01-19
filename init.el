@@ -688,6 +688,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (global-set-key (kbd "C-x M-n") 'projectile-notes))
 
 (use-package eglot
+  :defer t
   :after (project projectile)
   :config
   ;; Fix breaking change introduced in
@@ -704,10 +705,6 @@ Saves to a temp file and puts the filename in the kill ring."
                 (js (ignore-errors (json-read-from-string output)))
                 (found (cdr (assq 'workspace_root js))))
       (cons 'eglot-project found)))
-
-  ;; Handle projects not in the root folder of a repo
-  (cl-defmethod project-root ((project (head eglot-project)))
-    (cdr project))
 
   (add-hook 'project-find-functions 'my-project-try-cargo-toml nil nil)
 
@@ -1401,9 +1398,6 @@ Saves to a temp file and puts the filename in the kill ring."
   (interactive "sbuffer name: ")
   (vterm)
   (rename-buffer buffer-name t))
-
-;; Shortcut to create a new term
-(define-key global-map (kbd "C-x M-t") 'new-term)
 
 ;; Speed up ansi-term in emacs 24.x by skipping guessing left-to-right input
 (add-hook 'term-mode-hook 'my-term-mode-hook)
