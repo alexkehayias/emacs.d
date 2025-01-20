@@ -24,6 +24,8 @@
 
 (straight-use-package 'use-package)
 (setq straight-use-package-by-default t)
+(setq straight-built-in-pseudo-packages
+      '(emacs project xref))
 
 (use-package emacs
   :init
@@ -306,11 +308,12 @@
   ;; to accidentally run it again
   (setq org-export-babel-evaluate nil)
 
-  (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((shell . t)
-     (dot . t)
-     (python . t)))
+  ;; THIS IS LOADING PROJECT.EL FOR SOME REASON
+  ;; (org-babel-do-load-languages
+  ;;  'org-babel-load-languages
+  ;;  '((shell . t)
+  ;;    (dot . t)
+  ;;    (python . t)))
 
   (defun my/org-agenda-check-duplicates ()
     "Check org-agenda for duplicate headlines and display them in a new buffer."
@@ -403,7 +406,6 @@
     (add-to-list 'completion-at-point-functions 'my/org-agenda-completions-at-point))
 
   (add-hook 'org-mode-hook 'my/org-agenda-completion-hook))
-
 
 ;; macOS settings
 (when (memq window-system '(mac ns))
@@ -517,20 +519,6 @@ Saves to a temp file and puts the filename in the kill ring."
          (funcall mode-symbol -1))))
    minor-mode-list))
 
-;; Nice startup screen
-(use-package dashboard
-  :config
-  (dashboard-setup-startup-hook)
-  (setq dashboard-banner-logo-title "Welcome back Ender")
-  (setq dashboard-startup-banner 'logo)
-  (setq dashboard-center-content t)
-  (setq dashboard-items '((recents  . 5)
-                          (projects . 5)
-                          (agenda . 5)))
-  (setq dashboard-set-heading-icons t)
-  (setq dashboard-set-file-icons t)
-  (setq show-week-agenda-p t))
-
 ;; Emdash
 (defun insert-em-dash ()
   "Insert a em-dash"
@@ -543,6 +531,105 @@ Saves to a temp file and puts the filename in the kill ring."
 
 ;; Show the time
 (display-time-mode 1)
+
+(use-package eglot
+  :config
+  ;; Fix breaking change introduced in
+  ;; https://github.com/joaotavora/eglot/commit/d0a657e81c5b02529c4f32c2e51e00bdf4729a9e
+  (defun eglot--major-mode (server) (car (eglot--major-modes server)))
+
+  (add-to-list 'eglot-stay-out-of 'flyspell)
+
+  ;; Better support for rust projects with multiple sub projects
+  (defun my-project-try-cargo-toml (dir)
+    (when-let* ((output
+                 (let ((default-directory dir))
+                   (shell-command-to-string "cargo metadata --no-deps --format-version 1")))
+                (js (ignore-errors (json-read-from-string output)))
+                (found (cdr (assq 'workspace_root js))))
+      (cons 'eglot-project found)))
+
+  (add-hook 'project-find-functions 'my-project-try-cargo-toml nil nil)
+
+  (defun my-project-try-tsconfig-json (dir)
+    (when-let* ((found (locate-dominating-file dir "tsconfig.json")))
+      (cons 'eglot-project found)))
+
+  (add-hook 'project-find-functions 'my-project-try-tsconfig-json nil nil)
+
+  (add-to-list 'eglot-server-programs
+               '((typescript-mode) "typescript-language-server" "--stdio"))
+
+  (setq-default eglot-workspace-configuration
+                '(:pylsp (:plugins (:pycodestyle (:enabled :json-false)
+                                    :pyflakes (:enabled t)
+                                    :isort (:enabled t)
+                                    :rope (:enabled t)
+                                    :black (:enabled t)))))
+
+  (defun my-project-try-pyproject-toml (dir)
+    (when-let* ((found (locate-dominating-file dir "pyproject.toml")))
+      (cons 'eglot-project found)))
+
+  (add-hook 'project-find-functions 'my-project-try-pyproject-toml nil nil)
+
+  (add-to-list 'eglot-server-programs '(python-mode . ("pylsp")))
+
+  (add-to-list 'eglot-server-programs
+             '((rust-ts-mode rust-mode) .
+               ("rust-analyzer" :initializationOptions (:check (:command "clippy")))))
+
+  )
+
+;; Projectile
+(use-package projectile
+  :config
+  (projectile-mode)
+  ;; Set the base keybinding
+  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+  ;; Cache projectile projects
+  (setq projectile-enable-caching t)
+  ;; Defer to git if possible
+  (setq projectile-indexing-method 'alien)
+  ;; Limit projectile projects to these directories
+  (setq projectile-project-search-path '("~/Projects/"))
+
+  (defun projectile-term ()
+    "Create an vterm at the project root"
+    (interactive)
+    (let ((root (projectile-project-root))
+	  (buff-name (concat
+		      (nth 1 (reverse (split-string (projectile-project-root) "/")))
+		      " [term]")))
+      (if (get-buffer buff-name)
+	  (switch-to-buffer-other-window buff-name)
+	(progn
+	  (split-window-sensibly (selected-window))
+	  (other-window 1)
+	  (setq default-directory root)
+          (vterm)
+	  (rename-buffer buff-name t)))))
+  (global-set-key (kbd "C-x M-t") 'projectile-term)
+
+  (defun projectile-notes ()
+    "Open org notes file at project root"
+    (interactive)
+    (let ((root (projectile-project-root))
+	  (buff-name (concat
+		      (nth 1 (reverse (split-string (projectile-project-root) "/")))
+		      "notes.org")))
+      (if (get-buffer buff-name)
+	  (switch-to-buffer-other-window buff-name)
+	(progn
+          (if (file-exists-p (concat (projectile-project-root) "notes.org"))
+              (progn
+                (split-window-sensibly (selected-window))
+                (other-window 1)
+                (setq default-directory root)
+                (find-file (concat root "notes.org")))
+            (error "Notes file not found in this project"))))))
+  (global-set-key (kbd "C-x M-n") 'projectile-notes)
+)
 
 ;; Git using magit
 (use-package magit
@@ -623,8 +710,7 @@ Saves to a temp file and puts the filename in the kill ring."
             (lambda ()
               (tree-sitter-mode)
               (tree-sitter-hl-mode)
-              (tsi-typescript-mode)))
-  (add-hook 'typescript-mode-hook #'eglot-ensure))
+              (tsi-typescript-mode))))
 
 (use-package toml-mode
   :config
@@ -632,111 +718,7 @@ Saves to a temp file and puts the filename in the kill ring."
 
 (use-package rust-mode
   :config
-  (setq rust-mode-treesitter-derive t)
-  (add-hook 'rust-mode-hook #'eglot-ensure))
-
-(use-package project :ensure t)
-
-;; Projectile
-(use-package projectile
-  :after (project)
-  :config
-  (projectile-mode)
-  ;; Set the base keybinding
-  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
-  ;; Cache projectile projects
-  (setq projectile-enable-caching t)
-  ;; Defer to git if possible
-  (setq projectile-indexing-method 'alien)
-  ;; Limit projectile projects to these directories
-  (setq projectile-project-search-path '("~/Projects/"))
-
-  (defun projectile-term ()
-    "Create an vterm at the project root"
-    (interactive)
-    (let ((root (projectile-project-root))
-	  (buff-name (concat
-		      (nth 1 (reverse (split-string (projectile-project-root) "/")))
-		      " [term]")))
-      (if (get-buffer buff-name)
-	  (switch-to-buffer-other-window buff-name)
-	(progn
-	  (split-window-sensibly (selected-window))
-	  (other-window 1)
-	  (setq default-directory root)
-          (vterm)
-	  (rename-buffer buff-name t)))))
-  (global-set-key (kbd "C-x M-t") 'projectile-term)
-
-  (defun projectile-notes ()
-    "Open org notes file at project root"
-    (interactive)
-    (let ((root (projectile-project-root))
-	  (buff-name (concat
-		      (nth 1 (reverse (split-string (projectile-project-root) "/")))
-		      "notes.org")))
-      (if (get-buffer buff-name)
-	  (switch-to-buffer-other-window buff-name)
-	(progn
-          (if (file-exists-p (concat (projectile-project-root) "notes.org"))
-              (progn
-                (split-window-sensibly (selected-window))
-                (other-window 1)
-                (setq default-directory root)
-                (find-file (concat root "notes.org")))
-            (error "Notes file not found in this project"))))))
-  (global-set-key (kbd "C-x M-n") 'projectile-notes))
-
-(use-package eglot
-  :defer t
-  :after (project projectile)
-  :config
-  ;; Fix breaking change introduced in
-  ;; https://github.com/joaotavora/eglot/commit/d0a657e81c5b02529c4f32c2e51e00bdf4729a9e
-  (defun eglot--major-mode (server) (car (eglot--major-modes server)))
-
-  (add-to-list 'eglot-stay-out-of 'flyspell)
-
-  ;; Better support for rust projects with multiple sub projects
-  (defun my-project-try-cargo-toml (dir)
-    (when-let* ((output
-                 (let ((default-directory dir))
-                   (shell-command-to-string "cargo metadata --no-deps --format-version 1")))
-                (js (ignore-errors (json-read-from-string output)))
-                (found (cdr (assq 'workspace_root js))))
-      (cons 'eglot-project found)))
-
-  (add-hook 'project-find-functions 'my-project-try-cargo-toml nil nil)
-
-  (defun my-project-try-tsconfig-json (dir)
-    (when-let* ((found (locate-dominating-file dir "tsconfig.json")))
-      (cons 'eglot-project found)))
-
-  (add-hook 'project-find-functions 'my-project-try-tsconfig-json nil nil)
-
-  (add-to-list 'eglot-server-programs
-               '((typescript-mode) "typescript-language-server" "--stdio"))
-
-  (setq-default eglot-workspace-configuration
-                '(:pylsp (:plugins (:pycodestyle (:enabled :json-false)
-                                    :pyflakes (:enabled t)
-                                    :isort (:enabled t)
-                                    :rope (:enabled t)
-                                    :black (:enabled t)))))
-
-  (defun my-project-try-pyproject-toml (dir)
-    (when-let* ((found (locate-dominating-file dir "pyproject.toml")))
-      (cons 'eglot-project found)))
-
-  (add-hook 'project-find-functions 'my-project-try-pyproject-toml nil nil)
-
-  (add-to-list 'eglot-server-programs '(python-mode . ("pylsp")))
-
-  (add-to-list 'eglot-server-programs
-             '((rust-ts-mode rust-mode) .
-               ("rust-analyzer" :initializationOptions (:check (:command "clippy")))))
-
-  )
+  (setq rust-mode-treesitter-derive t))
 
 ;; Elisp
 (use-package paredit
@@ -758,7 +740,6 @@ Saves to a temp file and puts the filename in the kill ring."
 ;;   (org-babel-do-load-languages
 ;;    'org-babel-load-languages
 ;;    '((python . t)))
-;;   (add-hook 'python-mode-hook #'eglot-ensure)
 ;;   (setq-default py-shell-name "python3.10"
 ;;                 python-indent-offset 4
 ;;                 ;; Assumes the python source directory is in {PROJECT_ROOT}/src
@@ -806,8 +787,7 @@ Saves to a temp file and puts the filename in the kill ring."
             (lambda ()
               (local-unset-key (kbd "M-n"))
               (local-unset-key (kbd "M-p"))))
-  (add-to-list 'auto-mode-alist '("\\.md$" . markdown-mode))
-  (add-hook 'markdown-mode-hook #'eglot-ensure))
+  (add-to-list 'auto-mode-alist '("\\.md$" . markdown-mode)))
 
 (defun writeroom-setup ()
   (interactive)
@@ -1076,9 +1056,6 @@ Saves to a temp file and puts the filename in the kill ring."
   (setq org-roam-v2-ack t)
   ;; Fix Emacs 28.2 can't find `sqlite`
   (setq org-roam-database-connector 'sqlite-builtin)
-  ;; Use efm-langserver for prose linting
-  ;; (add-hook 'org-roam-mode #'eglot-ensure)
-  ;; (add-hook 'org-roam-capture-new-node-hook #'eglot-ensure)
 
   (setq org-roam-dailies-directory org-roam-notes-path)
   ;; Include tags in note search results
