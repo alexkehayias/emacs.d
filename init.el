@@ -117,27 +117,16 @@
                            (org-agenda-scheduled-leaders '("Scheduled: ""Sched.%2dx: "))
                            (org-agenda-deadline-leaders '("Deadline:  ""In %d days: " "%d days ago: "))
                            (org-agenda-time-grid (quote ((today require-timed remove-match) () "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))))
-               (org-ql-block '(and (todo "WAITING\n"))
-                             ((org-ql-block-header "WEEKLY GOALS")
-                              (org-agenda-remove-tags t)))
                (org-ql-block '(and (todo "NEXT") (not (tags "project_done")))
                              ((org-ql-block-header "NEXT")
                               (org-agenda-remove-tags t)
                               (org-super-agenda-groups '((:auto-priority t) (:auto-category t)))
                               (org-agenda-sorting-strategy
                                '(priority-down category-keep))))
-               (org-ql-block '(and (tags "delegate") (or (todo "NEXT") (todo "TODO")))
-                             ((org-ql-block-header "TO DELEGATE\n")
-                              (org-agenda-prefix-format "  %-11:c %?b")
-                              (org-agenda-skip-function
-                               '(org-agenda-skip-entry-if 'nottag "delegate"))
-                              (org-agenda-todo-keyword-format "")))
-               (org-ql-block '(and (tags "delegate") (todo "WAITING"))
-                          ((org-ql-block-header "DELEGATED\n")
+               (org-ql-block '(and (todo "WAITING"))
+                          ((org-ql-block-header "WAITING\n")
                            (org-agenda-prefix-format "  %-11:c %?b")
-                           (org-agenda-todo-keyword-format "")
-                           (org-super-agenda-groups '((:auto-tags t)))
-                           ))))
+                           (org-agenda-todo-keyword-format "")))))
            ("r" "Daily Review"
             (
              (agenda "" (
@@ -1731,8 +1720,8 @@ Saves to a temp file and puts the filename in the kill ring."
   (gptel-make-ollama "Ollama"
     :stream t
     :host "localhost:11434"
-    :models '("llama3:8b"))
-  )
+    :models '("llama3:8b"
+              "deepseek-r1:8b")))
 
 (use-package marginalia
   :ensure t
