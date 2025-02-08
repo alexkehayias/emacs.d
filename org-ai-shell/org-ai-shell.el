@@ -5,7 +5,7 @@
 (defvar my-org-ai-process nil
   "Variable to store the org-ai process.")
 
-(defvar org-ai-cli-file-path "~/Projects/org-ai/bin/run.sh"
+(defvar org-ai-cli-file-path "~/Projects/indexer/bin/chat.sh"
   "Path to the program used by `org-ai-shell'")
 
 (defvar org-ai-cli-arguments '()
