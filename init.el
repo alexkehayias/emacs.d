@@ -1677,8 +1677,8 @@ Saves to a temp file and puts the filename in the kill ring."
                     :host github
                     :repo "alphapapa/org-ql")
   :config
-  (defun my/org-ql-find (args)
-    (interactive "P")
+  (defun my/org-ql-find ()
+    (interactive)
     (org-ql-find (org-agenda-files nil t)))
 
   (define-key global-map (kbd "C-c s") 'my/org-ql-find))
@@ -1942,7 +1942,12 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; Configure SPC for separator insertion
   (:map corfu-map ("SPC" . corfu-insert-separator))
   :init
-  (global-corfu-mode))
+  (global-corfu-mode)
+
+  ;; Don't use corfu in comint-mode or it messes with org-ai-shell
+  (add-hook 'comint-mode-hook
+            (lambda ()
+              (corfu-mode -1))))
 
 (use-package orderless
   :init
