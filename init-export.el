@@ -442,6 +442,9 @@
 
   :init
   (setq org-roam-directory org-roam-notes-path)
+  ;; Even though this is the default, we want to make this explicit
+  ;; that no other files will get picked up during export
+  (setq org-roam-file-extensions '("org"))
   ;; Needed to supress update warning
   (setq org-roam-v2-ack t)
   ;; These functions need to be in :init otherwise they will not be
