@@ -1183,62 +1183,62 @@ Saves to a temp file and puts the filename in the kill ring."
     ;; draft. The way we filter tags doesn't work nicely
     ;; with emacsql's DSL so just use a raw SQL query
     ;; for clarity
-    (let ((notes (org-roam-db-query "SELECT id, file FROM (SELECT nodes.id, nodes.file, nodes.level, group_concat(tags.tag) AS alltags FROM nodes LEFT OUTER JOIN tags ON nodes.id = tags.node_id GROUP BY nodes.file) WHERE level = 0 and (alltags is null or (','||alltags||',' not like '%%,\"private\",%%' and ','||alltags||',' not like '%%,\"draft\",%%'))")))
+    (let ((notes (org-roam-db-query "SELECT id, file, level FROM (SELECT nodes.id, nodes.file, nodes.level, group_concat(tags.tag) AS alltags FROM nodes LEFT OUTER JOIN tags ON nodes.id = tags.node_id GROUP BY nodes.file) WHERE level = 0 and (alltags is null or (','||alltags||',' not like '%%,\"private\",%%' and ','||alltags||',' not like '%%,\"draft\",%%'))")))
       (-map
-       (-lambda ((id file))
-         ;; Use temporary buffer to prevent a buffer being opened for
-         ;; each note file.
-         (with-temp-buffer
-           (message "Working on: %s" file)
+       (-lambda ((id file level))
+         ;; Only export note files, not individual headings
+         (when (= level 0)
+           ;; Use temporary buffer to prevent a buffer being opened for
+           ;; each note file.
+           (with-temp-buffer
+             (insert-file-contents file)
 
-           (insert-file-contents file)
+             ;; Change relative links that work within emacs to view an image to
+             ;; absolute paths for use with exported markdown to html.
+             (goto-char (point-min))
+             (while (re-search-forward "\\[\\[\\.\\/img\\([^]]*\\)\\]\\]" nil t)
+               (replace-match "[[/img\\1]]" nil nil))
 
-           ;; Change relative links that work within emacs to view an image to
-           ;; absolute paths for use with exported markdown to html.
-           (goto-char (point-min))
-           (while (re-search-forward "\\[\\[\\.\\/img\\([^]]*\\)\\]\\]" nil t)
-             (replace-match "[[/img\\1]]" nil nil))
+             ;; Adding these tags must go after file content because it
+             ;; will include a :PROPERTIES: drawer as of org-roam v2
+             ;; which must be the first item on the page
 
-           ;; Adding these tags must go after file content because it
-           ;; will include a :PROPERTIES: drawer as of org-roam v2
-           ;; which must be the first item on the page
+             ;; Add in hugo tags for export. This lets you write the
+             ;; notes without littering HUGO_* tags everywhere
+             ;; HACK:
+             ;; org-export-output-file-name doesn't play nicely with
+             ;; temp buffers since it attempts to get the file name from
+             ;; the buffer. Instead we explicitely add the name of the
+             ;; exported .md file otherwise you would get prompted for
+             ;; the output file name on every note.
+             (goto-char (point-min))
+             (re-search-forward ":END:")
+             (newline)
+             (insert
+              (format "#+HUGO_BASE_DIR: %s\n#+HUGO_SECTION: ./\n#+HUGO_SLUG: %s\n#+EXPORT_FILE_NAME: %s\n"
+                      org-roam-publish-path
+                      (file-path-to-slug file)
+                      (file-path-to-md-file-name file)))
 
-           ;; Add in hugo tags for export. This lets you write the
-           ;; notes without littering HUGO_* tags everywhere
-           ;; HACK:
-           ;; org-export-output-file-name doesn't play nicely with
-           ;; temp buffers since it attempts to get the file name from
-           ;; the buffer. Instead we explicitely add the name of the
-           ;; exported .md file otherwise you would get prompted for
-           ;; the output file name on every note.
-           (goto-char (point-min))
-           (re-search-forward ":END:")
-           (newline)
-           (insert
-            (format "#+HUGO_BASE_DIR: %s\n#+HUGO_SECTION: ./\n#+HUGO_SLUG: %s\n#+EXPORT_FILE_NAME: %s\n"
-                    org-roam-publish-path
-                    (file-path-to-slug file)
-                    (file-path-to-md-file-name file)))
-
-           ;; If this is a placeholder note (no content in the
-           ;; body) then add default text. This makes it look ok when
-           ;; showing note previews in the index and avoids a headline
-           ;; followed by a headline in the note detail page.
-           (if (eq (my/org-roam--extract-note-body file) nil)
-               (progn
-                 (goto-char (point-max))
-                 (insert "\n/This note does not have a description yet./\n")))
-
-           ;; Add in backlinks (at the end of the file) because
-           ;; org-export-before-processing-hook won't be useful the
-           ;; way we are using a temp buffer
-           (let ((links (my/org-roam--backlinks-list id file)))
-             (if (not (string= links ""))
+             ;; If this is a placeholder note (no content in the
+             ;; body) then add default text. This makes it look ok when
+             ;; showing note previews in the index and avoids a headline
+             ;; followed by a headline in the note detail page.
+             (if (eq (my/org-roam--extract-note-body file) nil)
                  (progn
                    (goto-char (point-max))
-                   (insert (concat "\n* Links to this note\n") links))))
+                   (insert "\n/This note does not have a description yet./\n")))
 
-           (org-hugo-export-to-md)))
+             ;; Add in backlinks (at the end of the file) because
+             ;; org-export-before-processing-hook won't be useful the
+             ;; way we are using a temp buffer
+             (let ((links (my/org-roam--backlinks-list id file)))
+               (if (not (string= links ""))
+                   (progn
+                     (goto-char (point-max))
+                     (insert (concat "\n* Links to this note\n") links))))
+
+             (org-hugo-export-to-md))))
        notes)))
 
   ;; Cache node find completions
