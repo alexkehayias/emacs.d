@@ -617,8 +617,15 @@ Saves to a temp file and puts the filename in the kill ring."
                 (setq default-directory root)
                 (find-file (concat root "notes.org")))
             (error "Notes file not found in this project"))))))
-  (global-set-key (kbd "C-x M-n") 'projectile-notes)
-)
+  (global-set-key (kbd "C-x M-n") 'projectile-notes))
+
+;; Requires emacs-lsp-booster to be installed
+;; https://github.com/blahgeek/emacs-lsp-booster
+;; cargo install emacs-lsp-booster
+(use-package eglot-booster
+  :straight ( eglot-booster :type git :host nil :repo "https://github.com/jdtsmith/eglot-booster")
+  :after eglot
+  :config (eglot-booster-mode))
 
 ;; Git using magit
 (use-package magit
@@ -1050,6 +1057,17 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; Include tags in note search results
   (setq org-roam-node-display-template "${title}      ${tags}")
 
+  ;; Don't cache headlines, only files
+  (defun my/org-roam-include-only-file-nodes ()
+    "Return non-nil if point is at a file-level Org-roam node (i.e. not a headline)."
+    ;; We assume file-level nodes are defined before any headline
+    (save-excursion
+      (goto-char (point-min))
+      ;; Look for #+title to define the file-level node
+      (re-search-forward "^#\\+title: " nil t)))
+
+  (setq org-roam-db-node-include-function #'my/org-roam-include-only-file-nodes)
+
   ;; Customize the org-roam buffer
   (add-to-list 'display-buffer-alist
                '("\\*org-roam\\*"
@@ -1332,7 +1350,11 @@ Saves to a temp file and puts the filename in the kill ring."
   (advice-add 'org-mark-ring-goto :around #'close-buffer-after-mark-goto)
 
   ;; Run org-roam sync on load
-  (org-roam-db-autosync-mode))
+  (org-roam-db-autosync-mode)
+
+  ;; Set higher garbage collection threshold when doing intensive
+  ;; queries to avoid many GC pauses
+  (setq org-roam-db-gc-threshold most-positive-fixnum))
 
 (use-package org-roam-ui
   :defer t
@@ -1447,6 +1469,7 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package json-mode
   :config
   (add-to-list 'auto-mode-alist '("\\.json\\'" . json-mode))
+  (setq js-indent-level 2)
   (add-hook 'json-mode 'flymake-json-load))
 
 ;; Fix pasting from a buffer to term
@@ -1552,7 +1575,7 @@ Saves to a temp file and puts the filename in the kill ring."
 (add-to-list 'default-frame-alist '(font . "Cascadia Code"))
 ;; Make the default face the same font
 (set-face-attribute 'default nil :font "Cascadia Code" :weight 'medium)
-(set-face-attribute 'default nil :height 140)
+(set-face-attribute 'default nil :height 130)
 
 ;; Keyboard shortcut for using a big screen
 (setq big-screen nil)
@@ -1721,7 +1744,19 @@ Saves to a temp file and puts the filename in the kill ring."
     :stream t
     :host "localhost:11434"
     :models '("llama3:8b"
-              "deepseek-r1:8b")))
+              "deepseek-r1:8b"))
+
+  (gptel-make-openai "LM Studio"
+    :stream t
+    :key "not-needed"
+    :host (or (getenv "LM_STUDIO_HOST") "localhost:1234")
+    :protocol "http"
+    :models '("qwen/qwen3-30b-a3b-2507"
+              "qwen/qwen3-235b-a22b-2507"
+              "openai/gpt-oss-20b"
+              "openai/gpt-oss-120b"
+              "kimi-k2"
+              "deepseek-r1-0528@4bit")))
 
 (use-package marginalia
   :ensure t
