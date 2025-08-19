@@ -445,11 +445,24 @@
 ;; Disable .# lock files
 (setq create-lockfiles nil)
 
+;; Emacs GUI specific setup
 (when window-system
   ;; Disable pscroll bars in gui emacs
   (scroll-bar-mode -1)
   ;; Disable the tool bar in gui emacs
   (tool-bar-mode -1))
+
+;; Emacs in the terminal specific setup
+(when (not (display-graphic-p))
+  (defun copy-to-clipboard (orig-fun &rest args)
+    "Advice to copy region to clipboard when using kill commands."
+    (let ((result (apply orig-fun args)))
+      (when (and (called-interactively-p 'any)
+                 (use-region-p))
+        (shell-command-on-region (region-beginning) (region-end) "pbcopy"))
+      result))
+  (advice-add 'kill-ring-save :around #'copy-to-clipboard)
+  (advice-add 'kill-region :around #'copy-to-clipboard))
 
 ;; Highlight the current line
 (global-hl-line-mode 1)
