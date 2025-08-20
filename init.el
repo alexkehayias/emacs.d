@@ -1997,6 +1997,12 @@ Saves to a temp file and puts the filename in the kill ring."
             (lambda ()
               (corfu-mode -1))))
 
+;; Remove after Emacs 31 as it's no longer needed
+(use-package corfu-terminal
+  :straight (:type git :repo "https://codeberg.org/akib/emacs-corfu-terminal.git")
+  :config (unless (display-graphic-p)
+            (corfu-terminal-mode +1)))
+
 (use-package orderless
   :init
   ;; Configure a custom style dispatcher (see the Consult wiki)
