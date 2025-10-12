@@ -1338,6 +1338,19 @@ Saves to a temp file and puts the filename in the kill ring."
                           "#+TITLE: @${title}\n#+DATE: %<%Y-%m-%d>\n#+FILETAGS: private entity\n\n")
                  :unnarrowed t))))
 
+  ;; Always add an org-id when capturing
+  (defun my/org-capture-add-id ()
+    "Add an `ID` property to the newly captured entry."
+    (when (derived-mode-p 'org-mode)
+      (let ((id (org-id-new)))
+        (if (org-at-heading-p)
+            (org-set-property "ID" id)
+          (save-excursion
+            (goto-char (point-max))
+            (insert "\n:PROPERTIES:\n:ID: " id "\n:END:\n"))))))
+
+  (add-hook 'org-capture-prepare-finalize-hook #'my/org-capture-add-id)
+
   ;; Journaling setup
   (setq org-roam-dailies-directory "")
 
@@ -1751,7 +1764,7 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package gptel
   :config
   (setq gptel-api-key (or (getenv "OPENAI_API_KEY") ""))
-  (setq gptel-default-mode 'org-mode)
+  (setq gptel-default-mode 'markdown-mode)
   ;; Ollama setup
   (gptel-make-ollama "Ollama"
     :stream t
@@ -1764,10 +1777,13 @@ Saves to a temp file and puts the filename in the kill ring."
     :key "not-needed"
     :host (or (getenv "LM_STUDIO_HOST") "localhost:1234")
     :protocol "http"
-    :models '("qwen/qwen3-30b-a3b-2507"
+    :models '("glm-4.6"
+              "qwen/qwen3-30b-a3b-2507"
               "qwen/qwen3-235b-a22b-2507"
               "openai/gpt-oss-20b"
               "openai/gpt-oss-120b"
+              "qwen/qwen3-coder-30b"
+              "qwen3-coder-480b-a35b-instruct-mlx"
               "kimi-k2"
               "deepseek-r1-0528@4bit")))
 
