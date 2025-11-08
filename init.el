@@ -540,7 +540,39 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; https://github.com/joaotavora/eglot/commit/d0a657e81c5b02529c4f32c2e51e00bdf4729a9e
   (defun eglot--major-mode (server) (car (eglot--major-modes server)))
 
+  ;; FIX: basedpyright returns an array for the :text field instead of
+  ;; a string. This overrides flymake's diagnostic so we don't get a
+  ;; "wrong type arrayp" error.
+  ;; AI wrote this function!
+  (defun my/flymake-diagnostic-oneliner--coerce-array (orig diag &rest args)
+    "Ensure DIAG has a string :text before ORIG runs."
+    (let* ((text (condition-case nil
+                     (flymake-diagnostic-text diag) ; public accessor (Emacs 29+)
+                   (error (when (fboundp 'flymake--diag-text)
+                            (flymake--diag-text diag)))))
+           (normalized
+            (cond
+             ((stringp text) text)
+             ;; Common Eglot shape: (SOURCE CODE MESSAGE)
+             ((and (listp text)
+                   (stringp (car (last text))))
+              (car (last text)))
+             ;; Vector -> string
+             ((vectorp text) (concat text))
+             ;; Fallback
+             (t (format "%s" text)))))
+      ;; Write back if we can (uses cl-struct accessor)
+      (when (and (not (equal text normalized))
+                 (fboundp 'flymake--diag-text))
+        (setf (flymake--diag-text diag) normalized))
+      (apply orig diag args)))
+
+  ;; Install the advice once (e.g. in your init file):
+  (advice-add #'flymake-diagnostic-oneliner
+              :around #'my/flymake-diagnostic-oneliner--coerce-array)
+
   (add-to-list 'eglot-stay-out-of 'flyspell)
+  (add-to-list 'eglot-stay-out-of 'format)
 
   ;; Better support for rust projects with multiple sub projects
   (defun my-project-try-cargo-toml (dir)
@@ -562,26 +594,49 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-to-list 'eglot-server-programs
                '((typescript-mode) "typescript-language-server" "--stdio"))
 
-  (setq-default eglot-workspace-configuration
-                '(:pylsp (:plugins (:pycodestyle (:enabled :json-false)
-                                    :pyflakes (:enabled t)
-                                    :isort (:enabled t)
-                                    :rope (:enabled t)
-                                    :black (:enabled t)))))
 
-  (defun my-project-try-pyproject-toml (dir)
-    (when-let* ((found (locate-dominating-file dir "pyproject.toml")))
-      (cons 'eglot-project found)))
+    (setq-default
+       eglot-workspace-configuration
+       '(:basedpyright (
+           :typeCheckingMode "recommended"
+         )
+         :basedpyright.analysis (
+           :diagnosticSeverityOverrides (
+             :reportUnusedCallResult "none"
+           )
+           :inlayHints (
+             :callArgumentNames :json-false
+           )
+         )))
 
-  (add-hook 'project-find-functions 'my-project-try-pyproject-toml nil nil)
+  (setq eglot-ignored-server-capabilities
+	'(:documentFormattingProvider
+	  :documentRangeFormattingProvider
+	  :documentOnTypeFormattingProvider
+	  :diagnosticProvider))
 
-  (add-to-list 'eglot-server-programs '(python-mode . ("pylsp")))
+  ;; (setq-default eglot-workspace-configuration
+  ;;               '(:pylsp (:plugins (:pycodestyle (:enabled :json-false)
+  ;;                                   :pyflakes (:enabled t)
+  ;;                                   :isort (:enabled t)
+  ;;                                   :rope (:enabled t)
+  ;;                                   :black (:enabled t)))))
+
+  ;; (defun my-project-try-pyproject-toml (dir)
+  ;;   (when-let* ((found (locate-dominating-file dir "pyproject.toml")))
+  ;;     (cons 'eglot-project found)))
+
+  ;; (add-hook 'project-find-functions 'my-project-try-pyproject-toml nil nil)
+
+  ;; (add-to-list 'eglot-server-programs '(python-mode . ("pylsp")))
+
+  (add-to-list 'eglot-server-programs
+            '((python-mode python-ts-mode) .
+              ("basedpyright-langserver" "--stdio")))
 
   (add-to-list 'eglot-server-programs
              '((rust-ts-mode rust-mode) .
-               ("rust-analyzer" :initializationOptions (:check (:command "clippy")))))
-
-  )
+               ("rust-analyzer" :initializationOptions (:check (:command "clippy"))))))
 
 ;; Projectile
 (use-package projectile
@@ -635,10 +690,10 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; Requires emacs-lsp-booster to be installed
 ;; https://github.com/blahgeek/emacs-lsp-booster
 ;; cargo install emacs-lsp-booster
-(use-package eglot-booster
-  :straight ( eglot-booster :type git :host nil :repo "https://github.com/jdtsmith/eglot-booster")
-  :after eglot
-  :config (eglot-booster-mode))
+;; (use-package eglot-booster
+;;   :straight ( eglot-booster :type git :host nil :repo "https://github.com/jdtsmith/eglot-booster")
+;;   :after eglot
+;;   :config (eglot-booster-mode))
 
 ;; Git using magit
 (use-package magit
@@ -1342,12 +1397,7 @@ Saves to a temp file and puts the filename in the kill ring."
   (defun my/org-capture-add-id ()
     "Add an `ID` property to the newly captured entry."
     (when (derived-mode-p 'org-mode)
-      (let ((id (org-id-new)))
-        (if (org-at-heading-p)
-            (org-set-property "ID" id)
-          (save-excursion
-            (goto-char (point-max))
-            (insert "\n:PROPERTIES:\n:ID: " id "\n:END:\n"))))))
+      (org-id-get-create)))
 
   (add-hook 'org-capture-prepare-finalize-hook #'my/org-capture-add-id)
 
