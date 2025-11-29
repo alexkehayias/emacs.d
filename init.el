@@ -482,10 +482,6 @@
 ;; Shortcut for rectangle edits
 (global-set-key (kbd "C-x r i") 'string-insert-rectangle)
 
-;; Shortcut for jumping to next error with flymake (used by eglot)
-(global-set-key (kbd "M-n") 'flymake-goto-next-error)
-(global-set-key (kbd "M-p") 'flymake-goto-prev-error)
-
 ;; Copy file name to clipboard
 (defun copy-file-name ()
   "Put the current file name on the clipboard"
@@ -534,42 +530,49 @@ Saves to a temp file and puts the filename in the kill ring."
 ;; Show the time
 (display-time-mode 1)
 
+(use-package flymake
+  :config
+  ;; Shortcut for jumping to next error with flymake (used by eglot)
+  (global-set-key (kbd "M-n") 'flymake-goto-next-error)
+  (global-set-key (kbd "M-p") 'flymake-goto-prev-error))
+
 (use-package eglot
+  :after flymake
   :config
   ;; Fix breaking change introduced in
   ;; https://github.com/joaotavora/eglot/commit/d0a657e81c5b02529c4f32c2e51e00bdf4729a9e
   (defun eglot--major-mode (server) (car (eglot--major-modes server)))
 
-  ;; FIX: basedpyright returns an array for the :text field instead of
-  ;; a string. This overrides flymake's diagnostic so we don't get a
-  ;; "wrong type arrayp" error.
-  ;; AI wrote this function!
-  (defun my/flymake-diagnostic-oneliner--coerce-array (orig diag &rest args)
-    "Ensure DIAG has a string :text before ORIG runs."
-    (let* ((text (condition-case nil
-                     (flymake-diagnostic-text diag) ; public accessor (Emacs 29+)
-                   (error (when (fboundp 'flymake--diag-text)
-                            (flymake--diag-text diag)))))
-           (normalized
-            (cond
-             ((stringp text) text)
-             ;; Common Eglot shape: (SOURCE CODE MESSAGE)
-             ((and (listp text)
-                   (stringp (car (last text))))
-              (car (last text)))
-             ;; Vector -> string
-             ((vectorp text) (concat text))
-             ;; Fallback
-             (t (format "%s" text)))))
-      ;; Write back if we can (uses cl-struct accessor)
-      (when (and (not (equal text normalized))
-                 (fboundp 'flymake--diag-text))
-        (setf (flymake--diag-text diag) normalized))
-      (apply orig diag args)))
+  ;; FIX: basedpyright and rust-analyzer returns an array for the
+  ;; :text field instead of a string. This overrides flymake's
+  ;; diagnostic so we don't get a "wrong type arrayp" error.  AI wrote
+  ;; this function!
+  ;; (defun my/flymake-diagnostic-oneliner--coerce-array (orig diag &rest args)
+  ;;   "Ensure DIAG has a string :text before ORIG runs."
+  ;;   (let* ((text (condition-case nil
+  ;;                    (flymake-diagnostic-text diag) ; public accessor (Emacs 29+)
+  ;;                  (error (when (fboundp 'flymake--diag-text)
+  ;;                           (flymake--diag-text diag)))))
+  ;;          (normalized
+  ;;           (cond
+  ;;            ((stringp text) text)
+  ;;            ;; Common Eglot shape: (SOURCE CODE MESSAGE)
+  ;;            ((and (listp text)
+  ;;                  (stringp (car (last text))))
+  ;;             (car (last text)))
+  ;;            ;; Vector -> string
+  ;;            ((vectorp text) (concat text))
+  ;;            ;; Fallback
+  ;;            (t (format "%s" text)))))
+  ;;     ;; Write back if we can (uses cl-struct accessor)
+  ;;     (when (and (not (equal text normalized))
+  ;;                (fboundp 'flymake--diag-text))
+  ;;       (setf (flymake--diag-text diag) normalized))
+  ;;     (apply orig diag args)))
 
-  ;; Install the advice once (e.g. in your init file):
-  (advice-add #'flymake-diagnostic-oneliner
-              :around #'my/flymake-diagnostic-oneliner--coerce-array)
+  ;; ;; Install the advice once (e.g. in your init file):
+  ;; (advice-add #'flymake-diagnostic-oneliner
+  ;;             :around #'my/flymake-diagnostic-oneliner--coerce-array)
 
   (add-to-list 'eglot-stay-out-of 'flyspell)
   (add-to-list 'eglot-stay-out-of 'format)
@@ -636,7 +639,9 @@ Saves to a temp file and puts the filename in the kill ring."
 
   (add-to-list 'eglot-server-programs
              '((rust-ts-mode rust-mode) .
-               ("rust-analyzer" :initializationOptions (:check (:command "clippy"))))))
+               ("rust-analyzer" :initializationOptions (:check (:command "clippy")))))
+
+  )
 
 ;; Projectile
 (use-package projectile
@@ -1626,6 +1631,11 @@ Saves to a temp file and puts the filename in the kill ring."
 (defadvice load-theme (before theme-dont-propagate activate)
   (mapc #'disable-theme custom-enabled-themes))
 
+(use-package catppuccin-theme
+  :config
+  (setq catppuccin-flavor 'mocha)
+  (load-theme 'catppuccin))
+
 ;; Use doom theme
 (use-package doom-themes
   :config
@@ -1633,7 +1643,8 @@ Saves to a temp file and puts the filename in the kill ring."
         doom-themes-enable-italic t)
   (doom-themes-org-config)
   (doom-themes-visual-bell-config)
-  (load-theme 'doom-monokai-octagon t))
+  ;; (load-theme 'doom-monokai-octagon t)
+  )
 
 (use-package nerd-icons)
 
