@@ -22,6 +22,7 @@
  ("emacs-corfu-terminal" . "501548c3d51f926c687e8cd838c5865ec45d03cc")
  ("emacs-htmlize" . "ed5e5b05fd260e8f161a488d56f10e7f6e01fb75")
  ("emacs-libvterm" . "d9ea29fb10aed20512bd95dc5b8c1a01684044b1")
+ ("emacs-pet" . "1f7450237549ad9850543fbc78d12f9fd375324d")
  ("emacs-request" . "01e338c335c07e4407239619e57361944a82cb8a")
  ("emacs-web-server" . "3982c55e9061475038a3ccd61aecb2de3d407cec")
  ("emacs-websocket" . "40c208eaab99999d7c1e4bea883648da24c03be3")

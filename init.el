@@ -802,44 +802,22 @@ Saves to a temp file and puts the filename in the kill ring."
   (add-to-list 'auto-mode-alist '("\\.yaml\\'" . yaml-mode)))
 
 ;; Python
-;; (use-package python-mode
-;;   :config
-;;   (setq python-shell-interpreter "python3.10")
-;;   (add-to-list 'auto-mode-alist '("\\.py\\'" . python-mode))
-;;   (org-babel-do-load-languages
-;;    'org-babel-load-languages
-;;    '((python . t)))
-;;   (setq-default py-shell-name "python3.10"
-;;                 python-indent-offset 4
-;;                 ;; Assumes the python source directory is in {PROJECT_ROOT}/src
-;;                 py-python-command-args `("-i" "-c" "import os;import sys;sys.path.append(os.getcwd()+'src')")))
+(use-package pet
+  :config
+  ;; Fix gibberish in shell when tab completing or executing code
+  (defun python-comint-filter (output)
+    (replace-regexp-in-string "__PYTHON_EL_eval_file.+\n" "" output))
+  (add-to-list 'comint-preoutput-filter-functions #'python-comint-filter)
 
-;; (use-package pyvenv
-;;   :ensure t
-;;   :config
-;;   (pyvenv-mode t)
-;;   (setq pyvenv-mode-line-indicator
-;;         '(pyvenv-virtual-env-name ("[venv:" pyvenv-virtual-env-name "] ")))
-;;   ;; Set correct Python interpreter
-;;   (setq pyvenv-post-activate-hooks
-;;         (list (lambda ()
-;;                 (setq python-shell-interpreter (concat pyvenv-virtual-env "bin/ipython")))))
-;;   (setq pyvenv-post-deactivate-hooks
-;;         (list (lambda ()
-;;                 (setq python-shell-interpreter "ipython"))))
-;;   )
+  ;; Same for in the eldoc buffer
+  (defun python-eldoc-filter (orig-fun string)
+    (let ((clean (if (stringp string) (replace-regexp-in-string "__PYTHON_EL_eval_file.+" "" string) string)))
+      (funcall orig-fun clean)))
+  (advice-add 'eldoc--message :around #'python-eldoc-filter)
 
-;; (use-package pyenv-mode
-;;   :config
-;;   (pyenv-mode)
-;;   (defun projectile-pyenv-mode-set ()
-;;     "Set pyenv version matching project name."
-;;     (let ((project (projectile-project-name)))
-;;       (if (member project (pyenv-mode-versions))
-;;           (pyenv-mode-set project)
-;;         (pyenv-mode-unset))))
-
-;;   (add-hook 'projectile-after-switch-project-hook 'projectile-pyenv-mode-set))
+  (setq python-shell-interpreter "ipython"
+        python-shell-interpreter-args "-i --simple-prompt")
+  (add-hook 'python-base-mode-hook 'pet-mode -10))
 
 ;; Format line numbers nicely
 (setq linum-format (quote " %3d "))
@@ -1826,12 +1804,6 @@ Saves to a temp file and puts the filename in the kill ring."
   :config
   (setq gptel-api-key (or (getenv "OPENAI_API_KEY") ""))
   (setq gptel-default-mode 'markdown-mode)
-  ;; Ollama setup
-  (gptel-make-ollama "Ollama"
-    :stream t
-    :host "localhost:11434"
-    :models '("llama3:8b"
-              "deepseek-r1:8b"))
 
   (gptel-make-openai "LM Studio"
     :stream t
@@ -1839,6 +1811,7 @@ Saves to a temp file and puts the filename in the kill ring."
     :host (or (getenv "LM_STUDIO_HOST") "localhost:1234")
     :protocol "http"
     :models '("glm-4.6"
+              "minimax/minimax-m2"
               "qwen/qwen3-30b-a3b-2507"
               "qwen/qwen3-235b-a22b-2507"
               "openai/gpt-oss-20b"
@@ -1846,6 +1819,7 @@ Saves to a temp file and puts the filename in the kill ring."
               "qwen/qwen3-coder-30b"
               "qwen3-coder-480b-a35b-instruct-mlx"
               "kimi-k2"
+              "deepseek-v3.2-speciale"
               "deepseek-r1-0528@4bit")))
 
 (use-package marginalia
@@ -1880,7 +1854,7 @@ Saves to a temp file and puts the filename in the kill ring."
          ("C-c k" . consult-kmacro)
          ("C-c m" . consult-man)
          ("C-c i" . consult-info)
-         ("C-x C-r" . consult-ripgrep)
+         ("C-c C-r" . consult-ripgrep)
          ([remap Info-search] . consult-info)
          ;; C-x bindings in `ctl-x-map'
          ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
