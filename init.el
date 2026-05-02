@@ -1062,6 +1062,16 @@ Saves to a temp file and puts the filename in the kill ring."
                         (file-truename org-roam-notes-path)
                         (string-replace "CAPTURE-" "" (buffer-name))))))
 
+(use-package sqlite3
+  :straight
+  (sqlite3
+   :host github
+   :repo "pekingduck/emacs-sqlite3-api"
+   :files (:defaults "*.dll" "*.dylib" "*.so")
+   :pre-build ("env" "HOMEBREW=1" "make" "all"))
+  :config
+  (load-library "sqlite3"))
+
 (use-package org-roam
   :after (org)
   ;; :bind (:map org-mode-map
@@ -1157,6 +1167,8 @@ Saves to a temp file and puts the filename in the kill ring."
                  (let ((begin (plist-get (first (cdr paragraph)) :begin))
                        (end (plist-get (first (cdr paragraph)) :end)))
                    (buffer-substring begin end)))))))
+  (setq org-roam-db-location
+        (expand-file-name (locate-user-emacs-file "org-roam.db")))
   ;; Include backlinks in org exported notes not tagged as private or
   ;; draft or section
   (defun my/org-roam--backlinks-list (id file)
@@ -1612,7 +1624,7 @@ Saves to a temp file and puts the filename in the kill ring."
 (use-package catppuccin-theme
   :config
   (setq catppuccin-flavor 'mocha)
-  (load-theme 'catppuccin))
+  :hook (after-init . (lambda () (load-theme 'catppuccin))))
 
 ;; Use doom theme
 (use-package doom-themes

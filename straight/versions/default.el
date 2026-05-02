@@ -24,6 +24,7 @@
  ("emacs-libvterm" . "d9ea29fb10aed20512bd95dc5b8c1a01684044b1")
  ("emacs-pet" . "1f7450237549ad9850543fbc78d12f9fd375324d")
  ("emacs-request" . "01e338c335c07e4407239619e57361944a82cb8a")
+ ("emacs-sqlite3-api" . "615cc1cb021384291cec39a2048a3a36859e8cb9")
  ("emacs-web-server" . "3982c55e9061475038a3ccd61aecb2de3d407cec")
  ("emacs-websocket" . "40c208eaab99999d7c1e4bea883648da24c03be3")
  ("emacsmirror-mirror" . "2808fa53be54cab189f2feb936576906cfd18009")
