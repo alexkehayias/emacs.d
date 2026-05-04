@@ -536,113 +536,6 @@ Saves to a temp file and puts the filename in the kill ring."
   (global-set-key (kbd "M-n") 'flymake-goto-next-error)
   (global-set-key (kbd "M-p") 'flymake-goto-prev-error))
 
-(use-package eglot
-  :after flymake
-  :config
-  ;; Fix breaking change introduced in
-  ;; https://github.com/joaotavora/eglot/commit/d0a657e81c5b02529c4f32c2e51e00bdf4729a9e
-  (defun eglot--major-mode (server) (car (eglot--major-modes server)))
-
-  ;; FIX: basedpyright and rust-analyzer returns an array for the
-  ;; :text field instead of a string. This overrides flymake's
-  ;; diagnostic so we don't get a "wrong type arrayp" error.  AI wrote
-  ;; this function!
-  ;; (defun my/flymake-diagnostic-oneliner--coerce-array (orig diag &rest args)
-  ;;   "Ensure DIAG has a string :text before ORIG runs."
-  ;;   (let* ((text (condition-case nil
-  ;;                    (flymake-diagnostic-text diag) ; public accessor (Emacs 29+)
-  ;;                  (error (when (fboundp 'flymake--diag-text)
-  ;;                           (flymake--diag-text diag)))))
-  ;;          (normalized
-  ;;           (cond
-  ;;            ((stringp text) text)
-  ;;            ;; Common Eglot shape: (SOURCE CODE MESSAGE)
-  ;;            ((and (listp text)
-  ;;                  (stringp (car (last text))))
-  ;;             (car (last text)))
-  ;;            ;; Vector -> string
-  ;;            ((vectorp text) (concat text))
-  ;;            ;; Fallback
-  ;;            (t (format "%s" text)))))
-  ;;     ;; Write back if we can (uses cl-struct accessor)
-  ;;     (when (and (not (equal text normalized))
-  ;;                (fboundp 'flymake--diag-text))
-  ;;       (setf (flymake--diag-text diag) normalized))
-  ;;     (apply orig diag args)))
-
-  ;; ;; Install the advice once (e.g. in your init file):
-  ;; (advice-add #'flymake-diagnostic-oneliner
-  ;;             :around #'my/flymake-diagnostic-oneliner--coerce-array)
-
-  (add-to-list 'eglot-stay-out-of 'flyspell)
-  (add-to-list 'eglot-stay-out-of 'format)
-
-  ;; Better support for rust projects with multiple sub projects
-  (defun my-project-try-cargo-toml (dir)
-    (when-let* ((output
-                 (let ((default-directory dir))
-                   (shell-command-to-string "cargo metadata --no-deps --format-version 1")))
-                (js (ignore-errors (json-read-from-string output)))
-                (found (cdr (assq 'workspace_root js))))
-      (cons 'eglot-project found)))
-
-  (add-hook 'project-find-functions 'my-project-try-cargo-toml nil nil)
-
-  (defun my-project-try-tsconfig-json (dir)
-    (when-let* ((found (locate-dominating-file dir "tsconfig.json")))
-      (cons 'eglot-project found)))
-
-  (add-hook 'project-find-functions 'my-project-try-tsconfig-json nil nil)
-
-  (add-to-list 'eglot-server-programs
-               '((typescript-mode) "typescript-language-server" "--stdio"))
-
-
-    (setq-default
-       eglot-workspace-configuration
-       '(:basedpyright (
-           :typeCheckingMode "recommended"
-         )
-         :basedpyright.analysis (
-           :diagnosticSeverityOverrides (
-             :reportUnusedCallResult "none"
-           )
-           :inlayHints (
-             :callArgumentNames :json-false
-           )
-         )))
-
-  (setq eglot-ignored-server-capabilities
-	'(:documentFormattingProvider
-	  :documentRangeFormattingProvider
-	  :documentOnTypeFormattingProvider
-	  :diagnosticProvider))
-
-  ;; (setq-default eglot-workspace-configuration
-  ;;               '(:pylsp (:plugins (:pycodestyle (:enabled :json-false)
-  ;;                                   :pyflakes (:enabled t)
-  ;;                                   :isort (:enabled t)
-  ;;                                   :rope (:enabled t)
-  ;;                                   :black (:enabled t)))))
-
-  ;; (defun my-project-try-pyproject-toml (dir)
-  ;;   (when-let* ((found (locate-dominating-file dir "pyproject.toml")))
-  ;;     (cons 'eglot-project found)))
-
-  ;; (add-hook 'project-find-functions 'my-project-try-pyproject-toml nil nil)
-
-  ;; (add-to-list 'eglot-server-programs '(python-mode . ("pylsp")))
-
-  (add-to-list 'eglot-server-programs
-            '((python-mode python-ts-mode) .
-              ("basedpyright-langserver" "--stdio")))
-
-  (add-to-list 'eglot-server-programs
-             '((rust-ts-mode rust-mode) .
-               ("rust-analyzer" :initializationOptions (:check (:command "clippy")))))
-
-  )
-
 ;; Projectile
 (use-package projectile
   :config
@@ -691,6 +584,53 @@ Saves to a temp file and puts the filename in the kill ring."
                 (find-file (concat root "notes.org")))
             (error "Notes file not found in this project"))))))
   (global-set-key (kbd "C-x M-n") 'projectile-notes))
+
+(use-package eglot
+  :after (project projectile)
+  :config
+  ;; Fix breaking change introduced in
+  ;; https://github.com/joaotavora/eglot/commit/d0a657e81c5b02529c4f32c2e51e00bdf4729a9e
+  (defun eglot--major-mode (server) (car (eglot--major-modes server)))
+
+  ;; project-name was added in Emacs 29; provide a compat shim for Emacs 28
+  (unless (fboundp 'project-name)
+    (defun project-name (project)
+      "Return the name of PROJECT.
+PROJECT is a cons cell (TYPE . ROOT)."
+      (file-name-nondirectory (directory-file-name (cdr project)))))
+
+  (add-to-list 'eglot-stay-out-of 'flyspell)
+  (add-to-list 'eglot-stay-out-of 'format)
+
+  ;; Better support for rust projects with multiple sub projects
+  ;; (defun my-project-try-cargo-toml (dir)
+  ;;   (when-let* ((output
+  ;;                (let ((default-directory dir))
+  ;;                  (shell-command-to-string "cargo metadata --no-deps --format-version 1")))
+  ;;               (js (ignore-errors (json-read-from-string output)))
+  ;;               (found (cdr (assq 'workspace_root js))))
+  ;;     (cons 'default found)))
+
+  ;; (add-hook 'project-find-functions 'my-project-try-cargo-toml nil nil)
+
+  (defun my-project-try-tsconfig-json (dir)
+    (when-let* ((found (locate-dominating-file dir "tsconfig.json")))
+      (cons 'eglot-project found)))
+
+  (add-hook 'project-find-functions 'my-project-try-tsconfig-json nil nil)
+
+  (add-to-list 'eglot-server-programs
+               '((typescript-mode) "typescript-language-server" "--stdio"))
+
+  (setq eglot-ignored-server-capabilities
+	'(:documentFormattingProvider
+	  :documentRangeFormattingProvider
+	  :documentOnTypeFormattingProvider
+	  :diagnosticProvider))
+
+  (add-to-list 'eglot-server-programs
+             '((rust-ts-mode rust-mode) .
+               ("rust-analyzer" :initializationOptions (:check (:command "clippy"))))))
 
 ;; Requires emacs-lsp-booster to be installed
 ;; https://github.com/blahgeek/emacs-lsp-booster
