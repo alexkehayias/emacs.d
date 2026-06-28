@@ -592,6 +592,9 @@ Saves to a temp file and puts the filename in the kill ring."
   ;; https://github.com/joaotavora/eglot/commit/d0a657e81c5b02529c4f32c2e51e00bdf4729a9e
   (defun eglot--major-mode (server) (car (eglot--major-modes server)))
 
+  ;; Turn off fringe icons
+  (setq eglot-code-action-indications '())
+
   ;; project-name was added in Emacs 29; provide a compat shim for Emacs 28
   (unless (fboundp 'project-name)
     (defun project-name (project)
@@ -1328,13 +1331,7 @@ PROJECT is a cons cell (TYPE . ROOT)."
                           "#+TITLE: @${title}\n#+DATE: %<%Y-%m-%d>\n#+FILETAGS: private entity\n\n")
                  :unnarrowed t))))
 
-  ;; Always add an org-id when capturing
-  (defun my/org-capture-add-id ()
-    "Add an `ID` property to the newly captured entry."
-    (when (derived-mode-p 'org-mode)
-      (org-id-get-create)))
-
-  (add-hook 'org-capture-prepare-finalize-hook #'my/org-capture-add-id)
+  (add-hook 'org-capture-prepare-finalize-hook #'org-id-get-create)
 
   ;; Journaling setup
   (setq org-roam-dailies-directory "")
