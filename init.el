@@ -415,7 +415,10 @@
   (add-to-list 'default-frame-alist '(ns-transparent-titlebar . t))
   (add-to-list 'default-frame-alist '(ns-appearance . dark))
   (setq ns-use-proxy-icon nil)
-  (setq frame-title-format nil))
+  (setq frame-title-format nil)
+
+  ;; Enable mouse events
+  (xterm-mouse-mode))
 
 ;; Linux settings
 (when (or
@@ -1388,6 +1391,11 @@ PROJECT is a cons cell (TYPE . ROOT)."
 ;; --with-modules to work.
 (use-package vterm
   :defer t)
+
+;; An even better terminal emulator based on libghostty.
+(use-package ghostel
+  :defer t
+  :straight (:type git :host github :repo "dakra/ghostel"))
 
 (defun new-term (buffer-name)
   "Start a terminal and rename buffer."
