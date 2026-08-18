@@ -267,8 +267,7 @@
 
   ;; Agenda
   (setq org-agenda-text-search-extra-files
-	'(agenda-archives
-	  "~/Org/notes.org_archive"))
+	'(agenda-archives))
   (define-key global-map (kbd "C-c a") 'org-agenda)
   (define-key global-map (kbd "C-c C-a") 'org-agenda)
 
@@ -291,17 +290,17 @@
 
   ;; Capture
   (global-set-key (kbd "C-c c") 'org-capture)
-  (setq org-default-notes-file "~/Org/refile.org")
+  (setq org-default-notes-file "~/Org/notes/projects/capture.org")
   ;; Allow the creation of parent headings when refiling
   (setq org-refile-allow-creating-parent-nodes t)
   (setq org-capture-templates
-	(quote (("t" "To Do" entry (file "~/Org/refile.org")
+	(quote (("t" "To Do" entry (file "~/Org/notes/projects/capture.org")
 		 "* TODO %?\n%U" :clock-in t :clock-resume t)
-		("n" "Note" entry (file "~/Org/refile.org")
+		("n" "Note" entry (file "~/Org/notes/projects/capture.org")
 		 "* %? %T :note:\n%U\n%a\n" :clock-in t :clock-resume t)
-		("m" "Meeting" entry (file "~/Org/refile.org")
+		("m" "Meeting" entry (file "~/Org/notes/projects/capture.org")
 		 "* Meeting w/%? %T :meeting:\n%U" :clock-in t :clock-resume t)
-		("i" "Interview" entry (file "~/Org/refile.org")
+		("i" "Interview" entry (file "~/Org/notes/projects/capture.org")
 		 "* Interview w/%? %T :interview:\n%U" :clock-in t :clock-resume t))))
 
   ;; Auto mark parent todos as done if childrend are done
@@ -416,7 +415,7 @@
 ;; Org roam
 ;; These are specified so they can be dynamically configured
 ;; by calling emacs in batch mode in a CI context
-(setq org-roam-notes-path (or (getenv "ORG_ROAM_NOTES_PATH") "~/Org/notes"))
+(setq org-roam-notes-path (or (getenv "ORG_ROAM_NOTES_PATH") "~/Org/notes/notes"))
 (setq org-roam-publish-path (or (getenv "ORG_ROAM_PUBLISH_PATH") "~/Projects/zettel"))
 
 (use-package org-roam

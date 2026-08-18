@@ -50,7 +50,7 @@
 (eval-when-compile
   (require 'cl))
 
-(setq org-refile-path (or (getenv "ORG_REFILE_PATH") "~/Org/refile.org"))
+(setq org-refile-path (or (getenv "ORG_REFILE_PATH") "~/Org/notes/projects/capture.org"))
 
 (use-package org
   :config
@@ -996,7 +996,7 @@ PROJECT is a cons cell (TYPE . ROOT)."
 ;; Org roam
 ;; These are specified so they can be dynamically configured
 ;; by calling emacs in batch mode in a CI context
-(setq org-roam-notes-path (or (getenv "ORG_ROAM_NOTES_PATH") "~/Org/notes"))
+(setq org-roam-notes-path (or (getenv "ORG_ROAM_NOTES_PATH") "~/Org/notes/notes"))
 (setq org-roam-publish-path (or (getenv "ORG_ROAM_PUBLISH_PATH") "~/Projects/zettel"))
 
 (defun my/org-roam-capture-set-file-name (&rest r)
